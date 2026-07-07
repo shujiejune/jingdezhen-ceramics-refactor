@@ -2,6 +2,7 @@ package api
 
 import (
 	"jingdezhen-ceramics-backend/internal/api/middleware"
+	"jingdezhen-ceramics-backend/internal/models"
 	"jingdezhen-ceramics-backend/internal/modules/ceramicstory"
 	"jingdezhen-ceramics-backend/internal/modules/engage"
 	"jingdezhen-ceramics-backend/internal/modules/gallery"
@@ -106,13 +107,20 @@ func SetupRoutes(
 		engageGroup.Get("/:activity_id_or_slug", engageHandler.GetActivityArticle) // For detailed article
 	}
 
-	/* --- Admin Routes (Protected by Admin Role) --- */
-	// NOTE: Admin CMS routes (content approval, product management, itinerary CRM,
-	// dashboard, etc.) will be rebuilt around the PRD §3.4.1 RBAC model.
+	/* --- Admin Routes (PRD §3.4.1 RBAC) --- */
+	// All /admin routes require auth + the route-specific permission.
+	// Super Administrator bypasses every permission check.
 	adminGroup := app.Group("/admin")
 	adminGroup.Use(middleware.JWTMAuth(jwtSecretKey))
-	adminGroup.Use(middleware.AdminRequired())
 	{
-		// Placeholder until CMS modules land (PRD §3.4).
+		// Staff account & role management (Super Admin only in v1).
+		adminUsers := adminGroup.Group("/users")
+		adminUsers.Use(middleware.RequirePermission(models.PermUsersManage))
+		{
+			adminUsers.Get("", userHandler.AdminListUsers)
+			adminUsers.Put("/:user_id/role", userHandler.AdminAssignRole)
+		}
+		// CMS modules (content, products, orders, itinerary CRM, dashboard)
+		// land in later milestones — each with its own RequirePermission.
 	}
 }

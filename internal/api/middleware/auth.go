@@ -8,33 +8,23 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-// JWTMAuth configures and returns EchoFiber's JWT middleware.
+// JWTMAuth configures and returns Fiber's JWT middleware.
 // It uses the jwtSecretKey from the config file (.env).
 func JWTMAuth(jwtSecretKey string) fiber.Handler {
 	return jwtware.New(jwtware.Config{
-		// SigningKey is the secret key used to verify the JWT's signature.
-		SigningKey: jwtware.SigningKey{Key: []byte(jwtSecretKey)},
-		// ContextKey is the key used to store the token in c.Locals(). Default is "user".
-		ContextKey: "user",
-		// SuccessHandler is called after a token is successfully validated.
-		// We use it here to extract our custom claims and put them into the context.
+		SigningKey:  jwtware.SigningKey{Key: []byte(jwtSecretKey)},
+		ContextKey:  "user",
 		SuccessHandler: func(c *fiber.Ctx) error {
-			// Get the token from c.Locals("user")
 			token := c.Locals("user").(*jwt.Token)
-			// Type-assert the claims to our custom claims struct.
 			claims := token.Claims.(jwt.MapClaims)
 
-			// Set our specific claims into c.Locals for easy access in subsequent handlers.
 			c.Locals("userID", claims["user_id"])
 			c.Locals("userEmail", claims["email"])
-			c.Locals("userRole", claims["role"])
+			c.Locals("userRoles", rolesFromClaims(claims["roles"]))
 
-			// Crucially, we must call c.Next() to pass control to the next handler.
 			return c.Next()
 		},
-		// ErrorHandler is called when there's an error in token validation.
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
-			// Return a clear error message to the client.
 			if err.Error() == "Missing or malformed JWT" {
 				return c.Status(fiber.StatusUnauthorized).JSON(models.ErrorResponse{Message: "Missing or malformed JWT"})
 			}
@@ -43,41 +33,97 @@ func JWTMAuth(jwtSecretKey string) fiber.Handler {
 	})
 }
 
-// AdminRequired is a middleware that checks if the authenticated user has an 'admin' role.
-// It must be used AFTER the JWTMAuth middleware in the chain.
-func AdminRequired() fiber.Handler {
+// rolesFromClaims normalises the roles claim (which decodes as []interface{}
+// from MapClaims) into []string.
+func rolesFromClaims(v any) []string {
+	arr, ok := v.([]any)
+	if !ok {
+		return nil
+	}
+	out := make([]string, 0, len(arr))
+	for _, r := range arr {
+		if s, ok := r.(string); ok {
+			out = append(out, s)
+		}
+	}
+	return out
+}
+
+// UserRoles returns the authenticated user's role keys from c.Locals.
+func UserRoles(c *fiber.Ctx) []string {
+	roles, _ := c.Locals("userRoles").([]string)
+	return roles
+}
+
+// HasRole reports whether the authenticated user holds the given role.
+// Super Administrator implicitly satisfies every role check.
+func HasRole(c *fiber.Ctx, role string) bool {
+	roles := UserRoles(c)
+	for _, r := range roles {
+		if r == role || r == models.RoleSuperAdmin {
+			return true
+		}
+	}
+	return false
+}
+
+// RequirePermission returns a middleware that checks the authenticated user
+// holds the given permission (directly via role_permissions, or implicitly as
+// Super Administrator). Must be used AFTER JWTMAuth.
+//
+// Permission checks against role_permissions are enforced in the service /
+// repository layer against the DB; for request-gating, Super Administrator
+// bypasses and a single staff-role presence is sufficient here. Finer
+// permission checks happen in services once the RBAC repo (§4.1) lands.
+// Until then, RequireRole is the concrete gate.
+func RequirePermission(perm string) fiber.Handler {
+	// Map each permission to the staff role(s) allowed to satisfy it at the
+	// routing layer. Super Administrator always bypasses.
+	allowed := permissionRoleGate[perm]
 	return func(c *fiber.Ctx) error {
-		// Get the userRole from c.Locals, which was set by JWTMAuth's SuccessHandler.
-		userRole, ok := c.Locals("userRole").(string)
-		if !ok {
-			// This case might happen if AdminRequired is mistakenly used without JWTMAuth.
-			return c.Status(fiber.StatusForbidden).JSON(models.ErrorResponse{Message: "Permission denied: Role not determined"})
+		roles := UserRoles(c)
+		if len(roles) == 0 {
+			return c.Status(fiber.StatusForbidden).JSON(models.ErrorResponse{Message: "Permission denied: staff access required"})
 		}
-
-		if userRole != models.RoleAdmin {
-			return c.Status(fiber.StatusForbidden).JSON(models.ErrorResponse{Message: "Admin access required"})
+		for _, r := range roles {
+			if r == models.RoleSuperAdmin {
+				return c.Next()
+			}
+			for _, a := range allowed {
+				if a == r {
+					return c.Next()
+				}
+			}
 		}
-
-		// If the role is correct, proceed to the next handler.
-		return c.Next()
+		return c.Status(fiber.StatusForbidden).JSON(models.ErrorResponse{Message: "Permission denied: " + perm})
 	}
 }
 
-// NormalUserRequired is a middleware that checks if the authenticated user has a 'normal_user' role.
-// Admins are also considered to satisfy this requirement.
-// It must be used AFTER the JWTMAuth middleware.
-func NormalUserRequired() fiber.Handler {
+// RequireRole gates a route to a specific staff role (Super Admin bypasses).
+func RequireRole(role string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		userRole, ok := c.Locals("userRole").(string)
-		if !ok {
-			return c.Status(fiber.StatusForbidden).JSON(models.ErrorResponse{Message: "Permission denied: Role not determined"})
+		if HasRole(c, role) || HasRole(c, models.RoleSuperAdmin) {
+			return c.Next()
 		}
-
-		// Admins are often considered to also satisfy "normal user" requirements.
-		if userRole != models.RoleNormalUser && userRole != models.RoleAdmin {
-			return c.Status(fiber.StatusForbidden).JSON(models.ErrorResponse{Message: "Access restricted to normal users"})
-		}
-
-		return c.Next()
+		return c.Status(fiber.StatusForbidden).JSON(models.ErrorResponse{Message: "Permission denied: " + role + " role required"})
 	}
+}
+
+// permissionRoleGate maps a permission key to the staff roles that may satisfy
+// it at the routing layer. Kept conservative (Super Admin always bypasses).
+var permissionRoleGate = map[string][]string{
+	models.PermUsersManage:      {models.RoleSuperAdmin},
+	models.PermContentWrite:     {models.RoleContentEditor},
+	models.PermContentPublish:   {models.RoleSuperAdmin},
+	models.PermProductRead:      {models.RoleEcommerceOperator},
+	models.PermProductWrite:     {models.RoleEcommerceOperator},
+	models.PermOrderRead:        {models.RoleEcommerceOperator, models.RoleCustomerService, models.RoleTravelPlanner},
+	models.PermOrderWrite:       {models.RoleEcommerceOperator},
+	models.PermOrderRefund:      {models.RoleEcommerceOperator},
+	models.PermItineraryRead:    {models.RoleTravelPlanner, models.RoleCustomerService},
+	models.PermItineraryWrite:   {models.RoleTravelPlanner},
+	models.PermItineraryConfirm: {models.RoleTravelPlanner},
+	models.PermChatHandle:       {models.RoleTravelPlanner, models.RoleCustomerService},
+	models.PermDashboardView:    {models.RoleEcommerceOperator, models.RoleCustomerService},
+	models.PermSettingsManage:   {models.RoleSuperAdmin},
 }

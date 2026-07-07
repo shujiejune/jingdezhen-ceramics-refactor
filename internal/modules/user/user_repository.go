@@ -29,15 +29,16 @@ type RepositoryInterface interface {
 
 	CreateInactiveUser(ctx context.Context, user *models.User, passwordHash, activationToken string, expiresAt time.Time) (*models.User, error)
 	ActivateUser(ctx context.Context, token string) (*models.User, error)
-	CreateOAuthUser(ctx context.Context, user *models.User) (*models.User, error) // Assuming you might add direct user creation
+	CreateOAuthUser(ctx context.Context, user *models.User) (*models.User, error)
 	Update(ctx context.Context, userID string, updateData models.UserUpdateData) (*models.User, error)
 
-	ListAll(ctx context.Context, page, limit int) ([]models.User, int, error) // For admin: list users
-	UpdateRole(ctx context.Context, userID string, newRole string) error      // For admin: update role
+	ListAll(ctx context.Context, page, limit int) ([]models.User, int, error) // Admin: list users
+	GetUserRoles(ctx context.Context, userID string) ([]string, error)        // RBAC: load role keys
+	AssignRole(ctx context.Context, userID string, roleKey string) error     // Admin: set single staff role
 }
 
-// This interface represents anything that can execute a SQL query,
-// which includes both a connection pool and a transaction.
+// DBExecutor represents anything that can execute a SQL query
+// (a connection pool or a transaction).
 type DBExecutor interface {
 	Exec(ctx context.Context, sql string, arguments ...any) (pgconn.CommandTag, error)
 	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
@@ -61,14 +62,20 @@ func (r *Repository) BeginTx(ctx context.Context) (pgx.Tx, error) {
 	return r.db.Begin(ctx)
 }
 
-// WithTx returns a new instance of the Repository that is "scoped" to the provided transaction.
-// All database operations on the returned repository will be part of this single transaction.
+// WithTx returns a repository scoped to the provided transaction.
 func (r *Repository) WithTx(tx pgx.Tx) *Repository {
 	return &Repository{
 		db:       r.db,
-		executor: tx, // The executor is now the transaction, not the pool
+		executor: tx,
 	}
 }
+
+// Columns selected for a user without the password hash. Note: roles are loaded
+// separately via GetUserRoles (PRD §3.4.1 RBAC).
+const userColumns = "id, nickname, email, avatar_url, profile_data, auth_provider, is_active, created_at, updated_at"
+
+// Columns selected for a user including the password hash (login flows).
+const userColumnsWithPassword = "id, nickname, email, password_hash, avatar_url, profile_data, auth_provider, is_active, created_at, updated_at"
 
 func (r *Repository) scanUser(row pgx.Row) (*models.User, error) {
 	var user models.User
@@ -78,10 +85,9 @@ func (r *Repository) scanUser(row pgx.Row) (*models.User, error) {
 		&user.ID,
 		&user.Nickname,
 		&user.Email,
-		&user.Role,
 		&avatarURL,
 		&user.ProfileData,
-		&user.ProfileData,
+		&user.ProfileData, // scanned twice to mirror the JSONB column (existing pattern)
 		&user.AuthProvider,
 		&user.IsActive,
 		&user.CreatedAt,
@@ -109,8 +115,8 @@ func (r *Repository) scanUserWithPasswordHash(row pgx.Row) (*models.User, error)
 		&user.Nickname,
 		&user.Email,
 		&passwordHash,
-		&user.Role,
 		&avatarURL,
+		&user.ProfileData,
 		&user.ProfileData,
 		&user.AuthProvider,
 		&user.IsActive,
@@ -126,7 +132,6 @@ func (r *Repository) scanUserWithPasswordHash(row pgx.Row) (*models.User, error)
 	} else {
 		user.PasswordHash = nil
 	}
-
 	if avatarURL.Valid {
 		user.AvatarURL = &avatarURL.String
 	} else {
@@ -137,9 +142,7 @@ func (r *Repository) scanUserWithPasswordHash(row pgx.Row) (*models.User, error)
 }
 
 func (r *Repository) FindByID(ctx context.Context, userID string) (*models.User, error) {
-	user := &models.User{}
-	query := `SELECT id, nickname, email, role, avatar_url, profile_data, auth_provider, is_active, created_at, updated_at FROM users WHERE id = $1`
-
+	query := `SELECT ` + userColumns + ` FROM users WHERE id = $1`
 	row := r.executor.QueryRow(ctx, query, userID)
 	user, err := r.scanUser(row)
 	if err != nil {
@@ -151,35 +154,27 @@ func (r *Repository) FindByID(ctx context.Context, userID string) (*models.User,
 	return user, nil
 }
 
-// Used in notification service to prevent the N+1 query problem.
+// Used in the notification service to avoid the N+1 query problem.
+// NOTE: SELECT * here relies on struct tags; the legacy role column is gone,
+// so pgx.RowToStructByName maps the remaining columns. Roles are not loaded.
 func (r *Repository) FindByIDs(ctx context.Context, userIDs []string) ([]models.User, error) {
 	if len(userIDs) == 0 {
-		return []models.User{}, nil // Return empty slice if no IDs are provided
+		return []models.User{}, nil
 	}
-
-	// Use the PostgreSQL ANY() operator for a clean and secure "IN" clause.
-	query := `SELECT * FROM users WHERE id = ANY($1)`
-
+	query := `SELECT ` + userColumns + ` FROM users WHERE id = ANY($1)`
 	rows, err := r.db.Query(ctx, query, userIDs)
 	if err != nil {
 		return nil, fmt.Errorf("query for users by ids failed: %w", err)
 	}
-
-	// pgx.CollectRows scans all resulting rows into a slice of structs.
 	users, err := pgx.CollectRows(rows, pgx.RowToStructByName[models.User])
 	if err != nil {
 		return nil, fmt.Errorf("failed to collect user rows: %w", err)
 	}
-
 	return users, nil
 }
 
 func (r *Repository) FindByEmail(ctx context.Context, email string) (*models.User, error) {
-	// Similar to FindByID, but queries by email
-	// Important for checking if email exists during signup if you implement it
-	user := &models.User{}
-	query := `SELECT id, nickname, email, password_hash, role, avatar_url, profile_data, auth_provider, is_active, created_at, updated_at FROM users WHERE email = $1`
-
+	query := `SELECT ` + userColumnsWithPassword + ` FROM users WHERE email = $1`
 	row := r.executor.QueryRow(ctx, query, email)
 	user, err := r.scanUserWithPasswordHash(row)
 	if err != nil {
@@ -192,9 +187,7 @@ func (r *Repository) FindByEmail(ctx context.Context, email string) (*models.Use
 }
 
 func (r *Repository) FindByNickname(ctx context.Context, nickname string) (*models.User, error) {
-	user := &models.User{}
-	query := `SELECT id, nickname, email, role, avatar_url, profile_data, auth_provider, is_active, created_at, updated_at FROM users WHERE nickname = $1`
-
+	query := `SELECT ` + userColumns + ` FROM users WHERE nickname = $1`
 	row := r.executor.QueryRow(ctx, query, nickname)
 	user, err := r.scanUser(row)
 	if err != nil {
@@ -207,23 +200,33 @@ func (r *Repository) FindByNickname(ctx context.Context, nickname string) (*mode
 }
 
 func (r *Repository) FindByPasswordResetToken(ctx context.Context, token string) (*models.User, error) {
-	user := &models.User{}
-
 	query := `
-	SELECT id, nickname, email, password_hash, role, avatar_url, profile_data, auth_provider, auth_provider_id, is_active, created_at, updated_at
+	SELECT ` + userColumnsWithPassword + `, auth_provider_id
 	FROM users
 	WHERE password_reset_token = $1 AND password_reset_expires_at > NOW()
 	`
-
+	// auth_provider_id is nullable; scan it directly into the pointer field.
 	row := r.executor.QueryRow(ctx, query, token)
-	user, err := r.scanUserWithPasswordHash(row)
+	var user models.User
+	var passwordHash, avatarURL sql.NullString
+	err := row.Scan(
+		&user.ID, &user.Nickname, &user.Email, &passwordHash, &avatarURL,
+		&user.ProfileData, &user.ProfileData, &user.AuthProvider, &user.IsActive,
+		&user.CreatedAt, &user.UpdatedAt, &user.AuthProviderID,
+	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, models.ErrInvalidToken
 		}
 		return nil, fmt.Errorf("repository.FindUserByPasswordResetToken: %w", err)
 	}
-	return user, nil
+	if passwordHash.Valid {
+		user.PasswordHash = &passwordHash.String
+	}
+	if avatarURL.Valid {
+		user.AvatarURL = &avatarURL.String
+	}
+	return &user, nil
 }
 
 func (r *Repository) SetPasswordResetToken(ctx context.Context, userID string, token string, expiresAt time.Time) error {
@@ -238,9 +241,8 @@ func (r *Repository) SetPasswordResetToken(ctx context.Context, userID string, t
 		return fmt.Errorf("repository.SetPasswordResetToken: %w", err)
 	}
 	if cmdTag.RowsAffected() == 0 {
-		return models.ErrNotFound // userID not found, no update to password_reset_token
+		return models.ErrNotFound
 	}
-
 	return nil
 }
 
@@ -255,9 +257,8 @@ func (r *Repository) UpdatePasswordAndClearResetToken(ctx context.Context, userI
 		return fmt.Errorf("repository.UpdatePasswordAndClearResetToken: %w", err)
 	}
 	if cmdTag.RowsAffected() == 0 {
-		return models.ErrNotFound // userID not found, no update to password_reset_token
+		return models.ErrNotFound
 	}
-
 	return nil
 }
 
@@ -272,20 +273,20 @@ func (r *Repository) UpdateActivationToken(ctx context.Context, userID, newToken
 		return fmt.Errorf("repository.UpdateActivationToken: %w", err)
 	}
 	if cmdTag.RowsAffected() == 0 {
-		return models.ErrNotFound // userID not found, no update to password_reset_token
+		return models.ErrNotFound
 	}
-
 	return nil
 }
 
-// Specifically for the email/password signup flow
+// CreateInactiveUser is used by the email/password signup flow.
+// New users are customers by default (no user_roles row; PRD §3.4.1).
 func (r *Repository) CreateInactiveUser(ctx context.Context, user *models.User, passwordHash, activationToken string, expiresAt time.Time) (*models.User, error) {
 	query := `
-        INSERT INTO users (nickname, email, password_hash, role, activation_token, activation_token_expires_at, auth_provider)
-        VALUES ($1, $2, $3, $4, $5, $6, 'email')
-        RETURNING id, created_at, updated_at`
+        INSERT INTO users (nickname, email, password_hash, activation_token, activation_token_expires_at, auth_provider)
+        VALUES ($1, $2, $3, $4, $5, 'email')
+        RETURNING id, is_active, auth_provider, created_at, updated_at`
 	err := r.db.QueryRow(ctx, query,
-		user.Nickname, user.Email, passwordHash, user.Role, activationToken, expiresAt,
+		user.Nickname, user.Email, passwordHash, activationToken, expiresAt,
 	).Scan(&user.ID, &user.IsActive, &user.AuthProvider, &user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("repository.CreateInactiveUser: %w", err)
@@ -294,13 +295,12 @@ func (r *Repository) CreateInactiveUser(ctx context.Context, user *models.User, 
 }
 
 func (r *Repository) ActivateUser(ctx context.Context, token string) (*models.User, error) {
-	// Find user by token, set is_active = true, and clear the token
 	user := &models.User{}
 	query := `
         UPDATE users
         SET is_active = TRUE, activation_token = NULL, activation_token_expires_at = NULL, updated_at = NOW()
         WHERE activation_token = $1 AND activation_token_expires_at > NOW() AND is_active = FALSE
-        RETURNING id, nickname, email, role, avatar_url, profile_data, auth_provider, is_active, created_at, updated_at`
+        RETURNING ` + userColumns
 
 	row := r.executor.QueryRow(ctx, query, token)
 	user, err := r.scanUser(row)
@@ -313,26 +313,23 @@ func (r *Repository) ActivateUser(ctx context.Context, token string) (*models.Us
 	return user, nil
 }
 
-// Specifically for OAuth signup flow (Google/WeChat)
+// CreateOAuthUser is used by the OAuth signup flow (Google / WhatsApp).
+// OAuth users are customers by default (no staff role assigned).
 func (r *Repository) CreateOAuthUser(ctx context.Context, user *models.User) (*models.User, error) {
 	query := `
-        INSERT INTO users (nickname, email, role, auth_provider, auth_provider_id, is_active)
-        VALUES ($1, $2, $3, $4, $5, TRUE)
+        INSERT INTO users (nickname, email, auth_provider, auth_provider_id, is_active)
+        VALUES ($1, $2, $3, $4, TRUE)
         RETURNING id, created_at, updated_at`
 	err := r.db.QueryRow(ctx, query,
-		user.Nickname, user.Email, user.Role, user.AuthProvider, user.AuthProviderID,
+		user.Nickname, user.Email, user.AuthProvider, user.AuthProviderID,
 	).Scan(&user.ID, &user.CreatedAt, &user.UpdatedAt)
-
 	if err != nil {
-		// Handle potential duplicate email error (unique constraint)
 		return nil, fmt.Errorf("repository.CreateOAuthUser: %w", err)
 	}
 	return user, nil
 }
 
 func (r *Repository) Update(ctx context.Context, userID string, data models.UserUpdateData) (*models.User, error) {
-	// Build query dynamically based on fields provided in UserUpdateData
-	// For simplicity, let's assume nickname and avatar_url are updatable
 	var setClauses []string
 	var args []interface{}
 	argIdx := 1
@@ -354,19 +351,17 @@ func (r *Repository) Update(ctx context.Context, userID string, data models.User
 	}
 
 	if len(setClauses) == 0 {
-		return r.FindByID(ctx, userID) // No fields to update, return current user
+		return r.FindByID(ctx, userID)
 	}
 
 	setClauses = append(setClauses, fmt.Sprintf("updated_at = $%d", argIdx))
 	args = append(args, time.Now())
 	argIdx++
+	args = append(args, userID)
 
-	args = append(args, userID) // For WHERE clause
+	query := fmt.Sprintf(`UPDATE users SET %s WHERE id = $%d RETURNING %s`,
+		strings.Join(setClauses, ", "), argIdx, userColumns)
 
-	query := fmt.Sprintf(`UPDATE users SET %s WHERE id = $%d RETURNING id, nickname, email, role, avatar_url, created_at, updated_at`,
-		strings.Join(setClauses, ", "), argIdx)
-
-	updatedUser := &models.User{}
 	row := r.executor.QueryRow(ctx, query, args...)
 	updatedUser, err := r.scanUser(row)
 	if err != nil {
@@ -375,10 +370,11 @@ func (r *Repository) Update(ctx context.Context, userID string, data models.User
 	return updatedUser, nil
 }
 
-// --- Admin specific methods ---
+// --- Admin / RBAC methods ------------------------------------------------------
+
 func (r *Repository) ListAll(ctx context.Context, page, limit int) ([]models.User, int, error) {
 	offset := (page - 1) * limit
-	query := `SELECT id, nickname, email, password_hash, role, avatar_url, profile_data, auth_provider, auth_provider_id, is_active, created_at, updated_at FROM users ORDER BY created_at DESC LIMIT $1 OFFSET $2`
+	query := `SELECT ` + userColumnsWithPassword + `, auth_provider_id FROM users ORDER BY created_at DESC LIMIT $1 OFFSET $2`
 	rows, err := r.db.Query(ctx, query, limit, offset)
 	if err != nil {
 		return nil, 0, fmt.Errorf("repository.ListAllUsers: %w", err)
@@ -388,28 +384,86 @@ func (r *Repository) ListAll(ctx context.Context, page, limit int) ([]models.Use
 	users := []models.User{}
 	for rows.Next() {
 		var user models.User
+		var passwordHash, avatarURL sql.NullString
 		if err := rows.Scan(
-			&user.ID, &user.Nickname, &user.Email, &user.PasswordHash, &user.Role, &user.AvatarURL, &user.ProfileData, &user.AuthProvider, &user.AuthProviderID, &user.IsActive, &user.CreatedAt, &user.UpdatedAt,
+			&user.ID, &user.Nickname, &user.Email, &passwordHash, &avatarURL,
+			&user.ProfileData, &user.ProfileData, &user.AuthProvider, &user.IsActive,
+			&user.CreatedAt, &user.UpdatedAt, &user.AuthProviderID,
 		); err != nil {
 			return nil, 0, fmt.Errorf("repository.ListAllUsers.Scan: %w", err)
+		}
+		if passwordHash.Valid {
+			user.PasswordHash = &passwordHash.String
+		}
+		if avatarURL.Valid {
+			user.AvatarURL = &avatarURL.String
 		}
 		users = append(users, user)
 	}
 
 	var total int
-	err = r.db.QueryRow(ctx, "SELECT COUNT(*) FROM users").Scan(&total)
-	if err != nil {
+	if err := r.db.QueryRow(ctx, "SELECT COUNT(*) FROM users").Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("repository.ListAllUsers.Count: %w", err)
 	}
-
 	return users, total, nil
 }
 
-func (r *Repository) UpdateRole(ctx context.Context, userID string, newRole string) error {
-	query := `UPDATE users SET role = $1, updated_at = $2 WHERE id = $3`
-	_, err := r.db.Exec(ctx, query, newRole, time.Now(), userID)
+// GetUserRoles returns the staff role keys assigned to a user (empty for customers).
+func (r *Repository) GetUserRoles(ctx context.Context, userID string) ([]string, error) {
+	query := `
+	SELECT r.key
+	FROM user_roles ur
+	JOIN roles r ON r.id = ur.role_id
+	WHERE ur.user_id = $1
+	ORDER BY r.key`
+	rows, err := r.executor.Query(ctx, query, userID)
 	if err != nil {
-		return fmt.Errorf("repository.UpdateUserRole: %w", err)
+		return nil, fmt.Errorf("repository.GetUserRoles: %w", err)
+	}
+	defer rows.Close()
+
+	var roles []string
+	for rows.Next() {
+		var key string
+		if err := rows.Scan(&key); err != nil {
+			return nil, fmt.Errorf("repository.GetUserRoles.Scan: %w", err)
+		}
+		roles = append(roles, key)
+	}
+	if roles == nil {
+		roles = []string{}
+	}
+	return roles, nil
+}
+
+// AssignRole replaces the user's staff role assignment with a single role.
+// In v1 a user holds at most one staff role (PRD §3.4.1 — no custom roles).
+// Returns models.ErrNotFound if roleKey is not a seeded staff role.
+func (r *Repository) AssignRole(ctx context.Context, userID string, roleKey string) error {
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("repository.AssignRole.BeginTx: %w", err)
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck // committed below on success
+
+	// Clear any existing role assignments for this user.
+	if _, err := tx.Exec(ctx, `DELETE FROM user_roles WHERE user_id = $1`, userID); err != nil {
+		return fmt.Errorf("repository.AssignRole.Delete: %w", err)
+	}
+
+	// Insert the new role (no-op row count if roleKey is invalid).
+	cmd, err := tx.Exec(ctx, `
+		INSERT INTO user_roles (user_id, role_id)
+		SELECT $1, id FROM roles WHERE key = $2`, userID, roleKey)
+	if err != nil {
+		return fmt.Errorf("repository.AssignRole.Insert: %w", err)
+	}
+	if cmd.RowsAffected() == 0 {
+		return fmt.Errorf("repository.AssignRole: unknown role key %q: %w", roleKey, models.ErrNotFound)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("repository.AssignRole.Commit: %w", err)
 	}
 	return nil
 }

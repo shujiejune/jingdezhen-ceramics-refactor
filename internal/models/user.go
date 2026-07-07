@@ -2,12 +2,7 @@ package models
 
 import "time" // if you have CreatedAt, UpdatedAt
 
-// Role constants for user roles
-const (
-	RoleAdmin      = "admin"
-	RoleNormalUser = "normal_user"
-	RoleGuest      = "guest" // Though guest is usually implied by lack of auth
-)
+// Role/permission constants now live in rbac.go (PRD §3.4.1).
 
 type ProfileData struct {
 	OtherContact string `json:"other_contact,omitempty"`
@@ -21,7 +16,6 @@ type User struct {
 	Nickname       string       `json:"nickname,omitempty" db:"nickname"`
 	Email          string       `json:"email" db:"email"`
 	PasswordHash   *string      `json:"-" db:"password_hash"`
-	Role           string       `json:"role" db:"role"`
 	AvatarURL      *string      `json:"avatar_url,omitempty" db:"avatar_url"`
 	ProfileData    *ProfileData `json:"profile_data,omitempty" db:"profile_data"`
 	AuthProvider   string       `json:"auth_provider" db:"auth_provider"`
@@ -29,7 +23,9 @@ type User struct {
 	IsActive       bool         `json:"is_active" db:"is_active"`
 	CreatedAt      time.Time    `json:"created_at" db:"created_at"`
 	UpdatedAt      time.Time    `json:"updated_at" db:"updated_at"`
-	// Add other fields as per your DB schema
+	// Roles are loaded separately from user_roles (db:"-"; populated by services).
+	// A user with no staff role is a customer (PRD §3.4.1).
+	Roles []string `json:"roles,omitempty" db:"-"`
 }
 
 type SignupRequest struct {

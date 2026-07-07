@@ -307,7 +307,7 @@ func (h *Handler) SubmitContactForm(c *fiber.Ctx) error {
 }
 
 // --- Admin User Management Routes ---
-// These methods are part of the same *user.Handler but will be protected by AdminRequired middleware in router.go
+// Protected in router.go by middleware.RequirePermission(models.PermUsersManage).
 func (h *Handler) AdminListUsers(c *fiber.Ctx) error {
 	page, limit := utils.GetPageLimit(c)
 	users, total, err := h.service.AdminListUsers(c.Context(), page, limit)
@@ -318,10 +318,10 @@ func (h *Handler) AdminListUsers(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(models.NewPaginatedResponse(users, page, limit, total))
 }
 
-func (h *Handler) AdminUpdateUserRole(c *fiber.Ctx) error {
+func (h *Handler) AdminAssignRole(c *fiber.Ctx) error {
 	targetUserID := c.Params("user_id")
 	var req struct {
-		Role string `json:"role" validate:"required,oneof=admin normal_user"`
+		Role string `json:"role" validate:"required,oneof=super_admin content_editor travel_planner ecommerce_operator customer_service"`
 	}
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(models.ErrorResponse{Message: "Invalid request body: " + err.Error()})
@@ -330,14 +330,13 @@ func (h *Handler) AdminUpdateUserRole(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(models.ErrorResponse{Message: "Validation failed: " + err.Error()})
 	}
 
-	err := h.service.AdminUpdateUserRole(c.Context(), targetUserID, req.Role)
+	err := h.service.AdminAssignRole(c.Context(), targetUserID, req.Role)
 	if err != nil {
 		if errors.Is(err, models.ErrNotFound) {
 			return c.Status(fiber.StatusNotFound).JSON(models.ErrorResponse{Message: "Target user not found"})
 		}
-		log.Printf("Handler.AdminUpdateUserRole: %v", err)
-		// Check for specific service errors if any (e.g., invalid role error from service)
-		return c.Status(fiber.StatusInternalServerError).JSON(models.ErrorResponse{Message: "Failed to update user role"})
+		log.Printf("Handler.AdminAssignRole: %v", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(models.ErrorResponse{Message: "Failed to assign role"})
 	}
 	return c.Status(fiber.StatusOK).JSON(map[string]string{"message": "User role updated successfully"})
 }

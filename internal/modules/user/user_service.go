@@ -37,7 +37,7 @@ type ServiceInterface interface {
 
 	// Admin
 	AdminListUsers(ctx context.Context, page, limit int) ([]models.User, int, error)
-	AdminUpdateUserRole(ctx context.Context, targetUserID string, newRole string) error
+	AdminAssignRole(ctx context.Context, targetUserID string, roleKey string) error
 }
 
 type Service struct {
@@ -114,7 +114,7 @@ func (s *Service) Signup(ctx context.Context, req models.SignupRequest) (*models
 	newUser := &models.User{
 		Nickname: req.Nickname,
 		Email:    req.Email,
-		Role:     models.RoleNormalUser, // Default role
+		// New users are customers by default (no user_roles row; PRD §3.4.1).
 	}
 	createdUser, err := s.userRepo.CreateInactiveUser(ctx, newUser, string(hashedPassword), activationToken, expiresAt)
 	if err != nil {
@@ -149,12 +149,19 @@ func (s *Service) Signup(ctx context.Context, req models.SignupRequest) (*models
 }
 
 // private helper function to generate AuthResponse
-func (s *Service) generateAuthResponse(user *models.User) (*models.AuthResponse, error) {
+func (s *Service) generateAuthResponse(ctx context.Context, user *models.User) (*models.AuthResponse, error) {
+	// Load the user's staff roles for the JWT claim (empty for customers).
+	roles, err := s.userRepo.GetUserRoles(ctx, user.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load user roles: %w", err)
+	}
+	user.Roles = roles
+
 	// 1. Create claims for JWT
 	claims := &models.JwtCustomClaims{
 		UserID: user.ID,
 		Email:  user.Email,
-		Role:   user.Role,
+		Roles:  roles,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 24 * 30)), // 1 month expiry
 		},
@@ -183,7 +190,7 @@ func (s *Service) ActivateUserAndLogin(ctx context.Context, token string) (*mode
 		return nil, fmt.Errorf("service.ActivateUserAndLogin: %w", err)
 	}
 
-	return s.generateAuthResponse(activatedUser)
+	return s.generateAuthResponse(ctx, activatedUser)
 }
 
 func (s *Service) ResendActivationEmail(ctx context.Context, email string) error {
@@ -271,7 +278,7 @@ func (s *Service) Login(ctx context.Context, req models.LoginRequest) (*models.A
 	}
 
 	// 4. Use helper function to generate JWT and AuthResponse
-	return s.generateAuthResponse(userWithHash)
+	return s.generateAuthResponse(ctx, userWithHash)
 }
 
 func (s *Service) RequestPasswordReset(ctx context.Context, email string) error {
@@ -347,7 +354,7 @@ func (s *Service) ResetPassword(ctx context.Context, token string, newPassword s
 	}
 
 	// 4. Log the user in by issuing a JWT
-	return s.generateAuthResponse(user)
+	return s.generateAuthResponse(ctx, user)
 }
 
 // HandleGoogleLogin generates the redirect URL for the user.
@@ -408,7 +415,6 @@ func (s *Service) HandleGoogleCallback(ctx context.Context, code string) (*model
 			Nickname:       userInfo.Name,
 			Email:          userInfo.Email,
 			AvatarURL:      &userInfo.Picture,
-			Role:           models.RoleNormalUser,
 			AuthProvider:   "google",
 			AuthProviderID: userInfo.ID,
 			IsActive:       true,
@@ -423,15 +429,19 @@ func (s *Service) HandleGoogleCallback(ctx context.Context, code string) (*model
 	// For now, we'll just log them in.
 
 	// 4. Issue JWT for this user.
-	return s.generateAuthResponse(user)
+	return s.generateAuthResponse(ctx, user)
 }
 
 func (s *Service) GetUserProfile(ctx context.Context, userID string) (*models.User, error) {
 	user, err := s.userRepo.FindByID(ctx, userID)
 	if err != nil {
-		// Map repository errors to service-level errors if needed
 		return nil, fmt.Errorf("service.GetUserProfile: %w", err)
 	}
+	roles, err := s.userRepo.GetUserRoles(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("service.GetUserProfile.Roles: %w", err)
+	}
+	user.Roles = roles
 	return user, nil
 }
 
@@ -488,16 +498,22 @@ func (s *Service) AdminListUsers(ctx context.Context, page, limit int) ([]models
 	return s.userRepo.ListAll(ctx, page, limit)
 }
 
-func (s *Service) AdminUpdateUserRole(ctx context.Context, targetUserID string, newRole string) error {
-	// Add validation for newRole if it's not a predefined valid role
-	if newRole != models.RoleAdmin && newRole != models.RoleNormalUser {
-		return fmt.Errorf("service.AdminUpdateUserRole: invalid role '%s'", newRole)
+// AdminAssignRole sets a user's single staff role (PRD §3.4.1).
+// Pass an empty roleKey to clear staff access (return to customer).
+func (s *Service) AdminAssignRole(ctx context.Context, targetUserID string, roleKey string) error {
+	if roleKey != "" && !models.IsStaffRole(roleKey) {
+		return fmt.Errorf("service.AdminAssignRole: invalid role key '%s'", roleKey)
 	}
-	// Check if targetUserID exists
-	_, err := s.userRepo.FindByID(ctx, targetUserID)
-	if err != nil {
-		return fmt.Errorf("service.AdminUpdateUserRole: target user not found: %w", err)
+	// Verify the target user exists.
+	if _, err := s.userRepo.FindByID(ctx, targetUserID); err != nil {
+		return fmt.Errorf("service.AdminAssignRole: target user not found: %w", err)
 	}
-
-	return s.userRepo.UpdateRole(ctx, targetUserID, newRole)
+	if roleKey == "" {
+		// Clear staff role: assign then it's a customer. AssignRole currently
+		// requires a valid key, so clear directly via a no-op here once a
+		// ClearRole repo method exists. For v1, disallow empty (callers must
+		// pass a concrete staff role; demoting to customer is a follow-up).
+		return fmt.Errorf("service.AdminAssignRole: empty role key not supported yet")
+	}
+	return s.userRepo.AssignRole(ctx, targetUserID, roleKey)
 }
