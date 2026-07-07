@@ -1,28 +1,27 @@
-# Test binary, build output
-*.test
-*.out
-
-# Output of go build
-/cmd/api/api
-/cmd/api/main
-
-# Go workspace file (Go 1.18+)
-go.work
-go.work.sum
-
-# IDE/editor folders
+# --- OS / editor ---
+.DS_Store
+Thumbs.db
 .vscode/
 .idea/
 *.swp
 *.swo
 
-# OS-specific
-.DS_Store
-Thumbs.db
-
-# Logs
+# --- Logs ---
 *.log
 
-# Docker
+# --- Frontend (future SolidStart app) ---
+node_modules/
+dist/
+.solid/
+.tanstack/
+
+# --- Local env / secrets ---
 *.env
 .env.*
+!.env.example
+
+# --- Go (backend-specific ignores also live in backend/.gitignore) ---
+*.test
+*.out
+go.work
+go.work.sum
