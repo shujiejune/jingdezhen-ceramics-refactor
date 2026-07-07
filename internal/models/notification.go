@@ -6,21 +6,9 @@ import "time"
 type NotificationType string
 
 const (
-	// Course-related notifications
-	NotificationTypeCourseUpdate     NotificationType = "course_update"
-	NotificationTypeAssignmentGraded NotificationType = "assignment_graded"
-
-	// Forum-related notifications
-	NotificationTypeForumPostLiked      NotificationType = "forum_post_liked"
-	NotificationTypeForumPostCommented  NotificationType = "forum_post_commented"
-	NotificationTypeForumCommentLiked   NotificationType = "forum_comment_liked"
-	NotificationTypeForumCommentReplied NotificationType = "forum_comment_replied"
-
-	// Portfolio-related notifications
-	NotificationTypePortfolioWorkHighlighted NotificationType = "portfolio_work_highlighted"
-
-	// Badge-related notifications
-	NotificationTypeBadgeEarned NotificationType = "badge_earned"
+	// System notifications (PRD-aligned types to be added as modules land:
+	// order status, low-stock alerts, itinerary status, chat handoff, content approval)
+	NotificationTypeSystem NotificationType = "system"
 )
 
 // Notification represents a single notification for a user.
@@ -40,7 +28,7 @@ type Notification struct {
 // CreateNotificationParams holds the data needed to create a notification.
 type CreateNotificationParams struct {
 	RecipientUserID string
-	ActorUserID     string // Use an empty string for system notifications (e.g., badges)
+	ActorUserID     string // Use an empty string for system notifications
 	Type            NotificationType
 	EntityType      string
 	EntityID        int64

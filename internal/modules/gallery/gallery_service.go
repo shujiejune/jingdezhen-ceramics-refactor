@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"jingdezhen-ceramics-backend/internal/models"
-	"jingdezhen-ceramics-backend/internal/modules/note"
 	"log"
 )
 
@@ -17,16 +16,14 @@ type ServiceInterface interface {
 	GetFavArtworks(ctx context.Context, userID string, page, limit int) ([]models.UserFavArtworkEntry, int, error)
 	MarkAsFavorite(ctx context.Context, userID string, artworkID int64) error
 	UnmarkAsFavorite(ctx context.Context, userID string, artworkID int64) error
-	AddNoteToArtwork(ctx context.Context, userID string, artworkID int64, data models.AddNoteToEntityRequest) (*models.UserNote, error)
 }
 
 type Service struct {
-	repo    RepositoryInterface
-	noteSvc note.ServiceInterface // Dependency for creating notes
+	repo RepositoryInterface
 }
 
-func NewService(repo RepositoryInterface, noteSvc note.ServiceInterface) ServiceInterface {
-	return &Service{repo: repo, noteSvc: noteSvc}
+func NewService(repo RepositoryInterface) ServiceInterface {
+	return &Service{repo: repo}
 }
 
 func (s *Service) GetArtworks(ctx context.Context, userID string, filters models.ArtworkFilters) ([]models.Artwork, int, error) {
@@ -120,20 +117,4 @@ func (s *Service) UnmarkAsFavorite(ctx context.Context, userID string, artworkID
 	return s.repo.RemoveFavorite(ctx, userID, artworkID)
 }
 
-func (s *Service) AddNoteToArtwork(ctx context.Context, userID string, artworkID int64, data models.AddNoteToEntityRequest) (*models.UserNote, error) {
-	// Business logic: First, verify the artwork actually exists.
-	_, err := s.repo.FindArtworkByID(ctx, artworkID)
-	if err != nil {
-		return nil, fmt.Errorf("cannot add note to non-existent artwork: %w", err)
-	}
 
-	// Delegate note creation to the user service.
-	noteData := models.CreateUserNoteData{
-		Title:      data.Title,
-		Content:    data.Content,
-		EntityType: &data.EntityType,
-		EntityID:   data.EntityID,
-	}
-
-	return s.noteSvc.CreateUserNote(ctx, userID, noteData)
-}

@@ -1,1 +1,0 @@
-DROP TABLE user_content_block_progress;

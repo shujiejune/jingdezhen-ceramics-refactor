@@ -11,13 +11,9 @@ import (
 	"jingdezhen-ceramics-backend/internal/api"
 	"jingdezhen-ceramics-backend/internal/config"
 	"jingdezhen-ceramics-backend/internal/modules/ceramicstory"
-	"jingdezhen-ceramics-backend/internal/modules/course"
 	"jingdezhen-ceramics-backend/internal/modules/engage"
-	"jingdezhen-ceramics-backend/internal/modules/forum"
 	"jingdezhen-ceramics-backend/internal/modules/gallery"
-	"jingdezhen-ceramics-backend/internal/modules/note"
 	"jingdezhen-ceramics-backend/internal/modules/notification"
-	"jingdezhen-ceramics-backend/internal/modules/portfolio"
 	"jingdezhen-ceramics-backend/internal/modules/user"
 	"jingdezhen-ceramics-backend/internal/ws"
 	"jingdezhen-ceramics-backend/pkg/email"
@@ -122,47 +118,26 @@ func main() {
 	notifService := notification.NewService(notifRepo, userRepo, wsHub)
 	notifHandler := notification.NewHandler(notifService)
 
-	forumRepo := forum.NewRepository(dbPool)
-	forumService := forum.NewService(forumRepo, notifService)
-	forumHandler := forum.NewHandler(forumService)
-
-	noteRepo := note.NewRepository(dbPool)
-	noteService := note.NewService(noteRepo, forumService)
-	noteHandler := note.NewHandler(noteService)
-
 	ceramicStoryRepo := ceramicstory.NewRepository(dbPool)
 	ceramicStoryService := ceramicstory.NewService(ceramicStoryRepo)
 	ceramicStoryHandler := ceramicstory.NewHandler(ceramicStoryService)
 
 	galleryRepo := gallery.NewRepository(dbPool)
-	galleryService := gallery.NewService(galleryRepo, noteService)
+	galleryService := gallery.NewService(galleryRepo)
 	galleryHandler := gallery.NewHandler(galleryService)
 
 	engageRepo := engage.NewRepository(dbPool)
 	engageService := engage.NewService(engageRepo)
 	engageHandler := engage.NewHandler(engageService)
 
-	courseRepo := course.NewRepository(dbPool)
-	courseService := course.NewService(courseRepo, noteService)
-	courseHandler := course.NewHandler(courseService)
-
-	portfolioRepo := portfolio.NewRepository(dbPool)
-	portfolioService := portfolio.NewService(portfolioRepo)
-	portfolioHandler := portfolio.NewHandler(portfolioService)
-
 	// --- Initialize router, passing all handlers and other necessary dependencies ---
 	api.SetupRoutes(app, cfg.JWTSecret,
 		wsHandler,
 		userHandler,
-		// adminHandler, // Pass if you have a separate admin handler instance
 		notifHandler,
-		forumHandler,
-		noteHandler,
 		ceramicStoryHandler,
 		galleryHandler,
 		engageHandler,
-		courseHandler,
-		portfolioHandler,
 	)
 
 	// --- Start server (graceful shutdown logic) ---

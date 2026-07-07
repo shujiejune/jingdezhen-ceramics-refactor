@@ -36,7 +36,6 @@ type Artwork struct {
 	Category           string         `json:"category" db:"category"`       // Or CategoryID if you have an artwork_categories table
 	IsFavorite         bool           `json:"is_favorite,omitempty" db:"-"` // For current user, populated in service
 	FavoriteCount      int            `json:"favorite_count" db:"-"`        // Calculated
-	NoteCount          int            `json:"note_count" db:"-"`            // Calculated
 	Images             []ArtworkImage `json:"images,omitempty" db:"-"`      // Loaded separately or via JOIN aggregation
 	Tags               []Tag          `json:"tags,omitempty" db:"-"`        // Loaded via junction table
 	CreatedAt          time.Time      `json:"created_at" db:"created_at"`

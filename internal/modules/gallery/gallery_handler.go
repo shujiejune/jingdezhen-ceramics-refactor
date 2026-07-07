@@ -153,32 +153,4 @@ func (h *Handler) UnmarkAsFavorite(c *fiber.Ctx) error {
 	return c.SendStatus(http.StatusNoContent)
 }
 
-func (h *Handler) AddNoteToArtwork(c *fiber.Ctx) error {
-	userID, err := utils.GetUserIDFromContext(c)
-	if err != nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(models.ErrorResponse{Message: err.Error()})
-	}
-	artworkID, err := strconv.ParseInt(c.Params("artwork_id"), 10, 64)
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(models.ErrorResponse{Message: "Invalid artwork ID"})
-	}
 
-	var req models.AddNoteToEntityRequest
-	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(models.ErrorResponse{Message: "Invalid request body"})
-	}
-	if err := h.validate.Struct(req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(models.ErrorResponse{Message: "Validation failed: " + err.Error()})
-	}
-
-	note, err := h.service.AddNoteToArtwork(c.Context(), userID, artworkID, req)
-	if err != nil {
-		if errors.Is(err, models.ErrNotFound) {
-			return c.Status(fiber.StatusNotFound).JSON(models.ErrorResponse{Message: "Cannot add note: artwork not found"})
-		}
-		log.Printf("Handler.AddNoteToArtwork: %v", err)
-		return c.Status(fiber.StatusInternalServerError).JSON(models.ErrorResponse{Message: "Failed to add note"})
-	}
-
-	return c.Status(fiber.StatusCreated).JSON(note)
-}

@@ -10,9 +10,9 @@ const (
 )
 
 type ProfileData struct {
-	HeatmapData  map[string]int `json:"heatmap_data,omitempty"`
-	BadgeIDs     []int          `json:"badge_ids,omitempty"`
-	OtherContact string         `json:"other_contact,omitempty"`
+	OtherContact string `json:"other_contact,omitempty"`
+	// PRD §3.5: shipping addresses, preferred locale/currency, consent records
+	// to be added during the user-schema alignment (see docs/REFACTOR-TODO.md).
 }
 
 // User struct (you'll have more fields from your DB schema)

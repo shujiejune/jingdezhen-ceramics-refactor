@@ -185,19 +185,13 @@ func (s *Service) generateMessage(params models.CreateNotificationParams) (strin
 		actorName = "Someone"
 	}
 
+	_ = actorName // reserved for actor-based notification types (e.g. chat handoff)
+
 	switch params.Type {
-	case models.NotificationTypeCourseUpdate:
-		return fmt.Sprintf("The course '%s' has a new update or announcement.", params.ExtraData["courseName"]), nil
-	case models.NotificationTypeAssignmentGraded:
-		return fmt.Sprintf("Your assignment for Course '%s', Chpater '%s' has been graded.", params.ExtraData["courseName"], params.ExtraData["chapterName"]), nil
-	case models.NotificationTypeForumPostCommented:
-		return fmt.Sprintf("%s commented on your forum post: '%s'.", actorName, params.ExtraData["postTitle"]), nil
-	case models.NotificationTypeForumCommentReplied:
-		return fmt.Sprintf("%s replied to your comment.", actorName), nil
-	case models.NotificationTypePortfolioWorkHighlighted:
-		return fmt.Sprintf("Congratulations! Your work '%s' has been featured as an Editor's Choice.", params.ExtraData["workTitle"]), nil
-	case models.NotificationTypeBadgeEarned:
-		return fmt.Sprintf("You've earned the %s badge! Keep up the great work.", params.ExtraData["badgeName"]), nil
+	case models.NotificationTypeSystem:
+		return params.ExtraData["message"], nil
+	// PRD-aligned types (order status, low-stock, itinerary status, chat handoff,
+	// content approval) will be added as their modules land.
 	default:
 		return "", fmt.Errorf("unrecognized notification type: %s", params.Type)
 	}
