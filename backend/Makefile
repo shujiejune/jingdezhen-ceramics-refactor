@@ -15,10 +15,12 @@ help:
 	@echo ""
 	@echo "Targets:"
 	@echo "  build          - Build the development Docker images"
-	@echo "  up             - Start all services in detached mode"
+	@echo "  up             - Start all services (api, worker, db, redis)"
 	@echo "  down           - Stop and remove all services and volumes"
 	@echo "  stop           - Stop all running services"
-	@echo "  logs           - View logs for all services"
+	@echo "  logs           - Tail logs for all services"
+	@echo "  logs-api       - Tail api service logs"
+	@echo "  logs-worker    - Tail worker service logs"
 	@echo "  migrate-up     - Apply all new database migrations"
 	@echo "  migrate-down   - Roll back the last database migration"
 	@echo "  db-seed        - Seed the database with initial test data"
@@ -42,6 +44,12 @@ stop:
 logs:
 	@echo "Tailing logs..."
 	docker compose $(COMPOSE_FILE) logs -f
+
+logs-api:
+	docker compose $(COMPOSE_FILE) logs -f api
+
+logs-worker:
+	docker compose $(COMPOSE_FILE) logs -f worker
 
 migrate-up:
 	@echo "Applying database migrations..."

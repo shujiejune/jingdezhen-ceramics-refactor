@@ -37,6 +37,43 @@ services:
         condition: service_healthy
     restart: always
 
+  # Asynq worker (same image, `worker` run mode). Processes background jobs +
+  # runs the cron scheduler. Single instance for the MVP (TDD §4.2).
+  worker:
+    container_name: jdz-worker
+    build:
+      context: .
+      target: builder
+    volumes:
+      - .:/app
+    command: go run ./cmd/api/main.go worker
+    environment:
+      - DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}?sslmode=${DB_SSLMODE}
+      - REDIS_URL=redis://redis:6379/0
+      - BREVO_API_KEY=${BREVO_API_KEY:-}
+      - BREVO_SENDER_EMAIL=${BREVO_SENDER_EMAIL:-}
+      - BREVO_SENDER_NAME=${BREVO_SENDER_NAME:-}
+      - AIRWALLEX_CLIENT_ID=${AIRWALLEX_CLIENT_ID:-}
+      - AIRWALLEX_API_KEY=${AIRWALLEX_API_KEY:-}
+      - AIRWALLEX_ENV=${AIRWALLEX_ENV:-sandbox}
+      - PAYPAL_CLIENT_ID=${PAYPAL_CLIENT_ID:-}
+      - PAYPAL_CLIENT_SECRET=${PAYPAL_CLIENT_SECRET:-}
+      - PAYPAL_ENV=${PAYPAL_ENV:-sandbox}
+      - QWEN_API_KEY=${QWEN_API_KEY:-}
+      - QWEN_BASE_URL=${QWEN_BASE_URL:-}
+      - QWEN_MODEL=${QWEN_MODEL:-qwen-plus}
+      - OSS_ENDPOINT=${OSS_ENDPOINT:-}
+      - OSS_ACCESS_KEY_ID=${OSS_ACCESS_KEY_ID:-}
+      - OSS_ACCESS_KEY_SECRET=${OSS_ACCESS_KEY_SECRET:-}
+      - OSS_BUCKET=${OSS_BUCKET:-}
+      - OSS_REGION=${OSS_REGION:-cn-hongkong}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: always
+
   db:
     image: postgis/postgis:16-3.5-alpine
     container_name: jdz-db
