@@ -1,10 +1,10 @@
 # Technical Design Document (TDD)
 
-# Jingdezhen Ceramics Platform
+## 0. Jingdezhen Ceramics Platform
 
 | | |
 |---|---|
-| **Version** | 0.1 (Draft) |
+| **Version** | 0.2 (Draft) |
 | **Date** | 2026-07-07 |
 | **Status** | Living document — updated as implementation proceeds |
 | **Companion docs** | `docs/PRD.md` (v0.17), `docs/REFACTOR-TODO.md` |
@@ -42,9 +42,9 @@ This document describes *how* the system specified in the PRD is built. It exten
 
 ### 2.2 Request flows
 
-1. **Public page:** Browser → CDN (cache HTML? no — SSR pages are dynamic; CDN caches static assets/images only) → SolidStart → Fiber API → PG. Locale from URL prefix.
+1. **Public page:** Browser → CDN → SolidStart → Fiber API → PG. Locale from URL prefix. **CDN HTML caching:** public content pages (History, Destinations, Local Lifestyle, product detail, artist profile) are identical for all users of a locale and change only on publish, so cache rendered HTML at the CDN keyed by `(path, locale)` with a short TTL + stale-while-revalidate, and purge on publish (piggyback the sitemap rebuild job). Personalized fragments (cart count, wishlist state) are loaded client-side after hydration so they don't break the shared cache. Admin routes are not SSR'd (see §6) and are never cached.
 2. **API mutation (cart, wishlist):** Browser → `/api/...` with JWT → Fiber → PG/Redis.
-3. **Chat:** Browser → `/ws` (JWT-authenticated upgrade) → Hub → Qwen adapter (streaming) or agent console; fan-out via Redis pub/sub.
+3. **Chat:** Browser → `/ws` (JWT-authenticated upgrade) → Hub → Qwen adapter (streaming) or agent console. Fan-out via Redis pub/sub is only needed once the API runs >1 instance; on the single-VPS MVP the existing in-memory hub is lower-latency and pub/sub can be deferred (see §4.2).
 4. **Payment:** Browser → gateway hosted checkout → gateway webhook → `/webhooks/airwallex|paypal` (signature verify → enqueue job → 200) → worker finalizes order → Brevo email.
 
 ## 3. Database Schema
@@ -234,6 +234,8 @@ Every adapter is an interface consumed by services; Compose env selects impl (`P
 | `stock:check` | order paid | fires low-stock notification/email |
 | `sla:check` | cron 15min | flags itinerary requests near/past 24h SLA |
 
+**Note on Redis pub/sub:** the chat hub's pub/sub fan-out (§2.2, §5.3) is only required once the API runs more than one instance. On the single-VPS MVP the existing in-memory hub is lower-latency; keep the code path but wire pub/sub when scaling out — a ~1-day change, not an architecture risk.
+
 ### 4.3 Error & transaction conventions
 
 - Services return typed errors (`models.ErrNotFound`, `ErrForbidden`, `ErrConflict`, `ErrValidation{Fields}`); one Fiber error-mapper middleware converts to the API envelope (§5.1). Replaces per-handler `if errors.Is` chains.
@@ -351,6 +353,19 @@ All transitions enforced in services (single `Transition(from, to, actor)` helpe
 - Per PRD §2.4: testify units (adapters mocked), testcontainers-go integration (real PG+Redis; migrations applied), Playwright E2E vs staging, k6 smoke/load.
 - Priority test targets (highest bug value): `platform/fx` rounding, shipping calculator (tiers/overweight), order state machine + stock, webhook idempotency, RBAC middleware matrix, i18n slug resolution.
 - **Environments:** `dev` (Compose: PG, Redis, MinIO, mock adapters), `staging` (VPS, sandbox gateways, real OSS/Brevo test), `prod`. Config via env vars only (extend `config.go`; remove AWS fields).
+
+### 11.1 Performance priorities (MVP-sized, highest ROI)
+
+No message broker is required: Asynq-on-Redis (§4.2) covers all deferred/flaky/heavy/scheduled work; cross-service domain events stay in-process (modular monolith); Redis pub/sub is deferred to multi-instance (§4.2). Go's goroutines provide request concurrency natively — no async framework. Latency targets: SSR LCP < 3s p75 (PRD §4.2), API p95 < 300 ms (PRD §4.2, enforced by k6 §2.4.3).
+
+1. **Parallel SSR data loads** — SolidStart loaders `Promise.all` multiple API calls (API is over Compose localhost); avoid serial waterfalls. *(M1 frontend)*
+2. **Redis hot-data cache** — FX rates, category tree, product detail (per locale+currency), shipping tiers, nav menus; short TTL + invalidate-on-edit. FX is daily — cache in Redis *and* in-process, convert/round in Go. *(M2)*
+3. **Indexes on the hot paths** — `(entity_id, locale)` and `(locale, slug)` on translation tables; product filters (`artist, edition_type, price_cny`); `tsvector` for search. Add as migrations land, not after. *(M1/M2)*
+4. **Caddy edge wins** — HTTP/3, brotli/gzip, and `Cache-Control: immutable` for SolidStart's hashed assets; long-cache. *(M0 infra)*
+5. **CDN HTML caching for public content pages** — keyed by `(path, locale)`, short TTL + SWR, purge on publish via the sitemap job; personalized fragments load client-side post-hydration (see §2.2). *(M1)*
+6. **Outbound HTTP client hygiene** — reuse clients for Airwallex/Brevo/Qwen/OSS with custom transports, sane timeouts, pooled connections; bound concurrency with semaphores so a slow gateway can't exhaust goroutines. *(M2/M3)*
+
+Items 1–4 are essentially free given the chosen stack; 5 is a deliberate (small) architecture decision; 6 is hygiene. Chat: stream Qwen tokens straight to the socket, never buffer the full response.
 
 ## 12. Open Technical Decisions
 
