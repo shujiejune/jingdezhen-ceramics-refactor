@@ -27,7 +27,7 @@ Tracking the transition of the existing `backend/` codebase (former "Learning & 
 - [x] Replace role model `admin/normal_user/guest` with PRD RBAC: customer + `super_admin`, `content_editor`, `travel_planner`, `ecommerce_operator`, `customer_service` (roles/permissions tables) — migration `000002_rbac`, models/rbac.go, middleware `RequirePermission`/`RequireRole`/`HasRole`, repo `GetUserRoles`/`AssignRole`, service `AdminAssignRole`, admin user routes wired under `/admin/users`
 - [ ] Add shipping address book (multiple addresses per user; country drives shipping calculator)
   - [x] Shipping address book implemented: migration `000003_user_addresses`, `models/address.go`, `address` module (handler/service/repository), routes under `/profile/addresses`; one-default-per-user enforced via partial unique index + tx
-- [ ] Add preferred locale (`en-US`/`zh-CN`) and preferred currency (USD/EUR/GBP) to profile
+- [x] Add preferred locale (`en-US`/`zh-CN`) and preferred currency (USD/EUR/GBP) to profile — migration `000004_user_preferences` adds columns + CHECK constraint; `User`/`UserUpdateData` updated; all 4 scan paths fixed (latent double-ProfileData scan bug removed); validator `oneof=USD EUR GBP` for clean 400s
 - [ ] Add consent records (Privacy Policy / ToS acceptance with timestamp & version — GDPR)
 - [ ] Add TOTP 2FA (mandatory for Super Admin, optional for staff)
 - [ ] Add WhatsApp OAuth provider (schema already generic via `auth_provider`) — *may trail post-MVP*

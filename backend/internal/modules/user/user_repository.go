@@ -72,10 +72,10 @@ func (r *Repository) WithTx(tx pgx.Tx) *Repository {
 
 // Columns selected for a user without the password hash. Note: roles are loaded
 // separately via GetUserRoles (PRD §3.4.1 RBAC).
-const userColumns = "id, nickname, email, avatar_url, profile_data, auth_provider, is_active, created_at, updated_at"
+const userColumns = "id, nickname, email, avatar_url, profile_data, preferred_locale, preferred_currency, auth_provider, is_active, created_at, updated_at"
 
 // Columns selected for a user including the password hash (login flows).
-const userColumnsWithPassword = "id, nickname, email, password_hash, avatar_url, profile_data, auth_provider, is_active, created_at, updated_at"
+const userColumnsWithPassword = "id, nickname, email, password_hash, avatar_url, profile_data, preferred_locale, preferred_currency, auth_provider, is_active, created_at, updated_at"
 
 func (r *Repository) scanUser(row pgx.Row) (*models.User, error) {
 	var user models.User
@@ -87,7 +87,8 @@ func (r *Repository) scanUser(row pgx.Row) (*models.User, error) {
 		&user.Email,
 		&avatarURL,
 		&user.ProfileData,
-		&user.ProfileData, // scanned twice to mirror the JSONB column (existing pattern)
+		&user.PreferredLocale,
+		&user.PreferredCurrency,
 		&user.AuthProvider,
 		&user.IsActive,
 		&user.CreatedAt,
@@ -117,7 +118,8 @@ func (r *Repository) scanUserWithPasswordHash(row pgx.Row) (*models.User, error)
 		&passwordHash,
 		&avatarURL,
 		&user.ProfileData,
-		&user.ProfileData,
+		&user.PreferredLocale,
+		&user.PreferredCurrency,
 		&user.AuthProvider,
 		&user.IsActive,
 		&user.CreatedAt,
@@ -211,7 +213,8 @@ func (r *Repository) FindByPasswordResetToken(ctx context.Context, token string)
 	var passwordHash, avatarURL sql.NullString
 	err := row.Scan(
 		&user.ID, &user.Nickname, &user.Email, &passwordHash, &avatarURL,
-		&user.ProfileData, &user.ProfileData, &user.AuthProvider, &user.IsActive,
+		&user.ProfileData, &user.PreferredLocale, &user.PreferredCurrency,
+		&user.AuthProvider, &user.IsActive,
 		&user.CreatedAt, &user.UpdatedAt, &user.AuthProviderID,
 	)
 	if err != nil {
@@ -349,6 +352,16 @@ func (r *Repository) Update(ctx context.Context, userID string, data models.User
 		args = append(args, *data.OtherContact)
 		argIdx++
 	}
+	if data.PreferredLocale != nil {
+		setClauses = append(setClauses, fmt.Sprintf("preferred_locale = $%d", argIdx))
+		args = append(args, *data.PreferredLocale)
+		argIdx++
+	}
+	if data.PreferredCurrency != nil {
+		setClauses = append(setClauses, fmt.Sprintf("preferred_currency = $%d", argIdx))
+		args = append(args, *data.PreferredCurrency)
+		argIdx++
+	}
 
 	if len(setClauses) == 0 {
 		return r.FindByID(ctx, userID)
@@ -387,7 +400,8 @@ func (r *Repository) ListAll(ctx context.Context, page, limit int) ([]models.Use
 		var passwordHash, avatarURL sql.NullString
 		if err := rows.Scan(
 			&user.ID, &user.Nickname, &user.Email, &passwordHash, &avatarURL,
-			&user.ProfileData, &user.ProfileData, &user.AuthProvider, &user.IsActive,
+			&user.ProfileData, &user.PreferredLocale, &user.PreferredCurrency,
+			&user.AuthProvider, &user.IsActive,
 			&user.CreatedAt, &user.UpdatedAt, &user.AuthProviderID,
 		); err != nil {
 			return nil, 0, fmt.Errorf("repository.ListAllUsers.Scan: %w", err)

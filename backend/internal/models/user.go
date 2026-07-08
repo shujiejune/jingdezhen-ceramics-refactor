@@ -6,23 +6,25 @@ import "time"
 
 type ProfileData struct {
 	OtherContact string `json:"other_contact,omitempty"`
-	// PRD §3.5: shipping addresses, preferred locale/currency, consent records
+	// PRD §3.5: shipping addresses, consent records
 	// to be added during the user-schema alignment (see docs/REFACTOR-TODO.md).
 }
 
 // User struct (you'll have more fields from your DB schema)
 type User struct {
-	ID             string       `json:"id" db:"id"` // UUID string from DB
-	Nickname       string       `json:"nickname,omitempty" db:"nickname"`
-	Email          string       `json:"email" db:"email"`
-	PasswordHash   *string      `json:"-" db:"password_hash"`
-	AvatarURL      *string      `json:"avatar_url,omitempty" db:"avatar_url"`
-	ProfileData    *ProfileData `json:"profile_data,omitempty" db:"profile_data"`
-	AuthProvider   string       `json:"auth_provider" db:"auth_provider"`
-	AuthProviderID string       `json:"-" db:"auth_provider_id"`
-	IsActive       bool         `json:"is_active" db:"is_active"`
-	CreatedAt      time.Time    `json:"created_at" db:"created_at"`
-	UpdatedAt      time.Time    `json:"updated_at" db:"updated_at"`
+	ID                string       `json:"id" db:"id"` // UUID string from DB
+	Nickname          string       `json:"nickname,omitempty" db:"nickname"`
+	Email             string       `json:"email" db:"email"`
+	PasswordHash      *string      `json:"-" db:"password_hash"`
+	AvatarURL         *string      `json:"avatar_url,omitempty" db:"avatar_url"`
+	ProfileData       *ProfileData `json:"profile_data,omitempty" db:"profile_data"`
+	PreferredLocale   string       `json:"preferred_locale" db:"preferred_locale"`     // BCP 47: en-US, zh-CN (PRD §3.5.1)
+	PreferredCurrency string       `json:"preferred_currency" db:"preferred_currency"` // ISO 4217: USD, EUR, GBP (PRD §3.2.3)
+	AuthProvider      string       `json:"auth_provider" db:"auth_provider"`
+	AuthProviderID    string       `json:"-" db:"auth_provider_id"`
+	IsActive          bool         `json:"is_active" db:"is_active"`
+	CreatedAt         time.Time    `json:"created_at" db:"created_at"`
+	UpdatedAt         time.Time    `json:"updated_at" db:"updated_at"`
 	// Roles are loaded separately from user_roles (db:"-"; populated by services).
 	// A user with no staff role is a customer (PRD §3.4.1).
 	Roles []string `json:"roles,omitempty" db:"-"`
@@ -50,10 +52,11 @@ type AuthResponse struct {
 
 // UserUpdateData defines fields that can be updated for a user profile
 type UserUpdateData struct {
-	Nickname     *string `json:"nickname,omitempty" validate:"omitempty,min=1,max=100"`
-	AvatarURL    *string `json:"avatar_url,omitempty" validate:"omitempty,url"`
-	OtherContact *string `json:"other_contact,omitempty" validate:"omitempty,max=255"`
-	// Add other updatable fields like contacts from profile_data if needed
+	Nickname          *string `json:"nickname,omitempty" validate:"omitempty,min=1,max=100"`
+	AvatarURL         *string `json:"avatar_url,omitempty" validate:"omitempty,url"`
+	OtherContact      *string `json:"other_contact,omitempty" validate:"omitempty,max=255"`
+	PreferredLocale   *string `json:"preferred_locale,omitempty" validate:"omitempty,len=5"`   // BCP 47, e.g. en-US
+	PreferredCurrency *string `json:"preferred_currency,omitempty" validate:"omitempty,len=3,oneof=USD EUR GBP"` // ISO 4217: USD|EUR|GBP
 }
 
 // UserWithPasswordHash is used internally when password hash is needed
