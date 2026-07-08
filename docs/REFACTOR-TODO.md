@@ -28,7 +28,7 @@ Tracking the transition of the existing `backend/` codebase (former "Learning & 
 - [ ] Add shipping address book (multiple addresses per user; country drives shipping calculator)
   - [x] Shipping address book implemented: migration `000003_user_addresses`, `models/address.go`, `address` module (handler/service/repository), routes under `/profile/addresses`; one-default-per-user enforced via partial unique index + tx
 - [x] Add preferred locale (`en-US`/`zh-CN`) and preferred currency (USD/EUR/GBP) to profile — migration `000004_user_preferences` adds columns + CHECK constraint; `User`/`UserUpdateData` updated; all 4 scan paths fixed (latent double-ProfileData scan bug removed); validator `oneof=USD EUR GBP` for clean 400s
-- [ ] Add consent records (Privacy Policy / ToS acceptance with timestamp & version — GDPR)
+- [x] Add consent records (Privacy Policy / ToS acceptance with timestamp & version — GDPR) — migration `000005_consent_records` (append-only, nullable user_id for anonymous, 4 kinds, IP hashed via HMAC); `models/consent.go`; `consent` module (repo/service/handler); `POST /consent` public, `GET /profile/consent` + `GET /profile/consent/:kind` protected; `CONSENT_HMAC_KEY` in config
 - [ ] Add TOTP 2FA (mandatory for Super Admin, optional for staff)
 - [ ] Add WhatsApp OAuth provider (schema already generic via `auth_provider`) — *may trail post-MVP*
 - [x] Replace AWS SES sender with **Brevo** (keep `email.ServiceInterface`; remove AWS config/deps) — `pkg/email/brevo_sender.go` REST adapter; `ses_sender.go` removed; AWS SDK dropped from go.mod via `go mod tidy`

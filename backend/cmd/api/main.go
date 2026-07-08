@@ -13,6 +13,7 @@ import (
 	"jingdezhen-ceramics-backend/internal/config"
 	"jingdezhen-ceramics-backend/internal/modules/address"
 	"jingdezhen-ceramics-backend/internal/modules/ceramicstory"
+	"jingdezhen-ceramics-backend/internal/modules/consent"
 	"jingdezhen-ceramics-backend/internal/modules/engage"
 	"jingdezhen-ceramics-backend/internal/modules/gallery"
 	"jingdezhen-ceramics-backend/internal/modules/notification"
@@ -192,9 +193,14 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 	addressService := address.NewService(addressRepo)
 	addressHandler := address.NewHandler(addressService)
 
+	consentRepo := consent.NewRepository(dbPool)
+	consentService := consent.NewService(consentRepo, []byte(cfg.ConsentHMACKey))
+	consentHandler := consent.NewHandler(consentService)
+
 	api.SetupRoutes(app, cfg.JWTSecret,
 		wsHandler, userHandler, notifHandler,
 		ceramicStoryHandler, galleryHandler, engageHandler, addressHandler,
+		consentHandler,
 	)
 
 	// --- Start server (graceful shutdown) ---

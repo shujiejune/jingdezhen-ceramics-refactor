@@ -25,6 +25,9 @@ type Config struct {
 	// Single URL encodes host/port/db/password, e.g. redis://:pass@localhost:6379/0
 	RedisURL string `mapstructure:"REDIS_URL"`
 
+	// --- Consent HMAC key (GDPR) — rotates daily in prod (TDD §11); static for MVP ---
+	ConsentHMACKey string `mapstructure:"CONSENT_HMAC_KEY"`
+
 	// --- Google OAuth ---
 	GoogleOAuthClientID     string `mapstructure:"GOOGLE_OAUTH_CLIENT_ID"`
 	GoogleOAuthClientSecret string `mapstructure:"GOOGLE_OAUTH_CLIENT_SECRET"`

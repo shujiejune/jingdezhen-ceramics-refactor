@@ -5,6 +5,7 @@ import (
 	"jingdezhen-ceramics-backend/internal/models"
 	"jingdezhen-ceramics-backend/internal/modules/address"
 	"jingdezhen-ceramics-backend/internal/modules/ceramicstory"
+	"jingdezhen-ceramics-backend/internal/modules/consent"
 	"jingdezhen-ceramics-backend/internal/modules/engage"
 	"jingdezhen-ceramics-backend/internal/modules/gallery"
 	"jingdezhen-ceramics-backend/internal/modules/notification"
@@ -25,6 +26,7 @@ func SetupRoutes(
 	galleryHandler *gallery.Handler,
 	engageHandler *engage.Handler,
 	addressHandler *address.Handler,
+	consentHandler *consent.Handler,
 ) {
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{"message": "Welcome to the Jingdezhen Ceramics Platform!"})
@@ -42,6 +44,10 @@ func SetupRoutes(
 
 	/* --- Contact (send feedback) --- */
 	app.Post("/contact", userHandler.SubmitContactForm)
+
+	/* --- Consent (GDPR) — POST is public so anonymous visitors can record
+	cookie consent before signup; GET state/history is protected. --- */
+	app.Post("/consent", consentHandler.RecordConsent)
 
 	/* --- Auth (Public) --- */
 	authGroup := app.Group("/auth")
@@ -71,6 +77,10 @@ func SetupRoutes(
 		profileGroup.Put("/addresses/:id", addressHandler.UpdateAddress)
 		profileGroup.Delete("/addresses/:id", addressHandler.DeleteAddress)
 		profileGroup.Post("/addresses/:id/default", addressHandler.SetDefaultAddress)
+
+		// Consent history (GDPR data export) + latest consent state per kind.
+		profileGroup.Get("/consent", consentHandler.ListConsentHistory)
+		profileGroup.Get("/consent/:kind", consentHandler.GetConsentState)
 		// ... other user-specific routes like badges, subscriptions
 	}
 
