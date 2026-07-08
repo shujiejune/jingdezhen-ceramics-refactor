@@ -31,12 +31,12 @@ Tracking the transition of the existing `backend/` codebase (former "Learning & 
 - [ ] Add consent records (Privacy Policy / ToS acceptance with timestamp & version — GDPR)
 - [ ] Add TOTP 2FA (mandatory for Super Admin, optional for staff)
 - [ ] Add WhatsApp OAuth provider (schema already generic via `auth_provider`) — *may trail post-MVP*
-- [ ] Replace AWS SES sender with **Brevo** (keep `email.ServiceInterface`; remove AWS config/deps)
-- [ ] Extend `config.go`: Brevo, Airwallex, PayPal, Qwen, OSS, Redis; remove AWS fields
+- [x] Replace AWS SES sender with **Brevo** (keep `email.ServiceInterface`; remove AWS config/deps) — `pkg/email/brevo_sender.go` REST adapter; `ses_sender.go` removed; AWS SDK dropped from go.mod via `go mod tidy`
+- [x] Extend `config.go`: Brevo, Airwallex, PayPal, Qwen, OSS, Redis; remove AWS fields — `.env.example` documents all keys; Redis added to `docker-compose.dev.yml`
 - [ ] GDPR self-service: user data export + account deletion endpoints
 
 ### Infrastructure
-- [ ] Add Redis (sessions, cache, pub/sub, Asynq job queue)
+- [x] Add Redis (sessions, cache, pub/sub, Asynq job queue) — containerized in `docker-compose.dev.yml` (`redis:7-alpine`, port 6379 exposed, healthcheck); `REDIS_URL` in config. Asynq job infra still TODO
 - [ ] Add OSS media upload pipeline (WebP conversion via OSS image processing)
 - [ ] i18n content infrastructure: per-locale translation tables pattern (BCP 47 keys)
 - [ ] Rewrite `ws` hub with Redis pub/sub fan-out + chat session/message persistence (PRD §3.3.1)

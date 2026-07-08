@@ -92,10 +92,9 @@ func main() {
 	}
 
 	// 2. Initialize other services
-	sesSender, err := email.NewSESV2Sender(context.Background(), cfg.AWSRegion, cfg.AdminEmail)
-	if err != nil {
-		log.Fatalf("Failed to create SES sender: %v", err)
-	}
+	// Email: Brevo (replaces AWS SES, TDD §10). Empty API key => no-op sender
+	// that logs locally, so dev runs without real Brevo credentials.
+	emailer := email.NewBrevoSender(cfg.BrevoAPIKey, cfg.BrevoSenderEmail, cfg.BrevoSenderName)
 	templateManager, err := email.NewTemplateManager()
 	if err != nil {
 		log.Fatalf("Failed to parse email templates: %v", err)
@@ -104,7 +103,7 @@ func main() {
 	userRepo := user.NewRepository(dbPool)
 	userService := user.NewService(
 		userRepo,
-		sesSender,
+		emailer,
 		templateManager,
 		cfg.JWTSecret,
 		cfg.ClientOrigin,

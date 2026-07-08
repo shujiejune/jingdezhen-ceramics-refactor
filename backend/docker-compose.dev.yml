@@ -1,6 +1,6 @@
 services:
   api:
-    container_name: jingdezhen-ceramics
+    container_name: jdz-api
     build:
       context: .
       # Explicitly target the 'builder' stage, which has Go installed.
@@ -10,11 +10,11 @@ services:
     volumes:
       # Mount local source code into the container.
       - .:/app
-    
+
     # Override the Dockerfile's CMD to run our app in development mode.
     # Using 'go run' allows us to see code changes without rebuilding the image.
     command: go run ./cmd/api/main.go
-      
+
     environment:
       - SERVER_PORT=${SERVER_PORT}
       - JWT_SECRET=${JWT_SECRET}
@@ -23,20 +23,23 @@ services:
       - GOOGLE_OAUTH_CLIENT_SECRET=${GOOGLE_OAUTH_CLIENT_SECRET}
       - GOOGLE_OAUTH_REDIRECT_URL=${GOOGLE_OAUTH_REDIRECT_URL}
       - GOOGLE_MAP_API_KEY=${GOOGLE_MAP_API_KEY}
-      - AWS_REGION=${AWS_REGION}
-      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-      - EMAIL_FROM_ADDRESS=${EMAIL_FROM_ADDRESS}
+      - ADMIN_EMAIL=${ADMIN_EMAIL}
       - DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}?sslmode=${DB_SSLMODE}
+      - REDIS_URL=redis://redis:6379/0
+      - BREVO_API_KEY=${BREVO_API_KEY:-}
+      - BREVO_SENDER_EMAIL=${BREVO_SENDER_EMAIL:-}
+      - BREVO_SENDER_NAME=${BREVO_SENDER_NAME:-}
 
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     restart: always
 
   db:
     image: postgis/postgis:16-3.5-alpine
-    container_name: jingdezhen-ceramics
+    container_name: jdz-db
     environment:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
@@ -52,5 +55,21 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    container_name: jdz-redis
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    restart: always
+    # `redis-cli ping` returns "PONG" once Redis is ready.
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 5s
+      retries: 5
+
 volumes:
   postgres_db_data:
+  redis_data:
