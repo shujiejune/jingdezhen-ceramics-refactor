@@ -10,6 +10,7 @@ import (
 
 	"jingdezhen-ceramics-backend/internal/api"
 	"jingdezhen-ceramics-backend/internal/config"
+	"jingdezhen-ceramics-backend/internal/modules/address"
 	"jingdezhen-ceramics-backend/internal/modules/ceramicstory"
 	"jingdezhen-ceramics-backend/internal/modules/engage"
 	"jingdezhen-ceramics-backend/internal/modules/gallery"
@@ -130,6 +131,10 @@ func main() {
 	engageService := engage.NewService(engageRepo)
 	engageHandler := engage.NewHandler(engageService)
 
+	addressRepo := address.NewRepository(dbPool)
+	addressService := address.NewService(addressRepo)
+	addressHandler := address.NewHandler(addressService)
+
 	// --- Initialize router, passing all handlers and other necessary dependencies ---
 	api.SetupRoutes(app, cfg.JWTSecret,
 		wsHandler,
@@ -138,6 +143,7 @@ func main() {
 		ceramicStoryHandler,
 		galleryHandler,
 		engageHandler,
+		addressHandler,
 	)
 
 	// --- Start server (graceful shutdown logic) ---

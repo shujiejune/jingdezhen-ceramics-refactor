@@ -3,6 +3,7 @@ package api
 import (
 	"jingdezhen-ceramics-backend/internal/api/middleware"
 	"jingdezhen-ceramics-backend/internal/models"
+	"jingdezhen-ceramics-backend/internal/modules/address"
 	"jingdezhen-ceramics-backend/internal/modules/ceramicstory"
 	"jingdezhen-ceramics-backend/internal/modules/engage"
 	"jingdezhen-ceramics-backend/internal/modules/gallery"
@@ -23,6 +24,7 @@ func SetupRoutes(
 	csHandler *ceramicstory.Handler,
 	galleryHandler *gallery.Handler,
 	engageHandler *engage.Handler,
+	addressHandler *address.Handler,
 ) {
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{"message": "Welcome to the Jingdezhen Ceramics Platform!"})
@@ -61,6 +63,14 @@ func SetupRoutes(
 	{
 		profileGroup.Get("", userHandler.GetProfile)
 		profileGroup.Put("", userHandler.UpdateProfile)
+
+		// Shipping address book (PRD §3.5) — scoped to the authenticated user.
+		profileGroup.Get("/addresses", addressHandler.ListAddresses)
+		profileGroup.Post("/addresses", addressHandler.CreateAddress)
+		profileGroup.Get("/addresses/:id", addressHandler.GetAddress)
+		profileGroup.Put("/addresses/:id", addressHandler.UpdateAddress)
+		profileGroup.Delete("/addresses/:id", addressHandler.DeleteAddress)
+		profileGroup.Post("/addresses/:id/default", addressHandler.SetDefaultAddress)
 		// ... other user-specific routes like badges, subscriptions
 	}
 
