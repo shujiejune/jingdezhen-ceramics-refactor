@@ -134,7 +134,7 @@ func (s *Service) Signup(ctx context.Context, req models.SignupRequest) (*models
 		return createdUser, nil
 	}
 
-	emailSubject := "[Circuit] Welcome! Please Activate Your Account"
+	emailSubject := "[Jingdezhen Ceramics] Welcome! Please Activate Your Account"
 	plainTextContent := fmt.Sprintf("Thank you for signing up! Please click the following link in 30 minutes to activate your account: %s", activationURL)
 
 	go func() {

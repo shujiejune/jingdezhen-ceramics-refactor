@@ -1,6 +1,6 @@
 package models
 
-import "time" // if you have CreatedAt, UpdatedAt
+import "time"
 
 // Role/permission constants now live in rbac.go (PRD §3.4.1).
 
