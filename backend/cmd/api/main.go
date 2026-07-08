@@ -156,7 +156,9 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 	}
 
 	// --- Email: Brevo (replaces AWS SES, TDD §10). Empty key => no-op sender ---
-	emailer := email.NewBrevoSender(cfg.BrevoAPIKey, cfg.BrevoSenderEmail, cfg.BrevoSenderName)
+	// In serve mode the emailer is not used directly — emails are enqueued via
+	// jobClient and sent by the worker. We still build the template manager here
+	// because email rendering happens at enqueue time.
 	templateManager, err := email.NewTemplateManager()
 	if err != nil {
 		log.Fatalf("Failed to parse email templates: %v", err)
@@ -165,7 +167,7 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 	// --- Dependency injection ---
 	userRepo := user.NewRepository(dbPool)
 	userService := user.NewService(
-		userRepo, emailer, templateManager,
+		userRepo, jobClient, templateManager,
 		cfg.JWTSecret, cfg.ClientOrigin, cfg.AdminEmail, googleOAuthConfig,
 	)
 	userHandler := user.NewHandler(userService)
@@ -220,9 +222,14 @@ func runWorker(rootCtx context.Context, cfg config.Config) {
 		log.Fatalf("Invalid REDIS_URL: %v", err)
 	}
 
-	// The Asynq server processes jobs; the scheduler enqueues cron-based jobs.
-	// Both run in the same `worker` process for the single-VPS MVP.
+	// The worker sends emails via Brevo. The serve mode renders templates at
+	// enqueue time, so the worker only needs the sender (no template manager).
+	emailer := email.NewBrevoSender(cfg.BrevoAPIKey, cfg.BrevoSenderEmail, cfg.BrevoSenderName)
+
 	jobServer := jobs.NewServer(redisAddr)
+	jobServer.EmailSend = func(ctx context.Context, p jobs.EmailSendPayload) error {
+		return emailer.SendEmail(ctx, p.To, p.Subject, p.PlainText, p.HTML)
+	}
 	jobScheduler := jobs.NewScheduler(redisAddr)
 
 	// Feature modules will assign real handlers here, e.g.:

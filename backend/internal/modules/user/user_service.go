@@ -8,6 +8,7 @@ import (
 	"io"
 	"jingdezhen-ceramics-backend/internal/models"
 	emailSvc "jingdezhen-ceramics-backend/pkg/email"
+	"jingdezhen-ceramics-backend/internal/platform/jobs"
 	"jingdezhen-ceramics-backend/pkg/utils"
 	"log"
 	"net/http"
@@ -40,9 +41,17 @@ type ServiceInterface interface {
 	AdminAssignRole(ctx context.Context, targetUserID string, roleKey string) error
 }
 
+// EmailEnqueuer is the subset of the Asynq job client the user service needs.
+// Defined as an interface so the service is testable without a live Redis;
+// *jobs.Client satisfies it. Email rendering happens at enqueue time (here),
+// so the worker only needs the rendered HTML/text + Brevo sender.
+type EmailEnqueuer interface {
+	EnqueueEmailSend(ctx context.Context, p jobs.EmailSendPayload) error
+}
+
 type Service struct {
 	userRepo          RepositoryInterface
-	emailer           emailSvc.ServiceInterface // For sending emails
+	emailEnqueuer     EmailEnqueuer       // enqueue email:send jobs (TDD §4.2)
 	templateManager   *emailSvc.TemplateManager
 	jwtSecret         string
 	clientOrigin      string // For sending activation and password reset emails (domain name)
@@ -52,7 +61,7 @@ type Service struct {
 
 func NewService(
 	userRepo RepositoryInterface,
-	emailer emailSvc.ServiceInterface,
+	emailEnqueuer EmailEnqueuer,
 	tm *emailSvc.TemplateManager,
 	JWTSecretFromConfig string,
 	clientOriginFromConfig string,
@@ -61,7 +70,7 @@ func NewService(
 ) ServiceInterface {
 	return &Service{
 		userRepo:          userRepo,
-		emailer:           emailer,
+		emailEnqueuer:     emailEnqueuer,
 		templateManager:   tm,
 		jwtSecret:         JWTSecretFromConfig,
 		clientOrigin:      clientOriginFromConfig,
@@ -137,13 +146,15 @@ func (s *Service) Signup(ctx context.Context, req models.SignupRequest) (*models
 	emailSubject := "[Jingdezhen Ceramics] Welcome! Please Activate Your Account"
 	plainTextContent := fmt.Sprintf("Thank you for signing up! Please click the following link in 30 minutes to activate your account: %s", activationURL)
 
-	go func() {
-		// Run in a goroutine so it doesn't block the user's signup response
-		err := s.emailer.SendEmail(context.Background(), createdUser.Email, emailSubject, plainTextContent, htmlContent)
-		if err != nil {
-			log.Printf("Failed to send activation email to %s: %v", createdUser.Email, err)
-		}
-	}()
+	// Enqueue the email send so a flaky Brevo API never blocks signup (TDD §4.2).
+	if err := s.emailEnqueuer.EnqueueEmailSend(ctx, jobs.EmailSendPayload{
+		To:        createdUser.Email,
+		Subject:   emailSubject,
+		PlainText: plainTextContent,
+		HTML:      htmlContent,
+	}); err != nil {
+		log.Printf("Failed to enqueue activation email to %s: %v", createdUser.Email, err)
+	}
 
 	return createdUser, nil
 }
@@ -239,13 +250,14 @@ func (s *Service) ResendActivationEmail(ctx context.Context, email string) error
 	emailSubject := "[Jingdezhen Ceramics] Activate Your Account (New Link)"
 	plainTextContent := fmt.Sprintf("Please click the following link in 30 minutes to activate your account: %s", activationURL)
 
-	go func() {
-		// Run in a goroutine so it doesn't block the user's signup response
-		err := s.emailer.SendEmail(context.Background(), email, emailSubject, plainTextContent, htmlContent)
-		if err != nil {
-			log.Printf("Failed to send re-activation email to %s: %v", email, err)
-		}
-	}()
+	if err := s.emailEnqueuer.EnqueueEmailSend(ctx, jobs.EmailSendPayload{
+		To:        email,
+		Subject:   emailSubject,
+		PlainText: plainTextContent,
+		HTML:      htmlContent,
+	}); err != nil {
+		log.Printf("Failed to enqueue re-activation email to %s: %v", email, err)
+	}
 
 	return nil
 }
@@ -319,13 +331,14 @@ func (s *Service) RequestPasswordReset(ctx context.Context, email string) error 
 	emailSubject := "[Jingdezhen Ceramics] Reset Your Password"
 	plainTextContent := fmt.Sprintf("Please click the following link in 15 minutes to reset your password: %s", resetURL)
 
-	go func() {
-		// Run in a goroutine so it doesn't block the user's signup response
-		err := s.emailer.SendEmail(context.Background(), email, emailSubject, plainTextContent, htmlContent)
-		if err != nil {
-			log.Printf("Failed to send password resetting email to %s: %v", email, err)
-		}
-	}()
+	if err := s.emailEnqueuer.EnqueueEmailSend(ctx, jobs.EmailSendPayload{
+		To:        email,
+		Subject:   emailSubject,
+		PlainText: plainTextContent,
+		HTML:      htmlContent,
+	}); err != nil {
+		log.Printf("Failed to enqueue password-reset email to %s: %v", email, err)
+	}
 
 	return nil
 }
@@ -475,16 +488,19 @@ func (s *Service) HandleContactSubmission(ctx context.Context, data models.Conta
 		data.Name, data.Email, data.Message,
 	)
 
-	// 2. Send an email to the admin using an email service
-	err := s.emailer.SendEmail(ctx, s.adminEmail, emailSubject, emailBody, "")
-	if err != nil {
-		log.Printf("ERROR sending contact email: %v", err)
-		// Decide if this should be a user-facing error or just logged
-		return fmt.Errorf("failed to send contact message: %w", err)
+	// 2. Enqueue an email to the admin via the job queue (TDD §4.2). A flaky
+	// Brevo API should never fail a contact-form submission; the queue retries.
+	if err := s.emailEnqueuer.EnqueueEmailSend(ctx, jobs.EmailSendPayload{
+		To:        s.adminEmail,
+		Subject:   emailSubject,
+		PlainText: emailBody,
+	}); err != nil {
+		log.Printf("Failed to enqueue contact email: %v", err)
+		return fmt.Errorf("failed to submit contact message: %w", err)
 	}
-	log.Printf("SIMULATED: Email sent to %s, Subject: %s", s.adminEmail, emailSubject)
+	log.Printf("Contact email enqueued to %s, Subject: %s", s.adminEmail, emailSubject)
 
-	return nil // Simulate success
+	return nil
 }
 
 // --- Admin Service Methods ---
