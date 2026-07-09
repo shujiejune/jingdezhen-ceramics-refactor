@@ -30,9 +30,11 @@ type ServiceInterface interface {
 	// TOTP secret. Used by the login 2FA-verify step.
 	VerifyCode(ctx context.Context, userID, code string) (bool, error)
 	// IssuePendingToken returns a short-lived JWT identifying a user who has
-	// passed the password check but still owes a TOTP code. The login flow uses
-	// it when 2FA is enabled; the frontend POSTs it + the code to /auth/2fa/verify.
-	IssuePendingToken(userID string) (string, error)
+	// passed the password check but still owes a TOTP code (or must enroll).
+	// The login flow uses it when 2FA is enabled; the frontend POSTs it + the
+	// code to /auth/2fa/verify. `ttl` is the token's lifetime (verify step is
+	// fast → 5m; the must-enroll step needs QR scan time → 15m).
+	IssuePendingToken(userID string, ttl time.Duration) (string, error)
 	// ResolvePendingToken validates a pending 2FA token and returns the userID.
 	// Called by the verify endpoint before checking the code.
 	ResolvePendingToken(token string) (string, error)
@@ -152,11 +154,11 @@ type pending2FAClaims struct {
 	jwt.RegisteredClaims
 }
 
-func (s *Service) IssuePendingToken(userID string) (string, error) {
+func (s *Service) IssuePendingToken(userID string, ttl time.Duration) (string, error) {
 	claims := pending2FAClaims{
 		UserID: userID,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(5 * time.Minute)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(ttl)),
 			Subject:   "2fa-pending",
 		},
 	}

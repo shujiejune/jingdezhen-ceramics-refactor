@@ -67,8 +67,20 @@ func (h *Handler) Login(c *fiber.Ctx) error {
 			// 6-digit code to /auth/2fa/verify.
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 				"error": fiber.Map{
-					"code":         "2fa_required",
-					"message":      "Two-factor authentication code required",
+					"code":          "2fa_required",
+					"message":       "Two-factor authentication code required",
+					"pending_token": authResponse.AccessToken,
+				},
+			})
+		}
+		if errors.Is(err, models.Err2FAEnrollmentRequired) {
+			// Super admin with no 2FA enrolled: blocked from a full session. The
+			// frontend walks the user through /auth/2fa/pending-enroll →
+			// /auth/2fa/pending-confirm (which mints the real JWT on success).
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"error": fiber.Map{
+					"code":          "2fa_enrollment_required",
+					"message":       "Two-factor enrollment required before you can log in",
 					"pending_token": authResponse.AccessToken,
 				},
 			})
@@ -101,6 +113,56 @@ func (h *Handler) Verify2FALogin(c *fiber.Ctx) error {
 		}
 		log.Printf("Handler.Verify2FALogin: %v", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(models.ErrorResponse{Message: "Failed to complete 2FA login"})
+	}
+	return c.Status(fiber.StatusOK).JSON(authResponse)
+}
+
+// Pending2FAEnroll: POST /auth/2fa/pending-enroll — must-enroll flow for a
+// super_admin whose login was blocked (Err2FAEnrollmentRequired). PUBLIC: the
+// pending token is the credential. Returns the otpauth:// URI + raw secret.
+func (h *Handler) Pending2FAEnroll(c *fiber.Ctx) error {
+	var req models.PendingTwoFAEnrollRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(models.ErrorResponse{Message: "Invalid request body"})
+	}
+	if err := h.validate.Struct(req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(models.ErrorResponse{Message: "Validation failed: " + err.Error()})
+	}
+	resp, err := h.service.StartPending2FAEnrollment(c.Context(), req.PendingToken, req)
+	if err != nil {
+		if errors.Is(err, models.ErrInvalidToken) {
+			return c.Status(fiber.StatusUnauthorized).JSON(models.ErrorResponse{Message: "Invalid or expired pending token"})
+		}
+		log.Printf("Handler.Pending2FAEnroll: %v", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(models.ErrorResponse{Message: "Failed to start 2FA enrollment"})
+	}
+	return c.Status(fiber.StatusOK).JSON(resp)
+}
+
+// Pending2FAConfirm: POST /auth/2fa/pending-confirm — must-enroll flow. PUBLIC.
+// Verifies the first TOTP code, enables 2FA, and completes login (mints the
+// real access token). On success the super_admin is logged in with 2FA on.
+func (h *Handler) Pending2FAConfirm(c *fiber.Ctx) error {
+	var req models.PendingTwoFAConfirmRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(models.ErrorResponse{Message: "Invalid request body"})
+	}
+	if err := h.validate.Struct(req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(models.ErrorResponse{Message: "Validation failed: " + err.Error()})
+	}
+	authResponse, err := h.service.Complete2FAEnrollment(c.Context(), req.PendingToken, req.Code)
+	if err != nil {
+		if errors.Is(err, models.ErrInvalidToken) {
+			return c.Status(fiber.StatusUnauthorized).JSON(models.ErrorResponse{Message: "Invalid or expired pending token"})
+		}
+		if errors.Is(err, models.ErrInvalidCredentials) {
+			return c.Status(fiber.StatusUnauthorized).JSON(models.ErrorResponse{Message: "Invalid TOTP code"})
+		}
+		if errors.Is(err, models.ErrNotFound) {
+			return c.Status(fiber.StatusBadRequest).JSON(models.ErrorResponse{Message: "No pending enrollment — call /auth/2fa/pending-enroll first"})
+		}
+		log.Printf("Handler.Pending2FAConfirm: %v", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(models.ErrorResponse{Message: "Failed to complete 2FA enrollment"})
 	}
 	return c.Status(fiber.StatusOK).JSON(authResponse)
 }

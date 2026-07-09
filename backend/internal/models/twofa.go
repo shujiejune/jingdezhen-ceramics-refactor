@@ -41,3 +41,19 @@ type VerifyTwoFARequest struct {
 	PendingToken string `json:"pending_token" validate:"required"`
 	Code         string `json:"code" validate:"required,len=6"`
 }
+
+// PendingTwoFAEnrollRequest is the body for POST /auth/2fa/pending-enroll —
+// the must-enroll flow for super_admin. The pending token (from the blocked
+// login) is the credential; optional issuer/account labels the otpauth URI.
+type PendingTwoFAEnrollRequest struct {
+	PendingToken string `json:"pending_token" validate:"required"`
+	Issuer       string `json:"issuer,omitempty"`
+	Account      string `json:"account,omitempty"`
+}
+
+// PendingTwoFAConfirmRequest is the body for POST /auth/2fa/pending-confirm —
+// verify the first code, enable 2FA, and complete login (mint the real JWT).
+type PendingTwoFAConfirmRequest struct {
+	PendingToken string `json:"pending_token" validate:"required"`
+	Code         string `json:"code" validate:"required,len=6"`
+}

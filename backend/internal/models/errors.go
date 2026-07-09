@@ -14,4 +14,5 @@ var ErrLimitExceeded = errors.New("submission or usage limit exceeded")
 var ErrMissedDeadline = errors.New("deadline missed")
 var ErrNicknameTaken = errors.New("nickname already taken")
 var ErrNotOwned = errors.New("not owned by this user")
-var Err2FARequired = errors.New("two-factor authentication code required") // password OK but a TOTP code is needed to complete login
+var Err2FARequired = errors.New("two-factor authentication code required")          // password OK but a TOTP code is needed to complete login
+var Err2FAEnrollmentRequired = errors.New("two-factor enrollment required") // super_admin must enroll 2FA before a full session is granted

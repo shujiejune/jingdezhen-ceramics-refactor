@@ -44,6 +44,13 @@ type ServiceInterface interface {
 	// then issue the real access token + full profile. The pending-token
 	// resolution is delegated to the 2FA service; this method owns the JWT.
 	Complete2FALogin(ctx context.Context, pendingToken, code string) (*models.AuthResponse, error)
+
+	// 2FA must-enroll flow (PRD §4.3 super_admin mandate): a super_admin with
+	// no 2FA is blocked at login (Err2FAEnrollmentRequired). Start generates
+	// the QR/secret; Complete verifies the first code, enables 2FA, and mints
+	// the real access token (login finishes).
+	StartPending2FAEnrollment(ctx context.Context, pendingToken string, req models.PendingTwoFAEnrollRequest) (*models.TwoFAEnrollResponse, error)
+	Complete2FAEnrollment(ctx context.Context, pendingToken, code string) (*models.AuthResponse, error)
 }
 
 // EmailEnqueuer is the subset of the Asynq job client the user service needs.
@@ -59,9 +66,11 @@ type EmailEnqueuer interface {
 // circular import (twofa imports nothing from user; user imports this iface).
 type TwoFAChecker interface {
 	IsEnabled(ctx context.Context, userID string) (bool, error)
-	IssuePendingToken(userID string) (string, error)
+	IssuePendingToken(userID string, ttl time.Duration) (string, error)
 	ResolvePendingToken(token string) (string, error)
 	VerifyCode(ctx context.Context, userID, code string) (bool, error)
+	Enroll(ctx context.Context, userID string, req models.EnrollTwoFARequest) (*models.TwoFAEnrollResponse, error)
+	Confirm(ctx context.Context, userID string, req models.ConfirmTwoFARequest) error
 }
 
 type Service struct {
@@ -307,15 +316,45 @@ func (s *Service) Login(ctx context.Context, req models.LoginRequest) (*models.A
 		return nil, models.ErrInactiveAccount
 	}
 
-	// 4. 2FA challenge (TDD §5.3, PRD §4.3): if the user has 2FA enabled,
-	// do NOT issue a full token yet — return a short-lived pending token the
-	// frontend exchanges (with a TOTP code) at /auth/2fa/verify. Mandatory
-	// for super_admin, optional for other staff (enforced by enrollment state).
+	// 4. 2FA challenge (TDD §5.3, PRD §4.3). Mandatory for super_admin:
+	// a super_admin with no 2FA enabled is blocked from a full session and
+	// forced through enroll→confirm before login completes. Optional 2FA for
+	// other staff: if enabled, login is challenged for a TOTP code.
 	if s.twoFAChecker != nil {
-		if enabled, err := s.twoFAChecker.IsEnabled(ctx, userWithHash.ID); err != nil {
+		// Load roles to detect super_admin (the must-enroll mandate applies only
+		// to that role; PRD §4.3).
+		roles, err := s.userRepo.GetUserRoles(ctx, userWithHash.ID)
+		if err != nil {
+			return nil, fmt.Errorf("service.Login.roles: %w", err)
+		}
+		isSuperAdmin := false
+		for _, r := range roles {
+			if r == models.RoleSuperAdmin {
+				isSuperAdmin = true
+				break
+			}
+		}
+
+		enabled, err := s.twoFAChecker.IsEnabled(ctx, userWithHash.ID)
+		if err != nil {
 			return nil, fmt.Errorf("service.Login.2fa: %w", err)
-		} else if enabled {
-			pending, err := s.twoFAChecker.IssuePendingToken(userWithHash.ID)
+		}
+
+		if isSuperAdmin && !enabled {
+			// Must enroll first. A longer-lived pending token (15m) covers QR scan +
+			// manual code entry. The frontend exchanges it at /auth/2fa/pending-*.
+			pending, err := s.twoFAChecker.IssuePendingToken(userWithHash.ID, 15*time.Minute)
+			if err != nil {
+				return nil, fmt.Errorf("service.Login.2fa.enroll-pending: %w", err)
+			}
+			return &models.AuthResponse{
+				AccessToken: pending,
+				User:        &models.User{ID: userWithHash.ID},
+			}, models.Err2FAEnrollmentRequired
+		}
+
+		if enabled {
+			pending, err := s.twoFAChecker.IssuePendingToken(userWithHash.ID, 5*time.Minute)
 			if err != nil {
 				return nil, fmt.Errorf("service.Login.2fa.pending: %w", err)
 			}
@@ -505,6 +544,46 @@ func (s *Service) Complete2FALogin(ctx context.Context, pendingToken, code strin
 	user, err := s.userRepo.FindByID(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("service.Complete2FALogin.find: %w", err)
+	}
+	return s.generateAuthResponse(ctx, user)
+}
+
+// StartPending2FAEnrollment begins the must-enroll flow for a super_admin whose
+// login was blocked (Err2FAEnrollmentRequired). It resolves the pending token,
+// generates a TOTP secret, and returns the otpauth:// URI for the QR code. The
+// secret is staged (unconfirmed); Complete2FAEnrollment verifies it.
+func (s *Service) StartPending2FAEnrollment(ctx context.Context, pendingToken string, req models.PendingTwoFAEnrollRequest) (*models.TwoFAEnrollResponse, error) {
+	if s.twoFAChecker == nil {
+		return nil, models.ErrInvalidOperation
+	}
+	userID, err := s.twoFAChecker.ResolvePendingToken(pendingToken)
+	if err != nil {
+		return nil, models.ErrInvalidToken
+	}
+	return s.twoFAChecker.Enroll(ctx, userID, models.EnrollTwoFARequest{
+		Issuer:  req.Issuer,
+		Account: req.Account,
+	})
+}
+
+// Complete2FAEnrollment finishes the must-enroll flow: resolve the pending
+// token, verify the first TOTP code against the staged secret, enable 2FA,
+// then mint the real access token + full profile (login completes). A
+// super_admin cannot get a full session without a confirmed 2FA enrollment.
+func (s *Service) Complete2FAEnrollment(ctx context.Context, pendingToken, code string) (*models.AuthResponse, error) {
+	if s.twoFAChecker == nil {
+		return nil, models.ErrInvalidOperation
+	}
+	userID, err := s.twoFAChecker.ResolvePendingToken(pendingToken)
+	if err != nil {
+		return nil, models.ErrInvalidToken
+	}
+	if err := s.twoFAChecker.Confirm(ctx, userID, models.ConfirmTwoFARequest{Code: code}); err != nil {
+		return nil, err
+	}
+	user, err := s.userRepo.FindByID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("service.Complete2FAEnrollment.find: %w", err)
 	}
 	return s.generateAuthResponse(ctx, user)
 }

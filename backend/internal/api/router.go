@@ -68,6 +68,13 @@ func SetupRoutes(
 		// Routes to the user handler, which owns the JWT and delegates verification
 		// to the 2FA service.
 		authGroup.Post("/2fa/verify", userHandler.Verify2FALogin)
+
+		// 2FA must-enroll flow for super_admin (PRD §4.3 mandate). PUBLIC — the
+		// pending token (from the blocked login) is the credential. Enroll returns
+		// the QR/secret; confirm verifies the code, enables 2FA, and mints the
+		// real access token (login completes).
+		authGroup.Post("/2fa/pending-enroll", userHandler.Pending2FAEnroll)
+		authGroup.Post("/2fa/pending-confirm", userHandler.Pending2FAConfirm)
 	}
 
 	/* --- User Profile (Protected) --- */
