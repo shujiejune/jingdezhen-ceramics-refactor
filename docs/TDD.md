@@ -376,3 +376,4 @@ Items 1–4 are essentially free given the chosen stack; 5 is a deliberate (smal
 - [ ] Qwen3.5 endpoint region + prompt/RAG design (PRD deferral).
 - [ ] Exact Brevo template IDs & email design.
 - [ ] `articles` vs `destinations` split: current `engage` mixes activities/articles — final entity split lands with M1 migration.
+- [x] i18n content infrastructure: `platform/i18ncontent` package codifies the per-locale translation-table pattern — locale constants (en-US, zh-CN + future zh-Hant/ja/fr), `ContentStatus` workflow enum, rich-content `ContentBlock` types (§3.3), `NormalizeLocale` (validate for CMS writes, fallback for public reads), `Transition`/`CanEdit` workflow state machine (editor submit/reopen; super-admin-only approve/reject/unpublish), `PublishedFilter`. Unit-tested transition matrix. `models/i18n.go` holds the shared constants/types every content module imports.

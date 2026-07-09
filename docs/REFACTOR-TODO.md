@@ -38,7 +38,7 @@ Tracking the transition of the existing `backend/` codebase (former "Learning & 
 ### Infrastructure
 - [x] Add Redis (sessions, cache, pub/sub, Asynq job queue) — `redis:7-alpine` in `docker-compose.dev.yml` (port 6379, healthcheck); `internal/platform/redis` go-redis client; `internal/platform/jobs` Asynq enqueue client + worker server + cron scheduler; `main.go` split into `serve`/`worker` run modes; compose runs both
 - [ ] Add OSS media upload pipeline (WebP conversion via OSS image processing)
-- [ ] i18n content infrastructure: per-locale translation tables pattern (BCP 47 keys)
+- [x] i18n content infrastructure: per-locale translation tables pattern (BCP 47 keys) — `platform/i18ncontent` package (locale constants en-US/zh-CN, `ContentStatus` workflow enum, rich-content `ContentBlock` types, `NormalizeLocale`, `Transition`/`CanEdit` state machine, `PublishedFilter`); `models/i18n.go` shared types; unit test for the workflow transition matrix. Per-module migrations (ceramicstory/engage/artist) follow
 - [ ] Rewrite `ws` hub with Redis pub/sub fan-out + chat session/message persistence (PRD §3.3.1)
 
 ## M1 — CMS & Content
