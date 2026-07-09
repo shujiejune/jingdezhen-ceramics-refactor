@@ -28,6 +28,11 @@ type Config struct {
 	// --- Consent HMAC key (GDPR) — rotates daily in prod (TDD §11); static for MVP ---
 	ConsentHMACKey string `mapstructure:"CONSENT_HMAC_KEY"`
 
+	// --- 2FA TOTP-secret encryption key (TDD §5.3) ---
+	// The TOTP secret is AES-GCM-encrypted at rest with this app key; it never
+	// lives in the DB in plaintext, so a DB dump alone cannot recover secrets.
+	TwoFAEncryptionKey string `mapstructure:"TWO_FA_ENCRYPTION_KEY"`
+
 	// --- Google OAuth ---
 	GoogleOAuthClientID     string `mapstructure:"GOOGLE_OAUTH_CLIENT_ID"`
 	GoogleOAuthClientSecret string `mapstructure:"GOOGLE_OAUTH_CLIENT_SECRET"`

@@ -39,6 +39,11 @@ type ServiceInterface interface {
 	// Admin
 	AdminListUsers(ctx context.Context, page, limit int) ([]models.User, int, error)
 	AdminAssignRole(ctx context.Context, targetUserID string, roleKey string) error
+
+	// 2FA login completion (TDD §5.3): validate the pending token + TOTP code,
+	// then issue the real access token + full profile. The pending-token
+	// resolution is delegated to the 2FA service; this method owns the JWT.
+	Complete2FALogin(ctx context.Context, pendingToken, code string) (*models.AuthResponse, error)
 }
 
 // EmailEnqueuer is the subset of the Asynq job client the user service needs.
@@ -49,6 +54,16 @@ type EmailEnqueuer interface {
 	EnqueueEmailSend(ctx context.Context, p jobs.EmailSendPayload) error
 }
 
+// TwoFAChecker is the subset of the 2FA service the user service needs to
+// gate and complete TOTP-challenged logins. Kept as an interface to avoid a
+// circular import (twofa imports nothing from user; user imports this iface).
+type TwoFAChecker interface {
+	IsEnabled(ctx context.Context, userID string) (bool, error)
+	IssuePendingToken(userID string) (string, error)
+	ResolvePendingToken(token string) (string, error)
+	VerifyCode(ctx context.Context, userID, code string) (bool, error)
+}
+
 type Service struct {
 	userRepo          RepositoryInterface
 	emailEnqueuer     EmailEnqueuer       // enqueue email:send jobs (TDD §4.2)
@@ -57,6 +72,7 @@ type Service struct {
 	clientOrigin      string // For sending activation and password reset emails (domain name)
 	adminEmail        string
 	googleOAuthConfig *oauth2.Config
+	twoFAChecker      TwoFAChecker // nil if 2FA not wired (login proceeds without challenge)
 }
 
 func NewService(
@@ -67,6 +83,7 @@ func NewService(
 	clientOriginFromConfig string,
 	adminEmailFromConfig string,
 	googleOAuthConfig *oauth2.Config,
+	twoFAChecker TwoFAChecker,
 ) ServiceInterface {
 	return &Service{
 		userRepo:          userRepo,
@@ -76,6 +93,7 @@ func NewService(
 		clientOrigin:      clientOriginFromConfig,
 		adminEmail:        adminEmailFromConfig,
 		googleOAuthConfig: googleOAuthConfig,
+		twoFAChecker:      twoFAChecker,
 	}
 }
 
@@ -289,7 +307,26 @@ func (s *Service) Login(ctx context.Context, req models.LoginRequest) (*models.A
 		return nil, models.ErrInactiveAccount
 	}
 
-	// 4. Use helper function to generate JWT and AuthResponse
+	// 4. 2FA challenge (TDD §5.3, PRD §4.3): if the user has 2FA enabled,
+	// do NOT issue a full token yet — return a short-lived pending token the
+	// frontend exchanges (with a TOTP code) at /auth/2fa/verify. Mandatory
+	// for super_admin, optional for other staff (enforced by enrollment state).
+	if s.twoFAChecker != nil {
+		if enabled, err := s.twoFAChecker.IsEnabled(ctx, userWithHash.ID); err != nil {
+			return nil, fmt.Errorf("service.Login.2fa: %w", err)
+		} else if enabled {
+			pending, err := s.twoFAChecker.IssuePendingToken(userWithHash.ID)
+			if err != nil {
+				return nil, fmt.Errorf("service.Login.2fa.pending: %w", err)
+			}
+			return &models.AuthResponse{
+				AccessToken: pending,
+				User:        &models.User{ID: userWithHash.ID}, // minimal; full profile on verify
+			}, models.Err2FARequired
+		}
+	}
+
+	// 5. Use helper function to generate JWT and AuthResponse
 	return s.generateAuthResponse(ctx, userWithHash)
 }
 
@@ -442,6 +479,33 @@ func (s *Service) HandleGoogleCallback(ctx context.Context, code string) (*model
 	// For now, we'll just log them in.
 
 	// 4. Issue JWT for this user.
+	return s.generateAuthResponse(ctx, user)
+}
+
+// Complete2FALogin finishes a login that was challenged for TOTP (TDD §5.3).
+// It resolves the short-lived pending token to a userID, verifies the TOTP
+// code against the stored secret, then mints the real access token + full
+// profile. Returns ErrInvalidToken for a bad/expired pending token and
+// ErrInvalidCredentials for a bad code.
+func (s *Service) Complete2FALogin(ctx context.Context, pendingToken, code string) (*models.AuthResponse, error) {
+	if s.twoFAChecker == nil {
+		return nil, models.ErrInvalidOperation
+	}
+	userID, err := s.twoFAChecker.ResolvePendingToken(pendingToken)
+	if err != nil {
+		return nil, models.ErrInvalidToken
+	}
+	ok, err := s.twoFAChecker.VerifyCode(ctx, userID, code)
+	if err != nil {
+		return nil, fmt.Errorf("service.Complete2FALogin.verify: %w", err)
+	}
+	if !ok {
+		return nil, models.ErrInvalidCredentials
+	}
+	user, err := s.userRepo.FindByID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("service.Complete2FALogin.find: %w", err)
+	}
 	return s.generateAuthResponse(ctx, user)
 }
 

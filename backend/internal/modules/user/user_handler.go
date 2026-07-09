@@ -61,10 +61,47 @@ func (h *Handler) Login(c *fiber.Ctx) error {
 		if errors.Is(err, models.ErrInvalidCredentials) { // Define this error in models
 			return c.Status(fiber.StatusUnauthorized).JSON(models.ErrorResponse{Message: "Invalid email or password"})
 		}
+		if errors.Is(err, models.Err2FARequired) {
+			// Password OK; a TOTP code is required to complete login. The pending
+			// token is in authResponse.AccessToken; the frontend POSTs it + the
+			// 6-digit code to /auth/2fa/verify.
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"error": fiber.Map{
+					"code":         "2fa_required",
+					"message":      "Two-factor authentication code required",
+					"pending_token": authResponse.AccessToken,
+				},
+			})
+		}
 		log.Printf("Handler.Login: %v", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(models.ErrorResponse{Message: "Failed to log in"})
 	}
 
+	return c.Status(fiber.StatusOK).JSON(authResponse)
+}
+
+// Verify2FALogin: POST /auth/2fa/verify — complete a login challenged for TOTP.
+// PUBLIC (no JWT); the pending token + 6-digit code are the credentials. On
+// success the user service mints the real access token + full profile (TDD §5.3).
+func (h *Handler) Verify2FALogin(c *fiber.Ctx) error {
+	var req models.VerifyTwoFARequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(models.ErrorResponse{Message: "Invalid request body"})
+	}
+	if err := h.validate.Struct(req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(models.ErrorResponse{Message: "Validation failed: " + err.Error()})
+	}
+	authResponse, err := h.service.Complete2FALogin(c.Context(), req.PendingToken, req.Code)
+	if err != nil {
+		if errors.Is(err, models.ErrInvalidToken) {
+			return c.Status(fiber.StatusUnauthorized).JSON(models.ErrorResponse{Message: "Invalid or expired pending token"})
+		}
+		if errors.Is(err, models.ErrInvalidCredentials) {
+			return c.Status(fiber.StatusUnauthorized).JSON(models.ErrorResponse{Message: "Invalid TOTP code"})
+		}
+		log.Printf("Handler.Verify2FALogin: %v", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(models.ErrorResponse{Message: "Failed to complete 2FA login"})
+	}
 	return c.Status(fiber.StatusOK).JSON(authResponse)
 }
 

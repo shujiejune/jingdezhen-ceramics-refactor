@@ -18,6 +18,7 @@ import (
 	"jingdezhen-ceramics-backend/internal/modules/gallery"
 	"jingdezhen-ceramics-backend/internal/modules/notification"
 	"jingdezhen-ceramics-backend/internal/modules/user"
+	"jingdezhen-ceramics-backend/internal/modules/twofa"
 	"jingdezhen-ceramics-backend/internal/platform/jobs"
 	platformredis "jingdezhen-ceramics-backend/internal/platform/redis"
 	"jingdezhen-ceramics-backend/internal/ws"
@@ -165,11 +166,19 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 		log.Fatalf("Failed to parse email templates: %v", err)
 	}
 
+	// --- 2FA (TOTP) — TDD §5.3, PRD §4.3 ---
+	// The TOTP secret is encrypted at rest with an app key (TWO_FA_ENCRYPTION_KEY).
+	// The 2FA service is also passed to the user service as a login-gating checker.
+	twoFARepo := twofa.NewRepository(dbPool)
+	twoFAService := twofa.NewService(twoFARepo, []byte(cfg.TwoFAEncryptionKey), cfg.JWTSecret, "Jingdezhen Ceramics")
+	twoFAHandler := twofa.NewHandler(twoFAService)
+
 	// --- Dependency injection ---
 	userRepo := user.NewRepository(dbPool)
 	userService := user.NewService(
 		userRepo, jobClient, templateManager,
 		cfg.JWTSecret, cfg.ClientOrigin, cfg.AdminEmail, googleOAuthConfig,
+		twoFAService,
 	)
 	userHandler := user.NewHandler(userService)
 
@@ -200,7 +209,7 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 	api.SetupRoutes(app, cfg.JWTSecret,
 		wsHandler, userHandler, notifHandler,
 		ceramicStoryHandler, galleryHandler, engageHandler, addressHandler,
-		consentHandler,
+		consentHandler, twoFAHandler,
 	)
 
 	// --- Start server (graceful shutdown) ---

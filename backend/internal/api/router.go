@@ -9,6 +9,7 @@ import (
 	"jingdezhen-ceramics-backend/internal/modules/engage"
 	"jingdezhen-ceramics-backend/internal/modules/gallery"
 	"jingdezhen-ceramics-backend/internal/modules/notification"
+	"jingdezhen-ceramics-backend/internal/modules/twofa"
 	"jingdezhen-ceramics-backend/internal/modules/user"
 	"jingdezhen-ceramics-backend/internal/ws"
 
@@ -27,6 +28,7 @@ func SetupRoutes(
 	engageHandler *engage.Handler,
 	addressHandler *address.Handler,
 	consentHandler *consent.Handler,
+	twoFAHandler *twofa.Handler,
 ) {
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{"message": "Welcome to the Jingdezhen Ceramics Platform!"})
@@ -60,6 +62,12 @@ func SetupRoutes(
 		authGroup.Post("reset-password", userHandler.ResetPassword)
 		authGroup.Get("/google/login", userHandler.GoogleLogin)
 		authGroup.Get("/google/callback", userHandler.GoogleCallback)
+
+		// 2FA login completion — PUBLIC (the pending token is the credential;
+		// a JWT is not yet available because login hasn't finished). TDD §5.3.
+		// Routes to the user handler, which owns the JWT and delegates verification
+		// to the 2FA service.
+		authGroup.Post("/2fa/verify", userHandler.Verify2FALogin)
 	}
 
 	/* --- User Profile (Protected) --- */
@@ -81,6 +89,12 @@ func SetupRoutes(
 		// Consent history (GDPR data export) + latest consent state per kind.
 		profileGroup.Get("/consent", consentHandler.ListConsentHistory)
 		profileGroup.Get("/consent/:kind", consentHandler.GetConsentState)
+
+		// TOTP 2FA management (TDD §5.3, PRD §4.3). Enroll returns the QR/secret,
+		// confirm verifies the first code and enables 2FA; disable turns it off.
+		profileGroup.Post("/2fa/enroll", twoFAHandler.Enroll)
+		profileGroup.Post("/2fa/confirm", twoFAHandler.Confirm)
+		profileGroup.Delete("/2fa", twoFAHandler.Disable)
 		// ... other user-specific routes like badges, subscriptions
 	}
 
