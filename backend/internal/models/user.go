@@ -23,6 +23,7 @@ type User struct {
 	AuthProvider      string       `json:"auth_provider" db:"auth_provider"`
 	AuthProviderID    string       `json:"-" db:"auth_provider_id"`
 	IsActive          bool         `json:"is_active" db:"is_active"`
+	DeletedAt         *time.Time   `json:"deleted_at,omitempty" db:"deleted_at"` // set when GDPR-erased (anonymized stub)
 	CreatedAt         time.Time    `json:"created_at" db:"created_at"`
 	UpdatedAt         time.Time    `json:"updated_at" db:"updated_at"`
 	// Roles are loaded separately from user_roles (db:"-"; populated by services).

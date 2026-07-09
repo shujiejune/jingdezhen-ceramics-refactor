@@ -17,6 +17,7 @@ import (
 	"jingdezhen-ceramics-backend/internal/modules/engage"
 	"jingdezhen-ceramics-backend/internal/modules/gallery"
 	"jingdezhen-ceramics-backend/internal/modules/notification"
+	"jingdezhen-ceramics-backend/internal/modules/privacy"
 	"jingdezhen-ceramics-backend/internal/modules/user"
 	"jingdezhen-ceramics-backend/internal/modules/twofa"
 	"jingdezhen-ceramics-backend/internal/platform/jobs"
@@ -206,10 +207,14 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 	consentService := consent.NewService(consentRepo, []byte(cfg.ConsentHMACKey))
 	consentHandler := consent.NewHandler(consentService)
 
+	privacyRepo := privacy.NewRepository(dbPool)
+	privacyService := privacy.NewService(privacyRepo, jobClient)
+	privacyHandler := privacy.NewHandler(privacyService)
+
 	api.SetupRoutes(app, cfg.JWTSecret,
 		wsHandler, userHandler, notifHandler,
 		ceramicStoryHandler, galleryHandler, engageHandler, addressHandler,
-		consentHandler, twoFAHandler,
+		consentHandler, twoFAHandler, privacyHandler,
 	)
 
 	// --- Start server (graceful shutdown) ---

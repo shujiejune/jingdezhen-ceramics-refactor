@@ -72,10 +72,10 @@ func (r *Repository) WithTx(tx pgx.Tx) *Repository {
 
 // Columns selected for a user without the password hash. Note: roles are loaded
 // separately via GetUserRoles (PRD §3.4.1 RBAC).
-const userColumns = "id, nickname, email, avatar_url, profile_data, preferred_locale, preferred_currency, auth_provider, is_active, created_at, updated_at"
+const userColumns = "id, nickname, email, avatar_url, profile_data, preferred_locale, preferred_currency, auth_provider, is_active, deleted_at, created_at, updated_at"
 
 // Columns selected for a user including the password hash (login flows).
-const userColumnsWithPassword = "id, nickname, email, password_hash, avatar_url, profile_data, preferred_locale, preferred_currency, auth_provider, is_active, created_at, updated_at"
+const userColumnsWithPassword = "id, nickname, email, password_hash, avatar_url, profile_data, preferred_locale, preferred_currency, auth_provider, is_active, deleted_at, created_at, updated_at"
 
 func (r *Repository) scanUser(row pgx.Row) (*models.User, error) {
 	var user models.User
@@ -91,6 +91,7 @@ func (r *Repository) scanUser(row pgx.Row) (*models.User, error) {
 		&user.PreferredCurrency,
 		&user.AuthProvider,
 		&user.IsActive,
+		&user.DeletedAt,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)
@@ -122,6 +123,7 @@ func (r *Repository) scanUserWithPasswordHash(row pgx.Row) (*models.User, error)
 		&user.PreferredCurrency,
 		&user.AuthProvider,
 		&user.IsActive,
+		&user.DeletedAt,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)

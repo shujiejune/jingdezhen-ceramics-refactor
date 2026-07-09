@@ -16,3 +16,4 @@ var ErrNicknameTaken = errors.New("nickname already taken")
 var ErrNotOwned = errors.New("not owned by this user")
 var Err2FARequired = errors.New("two-factor authentication code required")          // password OK but a TOTP code is needed to complete login
 var Err2FAEnrollmentRequired = errors.New("two-factor enrollment required") // super_admin must enroll 2FA before a full session is granted
+var ErrAccountDeleted = errors.New("user account has been deleted")          // GDPR erasure: login rejected for an anonymized stub

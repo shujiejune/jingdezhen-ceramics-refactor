@@ -9,6 +9,7 @@ import (
 	"jingdezhen-ceramics-backend/internal/modules/engage"
 	"jingdezhen-ceramics-backend/internal/modules/gallery"
 	"jingdezhen-ceramics-backend/internal/modules/notification"
+	"jingdezhen-ceramics-backend/internal/modules/privacy"
 	"jingdezhen-ceramics-backend/internal/modules/twofa"
 	"jingdezhen-ceramics-backend/internal/modules/user"
 	"jingdezhen-ceramics-backend/internal/ws"
@@ -29,6 +30,7 @@ func SetupRoutes(
 	addressHandler *address.Handler,
 	consentHandler *consent.Handler,
 	twoFAHandler *twofa.Handler,
+	privacyHandler *privacy.Handler,
 ) {
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{"message": "Welcome to the Jingdezhen Ceramics Platform!"})
@@ -107,6 +109,9 @@ func SetupRoutes(
 		// the GET returns only the remaining count (never the codes themselves).
 		profileGroup.Post("/2fa/backup-codes/regenerate", twoFAHandler.RegenerateBackupCodes)
 		profileGroup.Get("/2fa/backup-codes", twoFAHandler.BackupCodesRemaining)
+
+		// GDPR self-service (PRD §4.3): machine-readable data export.
+		profileGroup.Get("/export", privacyHandler.ExportUserData)
 		// ... other user-specific routes like badges, subscriptions
 	}
 
@@ -207,5 +212,14 @@ func SetupRoutes(
 			adminEngagePublish.Post("/:id/reject", engageHandler.AdminRejectActivity)
 			adminEngagePublish.Post("/:id/unpublish", engageHandler.AdminUnpublishActivity)
 		}
+	}
+
+	/* --- GDPR self-service: account erasure (PRD §4.3) --- */
+	// Separate from /profile so the route reads as the privacy action it is.
+	// Requires a signed-in user (JWT) + a deliberate {"confirm":"DELETE"} body.
+	privacyGroup := app.Group("/privacy")
+	privacyGroup.Use(middleware.JWTMAuth(jwtSecretKey))
+	{
+		privacyGroup.Post("/delete-account", privacyHandler.DeleteAccount)
 	}
 }
