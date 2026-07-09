@@ -40,3 +40,39 @@ type Activity struct {
 // with any callers that reference the old name; the consolidated entity is an
 // Activity. (No separate articles table is read at runtime anymore.)
 type Article = Activity
+
+// --- Admin / CMS DTOs ---
+
+// CreateActivityData creates a new activity + its first translation in one call.
+// Locale defaults to en-US if empty. The parent carries `type` + destination
+// location fields (nullable for non-Destination types); the translation carries
+// the localized text.
+type CreateActivityData struct {
+	Locale             string   `json:"locale,omitempty" validate:"omitempty,len=5"`
+	Type               string   `json:"type" validate:"required,max=50"` // Destination | Local Lifestyle, etc.
+	Slug               string   `json:"slug" validate:"required,max=255"`
+	Title              string   `json:"title" validate:"required,max=255"`
+	BriefIntroduction  string   `json:"brief_introduction,omitempty"`
+	Body               string   `json:"body,omitempty"`
+	MetaTitle          string   `json:"meta_title,omitempty" validate:"omitempty,max=255"`
+	MetaDescription    string   `json:"meta_description,omitempty"`
+	// Destination location (parent, non-localized; nullable).
+	Lat                *float64 `json:"lat,omitempty"`
+	Lng                *float64 `json:"lng,omitempty"`
+	Address            string   `json:"address,omitempty"`
+}
+
+// UpdateActivityData updates a translation (localized fields) and/or the
+// parent's non-localized fields. A nil pointer = leave unchanged.
+type UpdateActivityData struct {
+	Type               *string  `json:"type,omitempty" validate:"omitempty,max=50"`
+	Slug               *string  `json:"slug,omitempty" validate:"omitempty,max=255"`
+	Title              *string  `json:"title,omitempty" validate:"omitempty,max=255"`
+	BriefIntroduction  *string  `json:"brief_introduction,omitempty"`
+	Body               *string  `json:"body,omitempty"`
+	MetaTitle          *string  `json:"meta_title,omitempty" validate:"omitempty,max=255"`
+	MetaDescription    *string  `json:"meta_description,omitempty"`
+	Lat                *float64 `json:"lat,omitempty"`
+	Lng                *float64 `json:"lng,omitempty"`
+	Address            *string  `json:"address,omitempty"`
+}

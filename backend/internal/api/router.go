@@ -166,7 +166,46 @@ func SetupRoutes(
 			adminUsers.Get("", userHandler.AdminListUsers)
 			adminUsers.Put("/:user_id/role", userHandler.AdminAssignRole)
 		}
-		// CMS modules (content, products, orders, itinerary CRM, dashboard)
-		// land in later milestones — each with its own RequirePermission.
+
+		// --- CMS: History & Heritage (ceramic stories) ---
+		// PermContentWrite (content_editor + super admin): create, edit, delete, submit.
+		// PermContentPublish (super admin only): approve, reject, unpublish.
+		adminStories := adminGroup.Group("/ceramicstory")
+		adminStories.Use(middleware.RequirePermission(models.PermContentWrite))
+		{
+			adminStories.Get("", csHandler.AdminListStories)
+			adminStories.Get("/:slug", csHandler.AdminGetStory)
+			adminStories.Post("", csHandler.AdminCreateStory)
+			adminStories.Put("/:id", csHandler.AdminUpdateStory)
+			adminStories.Delete("/:id", csHandler.AdminDeleteStory)
+			adminStories.Post("/:id/submit", csHandler.AdminSubmitStory)
+		}
+		// Publish-gated transitions: separate sub-group with stricter permission.
+		adminStoriesPublish := adminGroup.Group("/ceramicstory")
+		adminStoriesPublish.Use(middleware.RequirePermission(models.PermContentPublish))
+		{
+			adminStoriesPublish.Post("/:id/approve", csHandler.AdminApproveStory)
+			adminStoriesPublish.Post("/:id/reject", csHandler.AdminRejectStory)
+			adminStoriesPublish.Post("/:id/unpublish", csHandler.AdminUnpublishStory)
+		}
+
+		// --- CMS: Destinations & Local Lifestyle (engage) ---
+		adminEngage := adminGroup.Group("/engage")
+		adminEngage.Use(middleware.RequirePermission(models.PermContentWrite))
+		{
+			adminEngage.Get("", engageHandler.AdminListActivities)
+			adminEngage.Get("/:slug", engageHandler.AdminGetActivity)
+			adminEngage.Post("", engageHandler.AdminCreateActivity)
+			adminEngage.Put("/:id", engageHandler.AdminUpdateActivity)
+			adminEngage.Delete("/:id", engageHandler.AdminDeleteActivity)
+			adminEngage.Post("/:id/submit", engageHandler.AdminSubmitActivity)
+		}
+		adminEngagePublish := adminGroup.Group("/engage")
+		adminEngagePublish.Use(middleware.RequirePermission(models.PermContentPublish))
+		{
+			adminEngagePublish.Post("/:id/approve", engageHandler.AdminApproveActivity)
+			adminEngagePublish.Post("/:id/reject", engageHandler.AdminRejectActivity)
+			adminEngagePublish.Post("/:id/unpublish", engageHandler.AdminUnpublishActivity)
+		}
 	}
 }
