@@ -269,9 +269,20 @@ func (h *Handler) GoogleCallback(c *fiber.Ctx) error {
 	}
 
 	// 5. Call the service to exchange the code for a token, fetch user info,
-	// find or create the user, and generate the application's JWT.
+	// find or create the user, and either generate the JWT or issue a 2FA
+	// pending-token challenge (TDD §5.3 — Google login is 2FA-gated too).
 	authResponse, err := h.service.HandleGoogleCallback(c.Context(), code)
 	if err != nil {
+		if errors.Is(err, models.Err2FARequired) {
+			// 2FA already enabled — frontend collects the TOTP code and POSTs to
+			// /auth/2fa/verify to complete login.
+			return c.Redirect(fmt.Sprintf("%s/login/2fa?pending_token=%s", h.service.GetClientOrigin(), authResponse.AccessToken), fiber.StatusTemporaryRedirect)
+		}
+		if errors.Is(err, models.Err2FAEnrollmentRequired) {
+			// Super admin must enroll — frontend walks through pending-enroll →
+			// pending-confirm (which mints the real JWT on success).
+			return c.Redirect(fmt.Sprintf("%s/login/2fa/enroll?pending_token=%s", h.service.GetClientOrigin(), authResponse.AccessToken), fiber.StatusTemporaryRedirect)
+		}
 		log.Printf("Handler.GoogleCallback: service error: %v", err)
 		// Redirect to a frontend error page
 		return c.Redirect(fmt.Sprintf("%s/login/error", h.service.GetClientOrigin()), fiber.StatusTemporaryRedirect)

@@ -320,53 +320,65 @@ func (s *Service) Login(ctx context.Context, req models.LoginRequest) (*models.A
 	// a super_admin with no 2FA enabled is blocked from a full session and
 	// forced through enroll→confirm before login completes. Optional 2FA for
 	// other staff: if enabled, login is challenged for a TOTP code.
-	if s.twoFAChecker != nil {
-		// Load roles to detect super_admin (the must-enroll mandate applies only
-		// to that role; PRD §4.3).
-		roles, err := s.userRepo.GetUserRoles(ctx, userWithHash.ID)
-		if err != nil {
-			return nil, fmt.Errorf("service.Login.roles: %w", err)
-		}
-		isSuperAdmin := false
-		for _, r := range roles {
-			if r == models.RoleSuperAdmin {
-				isSuperAdmin = true
-				break
-			}
-		}
+	return s.challenge2FAOrMint(ctx, userWithHash)
+}
 
-		enabled, err := s.twoFAChecker.IsEnabled(ctx, userWithHash.ID)
-		if err != nil {
-			return nil, fmt.Errorf("service.Login.2fa: %w", err)
-		}
+// challenge2FAOrMint applies the 2FA gate (TDD §5.3, PRD §4.3) and either mints
+// the real access token or returns a pending-token challenge. Shared by the
+// password-login and Google-OAuth login paths so neither can bypass 2FA.
+//
+//   - super_admin + 2FA not enabled → Err2FAEnrollmentRequired + 15-min token
+//   - 2FA enabled (any user)         → Err2FARequired + 5-min token
+//   - otherwise                      → real access token + full profile
+func (s *Service) challenge2FAOrMint(ctx context.Context, user *models.User) (*models.AuthResponse, error) {
+	if s.twoFAChecker == nil {
+		return s.generateAuthResponse(ctx, user)
+	}
 
-		if isSuperAdmin && !enabled {
-			// Must enroll first. A longer-lived pending token (15m) covers QR scan +
-			// manual code entry. The frontend exchanges it at /auth/2fa/pending-*.
-			pending, err := s.twoFAChecker.IssuePendingToken(userWithHash.ID, 15*time.Minute)
-			if err != nil {
-				return nil, fmt.Errorf("service.Login.2fa.enroll-pending: %w", err)
-			}
-			return &models.AuthResponse{
-				AccessToken: pending,
-				User:        &models.User{ID: userWithHash.ID},
-			}, models.Err2FAEnrollmentRequired
-		}
-
-		if enabled {
-			pending, err := s.twoFAChecker.IssuePendingToken(userWithHash.ID, 5*time.Minute)
-			if err != nil {
-				return nil, fmt.Errorf("service.Login.2fa.pending: %w", err)
-			}
-			return &models.AuthResponse{
-				AccessToken: pending,
-				User:        &models.User{ID: userWithHash.ID}, // minimal; full profile on verify
-			}, models.Err2FARequired
+	// Load roles to detect super_admin (the must-enroll mandate applies only
+	// to that role; PRD §4.3).
+	roles, err := s.userRepo.GetUserRoles(ctx, user.ID)
+	if err != nil {
+		return nil, fmt.Errorf("service.Login.roles: %w", err)
+	}
+	isSuperAdmin := false
+	for _, r := range roles {
+		if r == models.RoleSuperAdmin {
+			isSuperAdmin = true
+			break
 		}
 	}
 
-	// 5. Use helper function to generate JWT and AuthResponse
-	return s.generateAuthResponse(ctx, userWithHash)
+	enabled, err := s.twoFAChecker.IsEnabled(ctx, user.ID)
+	if err != nil {
+		return nil, fmt.Errorf("service.Login.2fa: %w", err)
+	}
+
+	if isSuperAdmin && !enabled {
+		// Must enroll first. A longer-lived pending token (15m) covers QR scan +
+		// manual code entry. The frontend exchanges it at /auth/2fa/pending-*.
+		pending, err := s.twoFAChecker.IssuePendingToken(user.ID, 15*time.Minute)
+		if err != nil {
+			return nil, fmt.Errorf("service.Login.2fa.enroll-pending: %w", err)
+		}
+		return &models.AuthResponse{
+			AccessToken: pending,
+			User:        &models.User{ID: user.ID},
+		}, models.Err2FAEnrollmentRequired
+	}
+
+	if enabled {
+		pending, err := s.twoFAChecker.IssuePendingToken(user.ID, 5*time.Minute)
+		if err != nil {
+			return nil, fmt.Errorf("service.Login.2fa.pending: %w", err)
+		}
+		return &models.AuthResponse{
+			AccessToken: pending,
+			User:        &models.User{ID: user.ID}, // minimal; full profile on verify
+		}, models.Err2FARequired
+	}
+
+	return s.generateAuthResponse(ctx, user)
 }
 
 func (s *Service) RequestPasswordReset(ctx context.Context, email string) error {
@@ -517,8 +529,10 @@ func (s *Service) HandleGoogleCallback(ctx context.Context, code string) (*model
 	// and potentially link the Google account by setting AuthProvider and AuthProviderID.
 	// For now, we'll just log them in.
 
-	// 4. Issue JWT for this user.
-	return s.generateAuthResponse(ctx, user)
+	// 4. Apply the 2FA gate (same as password-login) and either mint the JWT
+	// or return a pending-token challenge. The callback handler inspects the
+	// returned error to decide where to redirect the browser (TDD §5.3).
+	return s.challenge2FAOrMint(ctx, user)
 }
 
 // Complete2FALogin finishes a login that was challenged for TOTP (TDD §5.3).
