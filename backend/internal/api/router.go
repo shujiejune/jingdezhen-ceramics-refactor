@@ -141,11 +141,11 @@ func SetupRoutes(
 		}
 	}
 
-	/* --- Engage (Public) --- */
+	/* --- Engage (Destinations & Local Lifestyle, public) --- */
 	engageGroup := app.Group("/engage")
 	{
-		engageGroup.Get("", engageHandler.GetActivities)
-		engageGroup.Get("/:activity_id_or_slug", engageHandler.GetActivityArticle) // For detailed article
+		engageGroup.Get("", engageHandler.GetActivities)           // ?locale=&type=&page=&limit=
+		engageGroup.Get("/:slug", engageHandler.GetActivityArticle) // ?locale=
 	}
 
 	/* --- Admin Routes (PRD §3.4.1 RBAC) --- */

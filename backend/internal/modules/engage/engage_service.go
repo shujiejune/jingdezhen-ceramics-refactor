@@ -2,14 +2,15 @@ package engage
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"jingdezhen-ceramics-backend/internal/models"
+	"jingdezhen-ceramics-backend/internal/platform/i18ncontent"
 )
 
+// ServiceInterface defines Destinations & Local Lifestyle business logic (i18n-aware).
 type ServiceInterface interface {
-	GetActivities(ctx context.Context, page, limit int) ([]models.Activity, int, error)
-	GetActivityArticle(ctx context.Context, idOrSlug string) (*models.Article, error)
+	GetActivities(ctx context.Context, locale, typeFilter string, page, limit int) ([]models.Activity, int, error)
+	GetActivityArticle(ctx context.Context, slug string, locale string) (*models.Activity, error)
 }
 
 type Service struct {
@@ -20,25 +21,32 @@ func NewService(repo RepositoryInterface) ServiceInterface {
 	return &Service{repo: repo}
 }
 
-// GetActivities retrieves a paginated list of activities.
-func (s *Service) GetActivities(ctx context.Context, page, limit int) ([]models.Activity, int, error) {
-	// Business logic could be added here in the future, e.g., filtering out past events.
-	activities, total, err := s.repo.FindAllActivities(ctx, page, limit)
+// GetActivities returns published activities for a locale, optionally filtered by
+// the parent `type` (e.g. "Destination" vs "Local Lifestyle"), paginated.
+func (s *Service) GetActivities(ctx context.Context, locale, typeFilter string, page, limit int) ([]models.Activity, int, error) {
+	locale, err := i18ncontent.NormalizeLocale(locale, false)
+	if err != nil {
+		locale = models.DefaultLocale
+	}
+	activities, total, err := s.repo.FindAllPublished(ctx, locale, typeFilter, page, limit)
 	if err != nil {
 		return nil, 0, fmt.Errorf("service.GetActivities: %w", err)
 	}
 	return activities, total, nil
 }
 
-// GetActivityArticle retrieves the detailed article for an activity.
-func (s *Service) GetActivityArticle(ctx context.Context, idOrSlug string) (*models.Article, error) {
-	if idOrSlug == "" {
-		return nil, errors.New("service.GetActivityArticle: idOrSlug cannot be empty")
+// GetActivityArticle returns a single published activity by (slug, locale).
+func (s *Service) GetActivityArticle(ctx context.Context, slug string, locale string) (*models.Activity, error) {
+	if slug == "" {
+		return nil, fmt.Errorf("service.GetActivityArticle: slug cannot be empty")
 	}
-	article, err := s.repo.FindArticleByIDOrSlug(ctx, idOrSlug)
+	locale, err := i18ncontent.NormalizeLocale(locale, false)
+	if err != nil {
+		locale = models.DefaultLocale
+	}
+	article, err := s.repo.FindPublishedBySlug(ctx, locale, slug)
 	if err != nil {
 		return nil, fmt.Errorf("service.GetActivityArticle: %w", err)
 	}
-	// Business logic could be added here, e.g., incrementing a view count.
 	return article, nil
 }

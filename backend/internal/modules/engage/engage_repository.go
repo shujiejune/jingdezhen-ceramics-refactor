@@ -5,108 +5,120 @@ import (
 	"errors"
 	"fmt"
 	"jingdezhen-ceramics-backend/internal/models"
-	"strconv"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// DBExecutor defines an interface for executing SQL queries.
-type DBExecutor interface {
-	Exec(ctx context.Context, sql string, arguments ...any) (pgconn.CommandTag, error)
-	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
-	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
-}
-
+// RepositoryInterface defines engage (Destinations & Local Lifestyle) storage.
 type RepositoryInterface interface {
-	FindAllActivities(ctx context.Context, page, limit int) ([]models.Activity, int, error)
-	FindArticleByIDOrSlug(ctx context.Context, idOrSlug string) (*models.Article, error)
+	// FindAllPublished returns published translations for a locale, optionally
+	// filtered by the parent `type` (e.g. "Destination" vs "Local Lifestyle"),
+	// paginated. Returns the page of activities + the total count (of published
+	// translations matching the filter) for pagination metadata.
+	FindAllPublished(ctx context.Context, locale, typeFilter string, page, limit int) ([]models.Activity, int, error)
+	// FindPublishedBySlug returns the published translation for (slug, locale).
+	FindPublishedBySlug(ctx context.Context, locale, slug string) (*models.Activity, error)
 }
 
 type Repository struct {
-	db       *pgxpool.Pool
-	executor DBExecutor
+	db *pgxpool.Pool
 }
 
 func NewRepository(db *pgxpool.Pool) RepositoryInterface {
-	return &Repository{db: db, executor: db}
+	return &Repository{db: db}
 }
 
-// FindAllActivities retrieves a paginated list of all activities.
-func (r *Repository) FindAllActivities(ctx context.Context, page, limit int) ([]models.Activity, int, error) {
-	var total int
-	countQuery := `SELECT COUNT(*) FROM activities`
-	err := r.executor.QueryRow(ctx, countQuery).Scan(&total)
+// Columns selected from the JOIN of parent + translation, in scan order.
+const activityJoinColumns = `
+    a.id, a.type, a.lat, a.lng, a.address, a.created_at, a.updated_at,
+    t.slug, t.title, t.brief_introduction, t.body,
+    t.meta_title, t.meta_description, t.locale, t.status, t.published_at
+`
+const activityJoinFrom = `
+    FROM activities a
+    JOIN activity_translations t ON t.activity_id = a.id
+`
+
+func (r *Repository) scanActivity(row pgx.Row) (*models.Activity, error) {
+	var act models.Activity
+	var lat, lng *float64
+	var address, brief, body, metaTitle, metaDesc *string
+	err := row.Scan(
+		&act.ID, &act.Type, &lat, &lng, &address, &act.CreatedAt, &act.UpdatedAt,
+		&act.Slug, &act.Title, &brief, &body,
+		&metaTitle, &metaDesc, &act.Locale, &act.Status, &act.PublishedAt,
+	)
 	if err != nil {
-		return nil, 0, fmt.Errorf("repository.FindAllActivities.Count: %w", err)
+		return nil, err
+	}
+	act.Lat = lat
+	act.Lng = lng
+	act.Address = address
+	act.BriefIntroduction = brief
+	act.Body = body
+	act.MetaTitle = metaTitle
+	act.MetaDescription = metaDesc
+	return &act, nil
+}
+
+// FindAllPublished returns published activities for a locale, optionally
+// filtered by type, paginated. Ordered by published_at DESC (newest first).
+func (r *Repository) FindAllPublished(ctx context.Context, locale, typeFilter string, page, limit int) ([]models.Activity, int, error) {
+	where := "WHERE t.locale = $1 AND t.status = 'published'"
+	args := []any{locale}
+	argIdx := 2
+	if typeFilter != "" {
+		where += fmt.Sprintf(" AND a.type = $%d", argIdx)
+		args = append(args, typeFilter)
+		argIdx++
 	}
 
+	// Count of matching published translations (for pagination metadata).
+	countQuery := `SELECT COUNT(*) ` + activityJoinFrom + where
+	var total int
+	if err := r.db.QueryRow(ctx, countQuery, args...).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("repository.FindAllPublished.Count: %w", err)
+	}
 	if total == 0 {
 		return []models.Activity{}, 0, nil
 	}
 
 	offset := (page - 1) * limit
-	query := `
-		SELECT id, title, type, brief_introduction, photograph_url, article_slug, created_at, updated_at
-		FROM activities
-		ORDER BY created_at DESC
-		LIMIT $1 OFFSET $2
-	`
-	rows, err := r.executor.Query(ctx, query, limit, offset)
+	args = append(args, limit, offset)
+	query := `SELECT ` + activityJoinColumns + activityJoinFrom + where +
+		fmt.Sprintf(" ORDER BY t.published_at DESC NULLS LAST LIMIT $%d OFFSET $%d", argIdx, argIdx+1)
+	rows, err := r.db.Query(ctx, query, args...)
 	if err != nil {
-		return nil, 0, fmt.Errorf("repository.FindAllActivities.Query: %w", err)
+		return nil, 0, fmt.Errorf("repository.FindAllPublished.Query: %w", err)
 	}
 	defer rows.Close()
 
-	activities := []models.Activity{}
+	out := []models.Activity{}
 	for rows.Next() {
-		var act models.Activity
-		if err := rows.Scan(
-			&act.ID, &act.Title, &act.Type, &act.BriefIntroduction,
-			&act.PhotographURL, &act.ArticleSlug, &act.CreatedAt, &act.UpdatedAt,
-		); err != nil {
-			return nil, 0, fmt.Errorf("repository.FindAllActivities.Scan: %w", err)
+		act, err := r.scanActivity(rows)
+		if err != nil {
+			return nil, 0, fmt.Errorf("repository.FindAllPublished.Scan: %w", err)
 		}
-		activities = append(activities, act)
+		out = append(out, *act)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, 0, fmt.Errorf("repository.FindAllActivities.RowsErr: %w", err)
+		return nil, 0, fmt.Errorf("repository.FindAllPublished.RowsErr: %w", err)
 	}
-
-	return activities, total, nil
+	return out, total, nil
 }
 
-// FindArticleByIDOrSlug retrieves a single article by its ID or slug.
-func (r *Repository) FindArticleByIDOrSlug(ctx context.Context, idOrSlug string) (*models.Article, error) {
-	var article models.Article
-	query := `
-		SELECT ar.id, ar.slug, ar.title, ar.content, ar.author_id, u.nickname as author_name, 
-		       ar.published_at, ar.created_at, ar.updated_at
-		FROM articles ar
-		LEFT JOIN users u ON ar.author_id = u.id
-	`
-	var err error
-	id, convErr := strconv.ParseInt(idOrSlug, 10, 64)
-	if convErr == nil {
-		query += " WHERE ar.id = $1"
-		err = r.executor.QueryRow(ctx, query, id).Scan(
-			&article.ID, &article.Slug, &article.Title, &article.Content, &article.AuthorID,
-			&article.AuthorName, &article.PublishedAt, &article.CreatedAt, &article.UpdatedAt,
-		)
-	} else {
-		query += " WHERE ar.slug = $1"
-		err = r.executor.QueryRow(ctx, query, idOrSlug).Scan(
-			&article.ID, &article.Slug, &article.Title, &article.Content, &article.AuthorID,
-			&article.AuthorName, &article.PublishedAt, &article.CreatedAt, &article.UpdatedAt,
-		)
-	}
-
+// FindPublishedBySlug returns the published translation for (slug, locale).
+func (r *Repository) FindPublishedBySlug(ctx context.Context, locale, slug string) (*models.Activity, error) {
+	query := `SELECT ` + activityJoinColumns + activityJoinFrom +
+		` WHERE t.locale = $1 AND t.slug = $2 AND t.status = 'published'`
+	row := r.db.QueryRow(ctx, query, locale, slug)
+	act, err := r.scanActivity(row)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, models.ErrNotFound
 		}
-		return nil, fmt.Errorf("repository.FindArticleByIDOrSlug: %w", err)
+		return nil, fmt.Errorf("repository.FindPublishedBySlug: %w", err)
 	}
-	return &article, nil
+	return act, nil
 }
