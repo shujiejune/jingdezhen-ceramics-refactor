@@ -102,6 +102,11 @@ func SetupRoutes(
 		profileGroup.Post("/2fa/enroll", twoFAHandler.Enroll)
 		profileGroup.Post("/2fa/confirm", twoFAHandler.Confirm)
 		profileGroup.Delete("/2fa", twoFAHandler.Disable)
+
+		// One-time backup codes (recovery). Regenerate returns the new set ONCE;
+		// the GET returns only the remaining count (never the codes themselves).
+		profileGroup.Post("/2fa/backup-codes/regenerate", twoFAHandler.RegenerateBackupCodes)
+		profileGroup.Get("/2fa/backup-codes", twoFAHandler.BackupCodesRemaining)
 		// ... other user-specific routes like badges, subscriptions
 	}
 

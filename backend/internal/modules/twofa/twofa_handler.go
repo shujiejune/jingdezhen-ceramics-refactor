@@ -53,7 +53,8 @@ func (h *Handler) Confirm(c *fiber.Ctx) error {
 	if err := h.validate.Struct(req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(models.ErrorResponse{Message: "Validation failed: " + err.Error()})
 	}
-	if err := h.service.Confirm(c.Context(), userID, req); err != nil {
+	backupCodes, err := h.service.Confirm(c.Context(), userID, req)
+	if err != nil {
 		if errors.Is(err, models.ErrNotFound) {
 			return c.Status(fiber.StatusNotFound).JSON(models.ErrorResponse{Message: "No pending 2FA enrollment found — call /2fa/enroll first"})
 		}
@@ -63,7 +64,12 @@ func (h *Handler) Confirm(c *fiber.Ctx) error {
 		log.Printf("Handler.Confirm2FA: %v", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(models.ErrorResponse{Message: "Failed to confirm 2FA"})
 	}
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{"message": "2FA enabled"})
+	// Backup codes are shown ONCE here. Instruct the user to save them; they are
+	// the recovery path if the authenticator is lost and are never returned again.
+	return c.Status(fiber.StatusOK).JSON(models.TwoFAConfirmResponse{
+		Message:     "2FA enabled — save your backup codes now (shown once)",
+		BackupCodes: backupCodes,
+	})
 }
 
 // Disable: DELETE /profile/2fa — turn 2FA off (keeps the staged secret).
@@ -80,4 +86,40 @@ func (h *Handler) Disable(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(models.ErrorResponse{Message: "Failed to disable 2FA"})
 	}
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{"message": "2FA disabled"})
+}
+
+// RegenerateBackupCodes: POST /profile/2fa/backup-codes/regenerate — invalidate
+// remaining unused codes and issue a fresh set. Shown ONCE. Protected by JWT.
+func (h *Handler) RegenerateBackupCodes(c *fiber.Ctx) error {
+	userID, err := utils.GetUserIDFromContext(c)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(models.ErrorResponse{Message: err.Error()})
+	}
+	codes, err := h.service.RegenerateBackupCodes(c.Context(), userID)
+	if err != nil {
+		if errors.Is(err, models.ErrInvalidOperation) {
+			return c.Status(fiber.StatusConflict).JSON(models.ErrorResponse{Message: "2FA is not enabled"})
+		}
+		log.Printf("Handler.RegenerateBackupCodes: %v", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(models.ErrorResponse{Message: "Failed to regenerate backup codes"})
+	}
+	return c.Status(fiber.StatusOK).JSON(models.TwoFAConfirmResponse{
+		Message:     "Backup codes regenerated — save them now (shown once; old unused codes are invalidated)",
+		BackupCodes: codes,
+	})
+}
+
+// BackupCodesRemaining: GET /profile/2fa/backup-codes — how many unused codes
+// remain (NOT the codes themselves; those are shown once at generate time).
+func (h *Handler) BackupCodesRemaining(c *fiber.Ctx) error {
+	userID, err := utils.GetUserIDFromContext(c)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(models.ErrorResponse{Message: err.Error()})
+	}
+	n, err := h.service.CountUnusedBackupCodes(c.Context(), userID)
+	if err != nil {
+		log.Printf("Handler.BackupCodesRemaining: %v", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(models.ErrorResponse{Message: "Failed to count backup codes"})
+	}
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{"remaining": n})
 }

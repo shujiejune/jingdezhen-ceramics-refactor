@@ -22,6 +22,22 @@ type TwoFAEnrollResponse struct {
 	Secret     string `json:"secret"`      // for manual entry
 }
 
+// TwoFAConfirmResponse is returned by the voluntary confirm step (/profile/2fa/confirm):
+// 2FA is now enabled and these one-time backup codes are shown ONCE. The user
+// must save them; they are the recovery path if the authenticator is lost.
+type TwoFAConfirmResponse struct {
+	Message     string   `json:"message"`
+	BackupCodes []string `json:"backup_codes"` // shown once; stored hashed, never returned again
+}
+
+// TwoFAEnrollmentCompleteResponse is returned by the must-enroll confirm step
+// (/auth/2fa/pending-confirm): the super_admin's 2FA is enabled, login
+// completes (real access token), and the backup codes are shown once.
+type TwoFAEnrollmentCompleteResponse struct {
+	*AuthResponse
+	BackupCodes []string `json:"backup_codes"`
+}
+
 // EnrollTwoFARequest is the body for POST /profile/2fa/enroll (start).
 type EnrollTwoFARequest struct {
 	// Issuer/account labels for the otpauth URI; defaults applied if empty.

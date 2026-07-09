@@ -150,7 +150,7 @@ func (h *Handler) Pending2FAConfirm(c *fiber.Ctx) error {
 	if err := h.validate.Struct(req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(models.ErrorResponse{Message: "Validation failed: " + err.Error()})
 	}
-	authResponse, err := h.service.Complete2FAEnrollment(c.Context(), req.PendingToken, req.Code)
+	authResponse, backupCodes, err := h.service.Complete2FAEnrollment(c.Context(), req.PendingToken, req.Code)
 	if err != nil {
 		if errors.Is(err, models.ErrInvalidToken) {
 			return c.Status(fiber.StatusUnauthorized).JSON(models.ErrorResponse{Message: "Invalid or expired pending token"})
@@ -164,7 +164,10 @@ func (h *Handler) Pending2FAConfirm(c *fiber.Ctx) error {
 		log.Printf("Handler.Pending2FAConfirm: %v", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(models.ErrorResponse{Message: "Failed to complete 2FA enrollment"})
 	}
-	return c.Status(fiber.StatusOK).JSON(authResponse)
+	return c.Status(fiber.StatusOK).JSON(models.TwoFAEnrollmentCompleteResponse{
+		AuthResponse: authResponse,
+		BackupCodes:  backupCodes,
+	})
 }
 
 func (h *Handler) ActivateAccount(c *fiber.Ctx) error {

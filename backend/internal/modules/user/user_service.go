@@ -48,9 +48,9 @@ type ServiceInterface interface {
 	// 2FA must-enroll flow (PRD §4.3 super_admin mandate): a super_admin with
 	// no 2FA is blocked at login (Err2FAEnrollmentRequired). Start generates
 	// the QR/secret; Complete verifies the first code, enables 2FA, and mints
-	// the real access token (login finishes).
+	// the real access token + returns the one-time backup codes (login finishes).
 	StartPending2FAEnrollment(ctx context.Context, pendingToken string, req models.PendingTwoFAEnrollRequest) (*models.TwoFAEnrollResponse, error)
-	Complete2FAEnrollment(ctx context.Context, pendingToken, code string) (*models.AuthResponse, error)
+	Complete2FAEnrollment(ctx context.Context, pendingToken, code string) (*models.AuthResponse, []string, error)
 }
 
 // EmailEnqueuer is the subset of the Asynq job client the user service needs.
@@ -68,9 +68,13 @@ type TwoFAChecker interface {
 	IsEnabled(ctx context.Context, userID string) (bool, error)
 	IssuePendingToken(userID string, ttl time.Duration) (string, error)
 	ResolvePendingToken(token string) (string, error)
-	VerifyCode(ctx context.Context, userID, code string) (bool, error)
+	// VerifyCodeOrBackup checks the TOTP code, then a one-time backup code.
+	// Used by the login-verify step so a lost-authenticator recovery works.
+	VerifyCodeOrBackup(ctx context.Context, userID, code string) (bool, error)
 	Enroll(ctx context.Context, userID string, req models.EnrollTwoFARequest) (*models.TwoFAEnrollResponse, error)
-	Confirm(ctx context.Context, userID string, req models.ConfirmTwoFARequest) error
+	// Confirm verifies the first TOTP code, enables 2FA, and returns the
+	// one-time backup codes (plaintext, shown once to the user).
+	Confirm(ctx context.Context, userID string, req models.ConfirmTwoFARequest) ([]string, error)
 }
 
 type Service struct {
@@ -548,7 +552,7 @@ func (s *Service) Complete2FALogin(ctx context.Context, pendingToken, code strin
 	if err != nil {
 		return nil, models.ErrInvalidToken
 	}
-	ok, err := s.twoFAChecker.VerifyCode(ctx, userID, code)
+	ok, err := s.twoFAChecker.VerifyCodeOrBackup(ctx, userID, code)
 	if err != nil {
 		return nil, fmt.Errorf("service.Complete2FALogin.verify: %w", err)
 	}
@@ -584,22 +588,28 @@ func (s *Service) StartPending2FAEnrollment(ctx context.Context, pendingToken st
 // token, verify the first TOTP code against the staged secret, enable 2FA,
 // then mint the real access token + full profile (login completes). A
 // super_admin cannot get a full session without a confirmed 2FA enrollment.
-func (s *Service) Complete2FAEnrollment(ctx context.Context, pendingToken, code string) (*models.AuthResponse, error) {
+// Returns the one-time backup codes alongside (shown once by the handler).
+func (s *Service) Complete2FAEnrollment(ctx context.Context, pendingToken, code string) (*models.AuthResponse, []string, error) {
 	if s.twoFAChecker == nil {
-		return nil, models.ErrInvalidOperation
+		return nil, nil, models.ErrInvalidOperation
 	}
 	userID, err := s.twoFAChecker.ResolvePendingToken(pendingToken)
 	if err != nil {
-		return nil, models.ErrInvalidToken
+		return nil, nil, models.ErrInvalidToken
 	}
-	if err := s.twoFAChecker.Confirm(ctx, userID, models.ConfirmTwoFARequest{Code: code}); err != nil {
-		return nil, err
+	backupCodes, err := s.twoFAChecker.Confirm(ctx, userID, models.ConfirmTwoFARequest{Code: code})
+	if err != nil {
+		return nil, nil, err
 	}
 	user, err := s.userRepo.FindByID(ctx, userID)
 	if err != nil {
-		return nil, fmt.Errorf("service.Complete2FAEnrollment.find: %w", err)
+		return nil, nil, fmt.Errorf("service.Complete2FAEnrollment.find: %w", err)
 	}
-	return s.generateAuthResponse(ctx, user)
+	auth, err := s.generateAuthResponse(ctx, user)
+	if err != nil {
+		return nil, nil, err
+	}
+	return auth, backupCodes, nil
 }
 
 func (s *Service) GetUserProfile(ctx context.Context, userID string) (*models.User, error) {
