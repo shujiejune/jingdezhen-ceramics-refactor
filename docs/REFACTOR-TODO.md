@@ -44,7 +44,7 @@ Tracking the transition of the existing `backend/` codebase (former "Learning & 
 ## M1 — CMS & Content
 
 ### Restructure kept content modules (i18n + workflow)
-- [ ] `ceramicstory` → History & Heritage: add translations, rich multimedia blocks, workflow status (draft → review → published), `created_at`/`updated_at`
+- [x] `ceramicstory` → History & Heritage: add translations, rich multimedia blocks, workflow status (draft → review → published), `created_at`/`updated_at` — migration `000007_ceramic_story_translations` (parent + per-locale translation table, backfilled en-US from existing data, indexes on hot paths); `models/ceramicstory.go` merged view with nullable fields fixed; repo rewritten to JOIN parent + translation, locale-aware + published-only; service uses `i18ncontent.NormalizeLocale`; handler reads `?locale=` / `Accept-Language`; `DSC` typo fixed → `ASC ... NULLS LAST`; old columns retained (additive, future cleanup drops them). Rich-content blocks + admin C/U/D flow + media gallery deferred
 - [ ] `engage` (`Activity`/`Article`) → Destinations & Local Lifestyle: add translations, per-locale slugs/meta, media galleries, OSM coordinates, workflow status
 - [ ] Artist model → full artist profiles (bio/media, i18n, linked to products)
 - [ ] Category tree + tags taxonomy (replace bare `Period`/`Category` strings)

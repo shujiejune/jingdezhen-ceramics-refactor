@@ -1,33 +1,56 @@
 package models
 
-// CeramicStory represents the characteristics of Jingdezhen ceramics in a dynasty.
-// This struct will be used for transferring data between layers and for API responses.
+import "time"
+
+// =============================================================================
+// CeramicStory: History & Heritage (TDD §3.2 i18n pattern)
+//
+// The parent row holds non-localized data (start/end year, image, display
+// order, timestamps). Each (story, locale) has a translation row carrying the
+// localized dynasty name, slug, period label, description, characteristics,
+// takeaways, meta tags, and an independent workflow status (PRD §3.1.1).
+//
+// The API returns a merged view (CeramicStory) so the frontend sees one flat
+// object per locale. The repository JOINs parent + translation at read time.
+// =============================================================================
+
+// CeramicStory is the merged public view: parent fields + the requested
+// locale's translation. Scanned from a JOIN of ceramic_stories +
+// ceramic_story_translations.
 type CeramicStory struct {
-	ID                   int64  `json:"id" db:"id"`
-	DynastyName          string `json:"dynasty_name" db:"dynasty_name"`
-	Slug                 string `json:"slug" db:"slug"`                       // For URL-friendly access (e.g., "ming-dynasty")
-	Period               string `json:"period,omitempty" db:"period"`         // e.g., "Early Ming", "Late Qing"
-	StartYear            *int   `json:"start_year,omitempty" db:"start_year"` // Pointer to allow NULL
-	EndYear              *int   `json:"end_year,omitempty" db:"end_year"`     // Pointer to allow NULL
-	Description          string `json:"description" db:"description"`
-	CharacteristicsCraft string `json:"characteristics_craft,omitempty" db:"characteristics_craft"`
-	CharacteristicsArt   string `json:"characteristics_art,omitempty" db:"characteristics_art"`
-	ImageURL             string `json:"image_url,omitempty" db:"image_url"`
-	Takeaways            string `json:"takeaways,omitempty" db:"takeaways"` // Brief key points for timeline view
-	DisplayOrder         int    `json:"display_order" db:"display_order"`   // For ordering in the timeline
-	// Consider adding CreatedAt and UpdatedAt if you want to track changes
-	// CreatedAt           time.Time `json:"created_at" db:"created_at"`
-	// UpdatedAt           time.Time `json:"updated_at" db:"updated_at"`
+	ID                   int64          `json:"id" db:"id"`
+	DynastyName          string         `json:"dynasty_name" db:"dynasty_name"`          // translation
+	Slug                 string         `json:"slug" db:"slug"`                          // translation (per-locale unique)
+	Period               *string        `json:"period,omitempty" db:"period"`            // translation
+	StartYear            *int           `json:"start_year,omitempty" db:"start_year"`     // parent
+	EndYear              *int           `json:"end_year,omitempty" db:"end_year"`         // parent
+	Description          string         `json:"description" db:"description"`            // translation
+	CharacteristicsCraft *string        `json:"characteristics_craft,omitempty" db:"characteristics_craft"`
+	CharacteristicsArt   *string        `json:"characteristics_art,omitempty" db:"characteristics_art"`
+	ImageURL             *string        `json:"image_url,omitempty" db:"image_url"`        // parent (non-localized media)
+	Takeaways            *string        `json:"takeaways,omitempty" db:"takeaways"`
+	DisplayOrder         int            `json:"display_order" db:"display_order"`         // parent
+	MetaTitle            *string        `json:"meta_title,omitempty" db:"meta_title"`
+	MetaDescription      *string        `json:"meta_description,omitempty" db:"meta_description"`
+	Locale               string         `json:"locale" db:"locale"`                        // translation
+	Status               ContentStatus  `json:"status" db:"status"`                         // translation
+	PublishedAt          *time.Time     `json:"published_at,omitempty" db:"published_at"`
+	CreatedAt            time.Time      `json:"created_at" db:"created_at"`                 // parent
+	UpdatedAt           time.Time      `json:"updated_at" db:"updated_at"`                 // parent
 }
 
-// CreateCeramicStoryData defines the structure for data needed to create a new ceramic story.
-// This would typically be used by an admin interface.
+// --- Admin / CMS DTOs (for future admin endpoints) ---------------------------
+
+// CreateCeramicStoryData creates a new story + its first translation in one
+// call. Locale defaults to en-US if empty. The parent holds the non-localized
+// fields; the translation carries the localized text.
 type CreateCeramicStoryData struct {
+	Locale               string `json:"locale,omitempty" validate:"omitempty,len=5"`
 	DynastyName          string `json:"dynasty_name" validate:"required,max=100"`
-	Slug                 string `json:"slug" validate:"required,alphanumdash,max=100"` // Alphanumeric + dashes
-	Period               string `json:"period,omitempty" validate:"max=100"`
-	StartYear            *int   `json:"start_year,omitempty" validate:"omitempty,ltecsfield=EndYear"`
-	EndYear              *int   `json:"end_year,omitempty" validate:"omitempty,gtecsfield=StartYear"`
+	Slug                 string `json:"slug" validate:"required,max=100"`
+	Period               string `json:"period,omitempty" validate:"omitempty,max=100"`
+	StartYear            *int   `json:"start_year,omitempty"`
+	EndYear              *int   `json:"end_year,omitempty"`
 	Description          string `json:"description" validate:"required"`
 	CharacteristicsCraft string `json:"characteristics_craft,omitempty"`
 	CharacteristicsArt   string `json:"characteristics_art,omitempty"`
@@ -36,14 +59,14 @@ type CreateCeramicStoryData struct {
 	DisplayOrder         int    `json:"display_order" validate:"gte=0"`
 }
 
-// UpdateCeramicStoryData defines the structure for data needed to update an existing ceramic story.
-// This would typically be used by an admin interface.
+// UpdateCeramicStoryData updates a story's translation (localized fields) and/or
+// the parent's non-localized fields. A nil pointer = leave unchanged.
 type UpdateCeramicStoryData struct {
 	DynastyName          *string `json:"dynasty_name,omitempty" validate:"omitempty,max=100"`
-	Slug                 *string `json:"slug,omitempty" validate:"omitempty,alphanumdash,max=100"`
+	Slug                 *string `json:"slug,omitempty" validate:"omitempty,max=100"`
 	Period               *string `json:"period,omitempty" validate:"omitempty,max=100"`
-	StartYear            *int    `json:"start_year,omitempty" validate:"omitempty,ltecsfield=EndYear"`
-	EndYear              *int    `json:"end_year,omitempty" validate:"omitempty,gtecsfield=StartYear"`
+	StartYear            *int    `json:"start_year,omitempty"`
+	EndYear              *int    `json:"end_year,omitempty"`
 	Description          *string `json:"description,omitempty"`
 	CharacteristicsCraft *string `json:"characteristics_craft,omitempty"`
 	CharacteristicsArt   *string `json:"characteristics_art,omitempty"`

@@ -2,186 +2,115 @@ package ceramicstory
 
 import (
 	"context"
-	"database/sql"
+	"errors"
 	"fmt"
 	"jingdezhen-ceramics-backend/internal/models"
-	"strconv"
-	"strings"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// RepositoryInterface defines the methods for interacting with ceramic story storage.
+// RepositoryInterface defines ceramic-story storage operations (i18n-aware).
 type RepositoryInterface interface {
-	FindAll(ctx context.Context) ([]models.CeramicStory, error)
-	FindByIDOrSlug(ctx context.Context, idOrSlug string) (*models.CeramicStory, error)
-	// Admin methods (example, not directly used by current public routes)
-	// Create(ctx context.Context, data models.CreateCeramicStoryData) (*models.CeramicStory, error)
-	// Update(ctx context.Context, id int64, data models.UpdateCeramicStoryData) (*models.CeramicStory, error)
-	// Delete(ctx context.Context, id int64) error
+	// FindAllPublished returns all stories that have a published translation for
+	// the given locale, ordered by display_order (parent) then start_year.
+	FindAllPublished(ctx context.Context, locale string) ([]models.CeramicStory, error)
+	// FindPublishedBySlug returns the published translation for (slug, locale),
+	// or ErrNotFound if no published translation exists in that locale.
+	FindPublishedBySlug(ctx context.Context, locale, slug string) (*models.CeramicStory, error)
 }
 
-// Repository provides access to the ceramic story storage.
 type Repository struct {
 	db *pgxpool.Pool
 }
 
-// NewRepository creates a new ceramic story repository.
 func NewRepository(db *pgxpool.Pool) RepositoryInterface {
 	return &Repository{db: db}
 }
 
-// FindAll retrieves all ceramic stories, ordered by display_order.
-// For the timeline view, you might want to select fewer fields if it's just a summary.
-func (r *Repository) FindAll(ctx context.Context) ([]models.CeramicStory, error) {
-	stories := []models.CeramicStory{}
-	query := `
-		SELECT id, dynasty_name, slug, period, start_year, end_year, 
-		       description, characteristics_craft, characteristics_art, 
-		       image_url, takeaways, display_order
-		FROM ceramic_stories
-		ORDER BY display_order ASC, start_year DSC
-	`
-	rows, err := r.db.Query(ctx, query)
+// Columns selected from the JOIN of parent + translation, in scan order.
+// The parent contributes: id, start_year, end_year, image_url, display_order,
+// created_at, updated_at. The translation contributes: dynasty_name, slug,
+// period, description, characteristics_craft, characteristics_art, takeaways,
+// meta_title, meta_description, locale, status, published_at.
+const storyJoinColumns = `
+    cs.id, cs.start_year, cs.end_year, cs.image_url, cs.display_order,
+    cs.created_at, cs.updated_at,
+    t.dynasty_name, t.slug, t.period, t.description,
+    t.characteristics_craft, t.characteristics_art, t.takeaways,
+    t.meta_title, t.meta_description, t.locale, t.status, t.published_at
+`
+
+const storyJoinFrom = `
+    FROM ceramic_stories cs
+    JOIN ceramic_story_translations t ON t.story_id = cs.id
+`
+
+func (r *Repository) scanStory(row pgx.Row) (*models.CeramicStory, error) {
+	var s models.CeramicStory
+	var period, craft, art, takeaways, metaTitle, metaDesc, imageURL *string
+	// pgx scans NULL into nil pointer automatically for *string targets.
+	err := row.Scan(
+		&s.ID, &s.StartYear, &s.EndYear, &imageURL, &s.DisplayOrder,
+		&s.CreatedAt, &s.UpdatedAt,
+		&s.DynastyName, &s.Slug, &period, &s.Description,
+		&craft, &art, &takeaways, &metaTitle, &metaDesc,
+		&s.Locale, &s.Status, &s.PublishedAt,
+	)
 	if err != nil {
-		return nil, fmt.Errorf("repository.FindAll.Query: %w", err)
+		return nil, err
+	}
+	s.Period = period
+	s.CharacteristicsCraft = craft
+	s.CharacteristicsArt = art
+	s.Takeaways = takeaways
+	s.MetaTitle = metaTitle
+	s.MetaDescription = metaDesc
+	s.ImageURL = imageURL
+	return &s, nil
+}
+
+// FindAllPublished returns all published translations for a locale.
+func (r *Repository) FindAllPublished(ctx context.Context, locale string) ([]models.CeramicStory, error) {
+	query := `
+		SELECT ` + storyJoinColumns + storyJoinFrom + `
+		WHERE t.locale = $1 AND t.status = 'published'
+		ORDER BY cs.display_order ASC, cs.start_year ASC NULLS LAST
+	`
+	rows, err := r.db.Query(ctx, query, locale)
+	if err != nil {
+		return nil, fmt.Errorf("repository.FindAllPublished: %w", err)
 	}
 	defer rows.Close()
 
+	out := []models.CeramicStory{}
 	for rows.Next() {
-		var story models.CeramicStory
-		err := rows.Scan(
-			&story.ID, &story.DynastyName, &story.Slug, &story.Period, &story.StartYear, &story.EndYear,
-			&story.Description, &story.CharacteristicsCraft, &story.CharacteristicsArt,
-			&story.ImageURL, &story.Takeaways, &story.DisplayOrder,
-		)
+		s, err := r.scanStory(rows)
 		if err != nil {
-			return nil, fmt.Errorf("repository.FindAll.Scan: %w", err)
+			return nil, fmt.Errorf("repository.FindAllPublished.Scan: %w", err)
 		}
-		stories = append(stories, story)
+		out = append(out, *s)
 	}
-
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("repository.FindAll.RowsErr: %w", err)
+		return nil, fmt.Errorf("repository.FindAllPublished.RowsErr: %w", err)
 	}
-
-	return stories, nil
+	return out, nil
 }
 
-// FindByIDOrSlug retrieves a single ceramic story by its ID or slug.
-func (r *Repository) FindByIDOrSlug(ctx context.Context, idOrSlug string) (*models.CeramicStory, error) {
-	var story models.CeramicStory
+// FindPublishedBySlug returns the published translation for (slug, locale).
+// Slugs are unique per locale, so a hit is authoritative.
+func (r *Repository) FindPublishedBySlug(ctx context.Context, locale, slug string) (*models.CeramicStory, error) {
 	query := `
-		SELECT id, dynasty_name, slug, period, start_year, end_year, 
-		       description, characteristics_craft, characteristics_art, 
-		       image_url, takeaways, display_order
-		FROM ceramic_stories
+		SELECT ` + storyJoinColumns + storyJoinFrom + `
+		WHERE t.locale = $1 AND t.slug = $2 AND t.status = 'published'
 	`
-	var err error
-	// Try to parse idOrSlug as an integer (ID) first
-	id, convErr := strconv.ParseInt(idOrSlug, 10, 64)
-	if convErr == nil {
-		// It's a numeric ID
-		query += " WHERE id = $1"
-		err = r.db.QueryRow(ctx, query, id).Scan(
-			&story.ID, &story.DynastyName, &story.Slug, &story.Period, &story.StartYear, &story.EndYear,
-			&story.Description, &story.CharacteristicsCraft, &story.CharacteristicsArt,
-			&story.ImageURL, &story.Takeaways, &story.DisplayOrder,
-		)
-	} else {
-		// Assume it's a slug (string)
-		query += " WHERE slug = $1"
-		err = r.db.QueryRow(ctx, query, idOrSlug).Scan(
-			&story.ID, &story.DynastyName, &story.Slug, &story.Period, &story.StartYear, &story.EndYear,
-			&story.Description, &story.CharacteristicsCraft, &story.CharacteristicsArt,
-			&story.ImageURL, &story.Takeaways, &story.DisplayOrder,
-		)
-	}
-
+	row := r.db.QueryRow(ctx, query, locale, slug)
+	s, err := r.scanStory(row)
 	if err != nil {
-		if err == sql.ErrNoRows || strings.Contains(err.Error(), "no rows in result set") { // pgx might use different error
-			return nil, models.ErrNotFound // Use a common error type from your models package
-		}
-		return nil, fmt.Errorf("repository.FindByIDOrSlug: %w", err)
-	}
-	return &story, nil
-}
-
-// --- Admin methods (Example Implementations - uncomment and complete if needed for admin panel) ---
-/*
-func (r *Repository) Create(ctx context.Context, data models.CreateCeramicStoryData) (*models.CeramicStory, error) {
-	story := models.CeramicStory{}
-	query := `
-		INSERT INTO ceramic_stories (
-			dynasty_name, slug, period, start_year, end_year, description,
-			characteristics_craft, characteristics_art, image_url, takeaways, display_order
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-		RETURNING id, dynasty_name, slug, period, start_year, end_year, description,
-		          characteristics_craft, characteristics_art, image_url, takeaways, display_order
-	`
-	err := r.db.QueryRow(ctx, query,
-		data.DynastyName, data.Slug, data.Period, data.StartYear, data.EndYear, data.Description,
-		data.CharacteristicsCraft, data.CharacteristicsArt, data.ImageURL, data.Takeaways, data.DisplayOrder,
-	).Scan(
-		&story.ID, &story.DynastyName, &story.Slug, &story.Period, &story.StartYear, &story.EndYear,
-		&story.Description, &story.CharacteristicsCraft, &story.CharacteristicsArt,
-		&story.ImageURL, &story.Takeaways, &story.DisplayOrder,
-	)
-	if err != nil {
-		// Handle potential duplicate slug error (unique constraint)
-		return nil, fmt.Errorf("repository.Create: %w", err)
-	}
-	return &story, nil
-}
-
-func (r *Repository) Update(ctx context.Context, id int64, data models.UpdateCeramicStoryData) (*models.CeramicStory, error) {
-	// Build query dynamically based on which fields in `data` are not nil
-	// For brevity, this is a simplified example assuming all fields might be updated
-	// A more robust implementation would use squirrel or build SET clauses carefully.
-	story := models.CeramicStory{}
-	query := `
-		UPDATE ceramic_stories SET
-			dynasty_name = COALESCE($2, dynasty_name),
-			slug = COALESCE($3, slug),
-			period = COALESCE($4, period),
-			start_year = COALESCE($5, start_year),
-			end_year = COALESCE($6, end_year),
-			description = COALESCE($7, description),
-			characteristics_craft = COALESCE($8, characteristics_craft),
-			characteristics_art = COALESCE($9, characteristics_art),
-			image_url = COALESCE($10, image_url),
-			takeaways = COALESCE($11, takeaways),
-			display_order = COALESCE($12, display_order)
-		WHERE id = $1
-		RETURNING id, dynasty_name, slug, period, start_year, end_year, description,
-		          characteristics_craft, characteristics_art, image_url, takeaways, display_order
-	`
-	err := r.db.QueryRow(ctx, query,
-		id, data.DynastyName, data.Slug, data.Period, data.StartYear, data.EndYear, data.Description,
-		data.CharacteristicsCraft, data.CharacteristicsArt, data.ImageURL, data.Takeaways, data.DisplayOrder,
-	).Scan(
-		&story.ID, &story.DynastyName, &story.Slug, &story.Period, &story.StartYear, &story.EndYear,
-		&story.Description, &story.CharacteristicsCraft, &story.CharacteristicsArt,
-		&story.ImageURL, &story.Takeaways, &story.DisplayOrder,
-	)
-	if err != nil {
-		if err == sql.ErrNoRows || strings.Contains(err.Error(), "no rows") {
+		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, models.ErrNotFound
 		}
-		return nil, fmt.Errorf("repository.Update: %w", err)
+		return nil, fmt.Errorf("repository.FindPublishedBySlug: %w", err)
 	}
-	return &story, nil
+	return s, nil
 }
-
-func (r *Repository) Delete(ctx context.Context, id int64) error {
-	query := "DELETE FROM ceramic_stories WHERE id = $1"
-	cmdTag, err := r.db.Exec(ctx, query, id)
-	if err != nil {
-		return fmt.Errorf("repository.Delete: %w", err)
-	}
-	if cmdTag.RowsAffected() == 0 {
-		return models.ErrNotFound
-	}
-	return nil
-}
-*/

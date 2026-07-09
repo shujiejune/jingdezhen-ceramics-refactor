@@ -115,11 +115,11 @@ func SetupRoutes(
 		notifGroup.Post("/:notification_id/mark-read", notifHandler.MarkAsRead)
 	}
 
-	/* --- Ceramic Story (Public) --- */
+	/* --- Ceramic Story (History & Heritage, public) --- */
 	csGroup := app.Group("/ceramicstory")
 	{
 		csGroup.Get("", csHandler.GetAllDynasties)
-		csGroup.Get("/:dynasty_id_or_slug", csHandler.GetDynastyDetail)
+		csGroup.Get("/:slug", csHandler.GetDynastyDetail)
 	}
 
 	/* --- Gallery (Public for viewing, Protected for actions) --- */
