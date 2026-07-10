@@ -9,7 +9,7 @@ type TwoFARecord struct {
 	UserID          string     `json:"-" db:"user_id"`
 	EncryptedSecret []byte     `json:"-" db:"totp_secret_enc"`
 	Enabled         bool       `json:"enabled" db:"enabled"`
-	ConfirmedAt      *time.Time `json:"confirmed_at,omitempty" db:"confirmed_at"`
+	ConfirmedAt     *time.Time `json:"confirmed_at,omitempty" db:"confirmed_at"`
 	CreatedAt       time.Time  `json:"created_at" db:"created_at"`
 	UpdatedAt       time.Time  `json:"updated_at" db:"updated_at"`
 }

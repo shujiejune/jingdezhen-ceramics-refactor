@@ -21,15 +21,15 @@ import (
 // Job type strings. These are the values Asynq stores in Redis; renaming them
 // breaks in-flight jobs, so keep them stable.
 const (
-	TypeEmailSend        = "email:send"
-	TypePaymentFinalize  = "payment:finalize"
-	TypeFXRefresh        = "fx:refresh"
-	TypeMediaTranscode   = "media:transcode"
-	TypePDFGenerate      = "pdf:generate"
-	TypeSitemapRebuild   = "sitemap:rebuild"
-	TypeAnalyticsRollup  = "analytics:rollup"
-	TypeStockCheck       = "stock:check"
-	TypeSLACheck         = "sla:check"
+	TypeEmailSend       = "email:send"
+	TypePaymentFinalize = "payment:finalize"
+	TypeFXRefresh       = "fx:refresh"
+	TypeMediaTranscode  = "media:transcode"
+	TypePDFGenerate     = "pdf:generate"
+	TypeSitemapRebuild  = "sitemap:rebuild"
+	TypeAnalyticsRollup = "analytics:rollup"
+	TypeStockCheck      = "stock:check"
+	TypeSLACheck        = "sla:check"
 )
 
 // --- Payloads ---------------------------------------------------------------
@@ -37,11 +37,11 @@ const (
 // EmailSendPayload is the body for TypeEmailSend. All Brevo sends enqueue
 // this so a flaky email API never blocks a request (TDD §4.2, retry ×5).
 type EmailSendPayload struct {
-	To            string `json:"to"`
-	Subject       string `json:"subject"`
-	PlainText     string `json:"plain_text,omitempty"`
-	HTML          string `json:"html,omitempty"`
-	Template      string `json:"template,omitempty"` // named Brevo template id, future
+	To        string `json:"to"`
+	Subject   string `json:"subject"`
+	PlainText string `json:"plain_text,omitempty"`
+	HTML      string `json:"html,omitempty"`
+	Template  string `json:"template,omitempty"` // named Brevo template id, future
 }
 
 // PaymentFinalizePayload is the body for TypePaymentFinalize, enqueued by
@@ -105,6 +105,9 @@ func (c *Client) EnqueueFXRefresh(ctx context.Context) error {
 
 // Server wraps the Asynq server + mux with the platform's job types.
 // Assign handlers to the exported fields, then call Run.
+// Think of the mux as a background jobs router.
+// It matches the job label against a list of registered routes,
+// hands the job to the correct handler.
 //
 //	srv := jobs.NewServer(addr)
 //	srv.EmailSend = myBrevoEmailHandler
