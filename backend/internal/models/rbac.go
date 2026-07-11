@@ -36,6 +36,7 @@ const (
 	PermContentPublish   = "content.publish"
 	PermProductRead      = "product.read"
 	PermProductWrite     = "product.write"
+	PermProductPublish   = "product.publish"   // Super Admin only — approve/publish products (PRD §3.1.1)
 	PermOrderRead        = "order.read"
 	PermOrderWrite       = "order.write"
 	PermOrderRefund      = "order.refund"

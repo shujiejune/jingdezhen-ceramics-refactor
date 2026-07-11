@@ -18,21 +18,21 @@ import "time"
 // Artist is the merged public view: parent fields + the requested locale's
 // translation. Scanned from a JOIN of artists + artist_translations.
 type Artist struct {
-	ID              int64          `json:"id" db:"id"`
-	AvatarURL       *string        `json:"avatar_url,omitempty" db:"avatar_url"` // parent (non-localized media)
-	UserID          *string        `json:"user_id,omitempty" db:"user_id"`       // parent: link to users.id (UUID)
-	DisplayOrder    int            `json:"display_order" db:"display_order"`      // parent
+	ID           int64   `json:"id" db:"id"`
+	AvatarURL    *string `json:"avatar_url,omitempty" db:"avatar_url"` // parent (non-localized media)
+	UserID       *string `json:"user_id,omitempty" db:"user_id"`       // parent: link to users.id (UUID)
+	DisplayOrder int     `json:"display_order" db:"display_order"`     // parent
 	// Translation fields.
-	Name            string         `json:"name" db:"name"`                        // translation (localized display name)
-	Slug            string         `json:"slug" db:"slug"`                        // translation (per-locale unique)
-	Bio             *string        `json:"bio,omitempty" db:"bio"`                // translation
-	MetaTitle       *string        `json:"meta_title,omitempty" db:"meta_title"`
-	MetaDescription *string        `json:"meta_description,omitempty" db:"meta_description"`
-	Locale          string         `json:"locale" db:"locale"`
-	Status          ContentStatus  `json:"status" db:"status"`
-	PublishedAt     *time.Time     `json:"published_at,omitempty" db:"published_at"`
-	CreatedAt       time.Time      `json:"created_at" db:"created_at"`            // parent
-	UpdatedAt       time.Time      `json:"updated_at" db:"updated_at"`            // parent
+	Name            string        `json:"name" db:"name"`         // translation (localized display name)
+	Slug            string        `json:"slug" db:"slug"`         // translation (per-locale unique)
+	Bio             *string       `json:"bio,omitempty" db:"bio"` // translation
+	MetaTitle       *string       `json:"meta_title,omitempty" db:"meta_title"`
+	MetaDescription *string       `json:"meta_description,omitempty" db:"meta_description"`
+	Locale          string        `json:"locale" db:"locale"`
+	Status          ContentStatus `json:"status" db:"status"`
+	PublishedAt     *time.Time    `json:"published_at,omitempty" db:"published_at"`
+	CreatedAt       time.Time     `json:"created_at" db:"created_at"` // parent
+	UpdatedAt       time.Time     `json:"updated_at" db:"updated_at"` // parent
 }
 
 // --- Admin / CMS DTOs ---
@@ -49,7 +49,7 @@ type CreateArtistData struct {
 	MetaTitle       string `json:"meta_title,omitempty" validate:"omitempty,max=255"`
 	MetaDescription string `json:"meta_description,omitempty"`
 	AvatarURL       string `json:"avatar_url,omitempty" validate:"omitempty,url"`
-	UserID          string `json:"user_id,omitempty"`            // optional: link to a platform user
+	UserID          string `json:"user_id,omitempty"` // optional: link to a platform user
 	DisplayOrder    int    `json:"display_order" validate:"gte=0"`
 }
 

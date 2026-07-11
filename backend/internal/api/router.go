@@ -10,6 +10,7 @@ import (
 	"jingdezhen-ceramics-backend/internal/modules/engage"
 	"jingdezhen-ceramics-backend/internal/modules/gallery"
 	"jingdezhen-ceramics-backend/internal/modules/notification"
+	"jingdezhen-ceramics-backend/internal/modules/product"
 	"jingdezhen-ceramics-backend/internal/modules/privacy"
 	"jingdezhen-ceramics-backend/internal/modules/twofa"
 	"jingdezhen-ceramics-backend/internal/modules/user"
@@ -31,6 +32,7 @@ func SetupRoutes(
 	addressHandler *address.Handler,
 	consentHandler *consent.Handler,
 	artistHandler *artist.Handler,
+	productHandler *product.Handler,
 	twoFAHandler *twofa.Handler,
 	privacyHandler *privacy.Handler,
 ) {
@@ -158,6 +160,12 @@ func SetupRoutes(
 		}
 	}
 
+	/* --- Product Catalog (Public) — PRD §3.2.1 --- */
+	/* Locale-aware (?locale= / Accept-Language), published-only. The detail view
+	   includes the product's SKUs (purchasable units). */
+	app.Get("/catalog/products", productHandler.GetProducts)
+	app.Get("/catalog/products/:slug", productHandler.GetProductBySlug)
+
 	/* --- Engage (Destinations & Local Lifestyle, public) --- */
 	engageGroup := app.Group("/engage")
 	{
@@ -237,6 +245,36 @@ func SetupRoutes(
 			adminArtistsPublish.Post("/:id/approve", artistHandler.AdminApproveArtist)
 			adminArtistsPublish.Post("/:id/reject", artistHandler.AdminRejectArtist)
 			adminArtistsPublish.Post("/:id/unpublish", artistHandler.AdminUnpublishArtist)
+		}
+
+		// --- CMS: Product Catalog (PRD §3.2.1) ---
+		// PermProductWrite (ecommerce_operator + super admin): create, edit, delete,
+		// submit, manage SKUs. PermProductPublish (super admin only): approve/reject/unpublish.
+		adminProducts := adminGroup.Group("/products")
+		adminProducts.Use(middleware.RequirePermission(models.PermProductWrite))
+		{
+			adminProducts.Get("", productHandler.AdminListProducts)
+			adminProducts.Get("/:slug", productHandler.AdminGetProduct)
+			adminProducts.Post("", productHandler.AdminCreateProduct)
+			adminProducts.Put("/:id", productHandler.AdminUpdateProduct)
+			adminProducts.Delete("/:id", productHandler.AdminDeleteProduct)
+			adminProducts.Post("/:id/submit", productHandler.AdminSubmitProduct)
+			// SKU management (nested under the product for creation).
+			adminProducts.Post("/:id/skus", productHandler.AdminCreateSKU)
+		}
+		adminProductsPublish := adminGroup.Group("/products")
+		adminProductsPublish.Use(middleware.RequirePermission(models.PermProductPublish))
+		{
+			adminProductsPublish.Post("/:id/approve", productHandler.AdminApproveProduct)
+			adminProductsPublish.Post("/:id/reject", productHandler.AdminRejectProduct)
+			adminProductsPublish.Post("/:id/unpublish", productHandler.AdminUnpublishProduct)
+		}
+		// SKU update/delete live under /admin/skus (flat, not nested).
+		adminSKUs := adminGroup.Group("/skus")
+		adminSKUs.Use(middleware.RequirePermission(models.PermProductWrite))
+		{
+			adminSKUs.Put("/:id", productHandler.AdminUpdateSKU)
+			adminSKUs.Delete("/:id", productHandler.AdminDeleteSKU)
 		}
 	}
 

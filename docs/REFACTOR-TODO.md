@@ -61,7 +61,7 @@ Tracking the transition of the existing `backend/` codebase (former "Learning & 
 
 ## M2 — E-commerce (all new)
 
-- [ ] Product/SKU model on top of `artworks`: price (CNY), stock, packed weight, JSONB attributes (size, technique, glaze, edition type, year, kiln — PRD §3.2.1), publish status, product videos
+- [x] Product/SKU model on top of `artworks`: price (CNY), stock, packed weight, JSONB attributes (size, technique, glaze, edition type, year, kiln — PRD §3.2.1), publish status, product videos — migration `000012_products_skus` (parent `products` + `product_translations` i18n table with editorial workflow; `skus` table with price_cny BIGINT minor units, stock, weight_grams, low_stock_threshold default 2, attributes JSONB, GIN index; backfilled from `artworks` + en-US translations + default SKU per product; added `product.publish` permission for super_admin-only publish gate); `models/product.go` (`Product` merged view + `SKU` + DTOs); `product` module (handler/service/repository following the ceramicstory/artist pattern); public reads `GET /catalog/products` + `GET /catalog/products/:slug` (includes SKUs); admin CMS under `/admin/products` with `RequirePermission(PermProductWrite)` + `PermProductPublish` split; SKU CRUD under `/admin/products/:id/skus` (create) + `/admin/skus/:id` (update/delete). Gallery module (`artworks`) left intact (additive; catalog is parallel). Product videos + media_assets FK deferred to media-library infra
 - [ ] Evolve `user_favorite_artworks` (migration 000034) into **wishlist**
 - [ ] Cart (server-side, merge-on-login; quantity ops, bulk remove)
 - [ ] FX pipeline: daily ECB rates + 2% markup + rounding rule; price cache
