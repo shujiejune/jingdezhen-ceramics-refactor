@@ -1,0 +1,403 @@
+# Backend Dev Log
+
+## Live DB Testing
+
+0. Prerequisites check
+
+```sh
+docker --version
+docker compose version
+go version
+```
+
+1. Review .env
+
+Make sure the .env already has the right DB values.
+
+2. Start the DB + Redis containers
+
+Start only the data services first, not api/worker (they need migrations applied first).
+
+```sh
+docker compose -f docker-compose.dev.yml up -d db redis
+```
+
+Wait for them to be healthy.
+
+```sh
+docker compose -f docker-compose.dev.yml ps
+```
+
+Should see `jdz-db` and `jdz-redis` with healthy status.
+The healthcheck does `pg_isready` / `redis-cli ping`.
+
+Verify the DB is accepting connections.
+
+```sh
+docker exec jdz-db pg_isready -U postgres -d jingdezhen_ceramics_db
+```
+
+3. Apply migrations
+
+Ensure `$(go env GOPATH)/bin` is on the path.
+
+```sh
+echo `export PATH=$PATH:$(go env GOPATH)/bin' >> ~/.zshrc
+source ~/.zshrc
+```
+
+Install the migrate CLI on the host.
+
+```sh 
+go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+migrate -version
+```
+
+Then apply all migrations.
+
+```sh
+make migrate-up
+```
+
+4. Verify the schema
+
+List all tables and check the migration version.
+
+```sh
+# Which migration version is applied?
+docker exec jdz-db psql -U postgres -d jingdezhen_ceramics_db -c "SELECT version, dirty FROM schema_migrations;"
+# Expect: version=10, dirty=f
+# 
+# List all tables (should be ~20 tables)
+docker exec jdz-db psql -U postgres -d jingdezhen_ceramics_db -c "\dt"
+```
+
+Spot-check a few of the things the migrations built.
+
+```sh 
+# RBAC seed: 5 staff roles + 14 permissions + role_permissions wired               
+docker exec jdz-db psql -U postgres -d jingdezhen_ceramics_db -c "SELECT key FROM roles ORDER BY key;"
+# Expect: content_editor, customer, customer_service, ecommerce_operator, super_admin, travel_planner
+docker exec jdz-db psql -U postgres -d jingdezhen_ceramics_db -c "SELECT COUNT(*) FROM permissions;"
+# Expect: 14
+# The new deleted_at column from migration 000010
+docker exec jdz-db psql -U postgres -d jingdezhen_ceramics_db -c "\d users" | grep deleted_at
+# Expect: deleted_at | timestamp with time zone | nullable
+```
+
+5. Test rollback (optional, but recommeded once)
+
+Verify the down migrations work.
+
+```sh
+make migrate-down
+# then verify:
+docker exec jdz-db psql -U postgres -d jingdezhen_ceramics_db -c "SELECT version FROM schema_migrations;"
+# Expect: 9
+
+# Re-apply
+make migrate-up
+# Expect: version=10, dirty=f
+```
+
+6. Seed a super_admin user (needed to exercise CMS endpoints)
+
+The RBAC migration seeds roles/permissions but no users.
+The CMS endpoints require a super_admin for publish actions or content_editor for write actions.
+Create one manually.
+
+```sh
+docker exec -it jdz-db psql -U postgres -d jingdezhen_ceramics_db
+```
+
+Inside psql, run:
+
+```sql 
+-- 1. Create an active user (password hash below = bcrypt of "password123")
+INSERT INTO users (id, nickname, email, password_hash, is_active, auth_provider)
+VALUES (
+  '00000000-0000-0000-0000-000000000001',
+  'Super Admin',
+  'admin@jingdezhen.test',
+  '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy',
+  TRUE,
+  'email'
+);
+-- 2. Assign super_admin role
+INSERT INTO user_roles (user_id, role_id)
+VALUES (
+  '00000000-0000-0000-0000-000000000001',
+  (SELECT id FROM roles WHERE key = 'super_admin')
+);
+```
+
+A super_admin must enroll 2FA before they can get a full session JWT.
+(This is hard-enforced at login: you will get `Err2FAEnrollmentRequired` with a 15-min pending token.)
+The login flow is:
+`POST /auth/login` -> 412 with pending token -> `POST /auth/2fa/pending-enroll` (returns QR) -> `POST /auth/2fa/pending-confirm` with TOTP code -> real JWT.
+To skip 2FA testing, use a content_editor instead.
+
+```sql
+INSERT INTO user_roles (user_id, role_id)
+VALUES (
+  '00000000-0000-0000-0000-000000000001',
+  (SELECT id FROM roles WHERE key = 'content_editor')
+);
+```
+
+Exit psql with `\q`.
+
+7. Run the API and smoke-test
+
+```sh
+make up
+make logs-api
+```
+
+If you see `Successfully connected to the database!` + `Successfully connected to Redis!`, the stack is up.
+
+Smoke-test a few endpoints.
+
+```sh
+# Public health check
+curl -s http://localhost:1323/ | head
+
+# Public content read (ceramic stories — empty, but should return 200 + [])
+curl -s "http://localhost:1323/ceramicstory?locale=en-US"
+
+# Login as the content_editor you seeded
+curl -s -X POST http://localhost:1323/auth/login \
+    -H "Content-Type: application/json" \
+    -d '{"email":"admin@jingdezhen.test","password":"password123"}'
+# → should return an access_token (content_editor has no 2FA mandate)
+```
+
+8. Tear down / reset
+
+Wipe everything and start fresh (drops the DB volume + Redis volume).
+
+```sh
+make down        # stops containers and deletes volumes
+make up          # recreate
+make migrate-up  # re-apply migrations
+```
+
+**Quick reference**
+
+ ┌─────────────────────────────────────────────────┬────────────────────────────────┐ 
+ │ Command                                         │ What it does                   │ 
+ ├─────────────────────────────────────────────────┼────────────────────────────────┤ 
+ │ docker compose -f docker-compose.dev.yml up -d  │ Start only Postgres + Redis    │ 
+ │ db redis                                        │                                │ 
+ ├─────────────────────────────────────────────────┼────────────────────────────────┤ 
+ │ make migrate-up                                 │ Apply all pending migrations   │ 
+ │                                                 │ (needs migrate CLI)            │ 
+ ├─────────────────────────────────────────────────┼────────────────────────────────┤ 
+ │ make migrate-down                               │ Roll back the last migration   │ 
+ │                                                 │ only                           │ 
+ ├─────────────────────────────────────────────────┼────────────────────────────────┤ 
+ │ docker exec jdz-db psql -U postgres -d          │ Open a psql shell in the DB    │ 
+ │ jingdezhen_ceramics_db                          │ container                      │ 
+ ├─────────────────────────────────────────────────┼────────────────────────────────┤ 
+ │ docker exec jdz-db pg_isready -U postgres -d    │ Check DB readiness             │ 
+ │ jingdezhen_ceramics_db                          │                                │ 
+ ├─────────────────────────────────────────────────┼────────────────────────────────┤ 
+ │ make up / make down / make stop                 │ Full stack lifecycle           │ 
+ ├─────────────────────────────────────────────────┼────────────────────────────────┤ 
+ │ make logs-api / make logs-worker                │ Tail service logs              │ 
+ └─────────────────────────────────────────────────┴────────────────────────────────┘
+
+## API endpoints testing via curl
+
+Keeps `make logs-api` or `docker compose -f docker-compose.dev.yml logs -f api` running in terminal 1 for logs.
+Run all curl commands in terminal 2.
+
+### Line continuation
+
+ Use \ at the end of each line to break a command across lines. The \ must be the
+ last character (no trailing spaces). Bash shows a > prompt on the next line. Press
+ Enter on the last line (no \) to execute.
+
+### Common curl flags
+
+ ┌───────────────────────────────────┬──────────────────────────────────────────────┐ 
+ │ Flag                              │ Meaning                                      │ 
+ ├───────────────────────────────────┼──────────────────────────────────────────────┤ 
+ │ -s                                │ Silent (no progress meter)                   │ 
+ ├───────────────────────────────────┼──────────────────────────────────────────────┤ 
+ │ -i                                │ Include response headers (shows status code  │ 
+ │                                   │ + body)                                      │ 
+ ├───────────────────────────────────┼──────────────────────────────────────────────┤ 
+ │ -X POST / -X PUT / -X DELETE      │ HTTP method (GET is default)                 │ 
+ ├───────────────────────────────────┼──────────────────────────────────────────────┤ 
+ │ -H "Content-Type:                 │ Request header                               │ 
+ │ application/json"                 │                                              │ 
+ ├───────────────────────────────────┼──────────────────────────────────────────────┤ 
+ │ -d '{"key":"value"}'              │ Request body                                 │ 
+ ├───────────────────────────────────┼──────────────────────────────────────────────┤ 
+ │ -o /dev/null -w "%{http_code}\n"  │ Print only the status code                   │ 
+ ├───────────────────────────────────┼──────────────────────────────────────────────┤ 
+ │ -d @/tmp/body.json                │ Read body from a file (avoids quoting        │ 
+ │                                   │ issues)                                      │ 
+ └───────────────────────────────────┴──────────────────────────────────────────────┘ 
+
+### Response status codes
+
+ ┌──────┬──────────────┬────────────────────────────────────────────────────┐
+ │ Code │ Meaning      │ Action                                             │
+ ├──────┼──────────────┼────────────────────────────────────────────────────┤
+ │ 200  │ OK           │ Success                                            │
+ ├──────┼──────────────┼────────────────────────────────────────────────────┤
+ │ 201  │ Created      │ Success (POST that creates a resource)             │
+ ├──────┼──────────────┼────────────────────────────────────────────────────┤
+ │ 204  │ No Content   │ Success (DELETE)                                   │
+ ├──────┼──────────────┼────────────────────────────────────────────────────┤
+ │ 400  │ Bad Request  │ Invalid body / validation failed — check your JSON │
+ ├──────┼──────────────┼────────────────────────────────────────────────────┤
+ │ 401  │ Unauthorized │ No token / invalid token — get a new JWT           │
+ ├──────┼──────────────┼────────────────────────────────────────────────────┤
+ │ 403  │ Forbidden    │ Authenticated but lacks permission (wrong role)    │
+ ├──────┼──────────────┼────────────────────────────────────────────────────┤
+ │ 404  │ Not Found    │ Wrong URL or resource doesn't exist                │
+ ├──────┼──────────────┼────────────────────────────────────────────────────┤
+ │ 409  │ Conflict     │ Duplicate / workflow state conflict                │
+ ├──────┼──────────────┼────────────────────────────────────────────────────┤
+ │ 500  │ Server Error │ Bug — check logs in terminal 1                     │
+ └──────┴──────────────┴────────────────────────────────────────────────────┘
+
+### Step 1 — Login (get a JWT)
+
+```sh                                                                          
+curl -s -X POST http://localhost:1323/auth/login \                              
+  -H "Content-Type: application/json" \                                         
+  -d '{"email":"admin@jingdezhen.test","password":"password123"}'               
+```                                                                            
+
+Copy the access_token value (the long eyJ... string). Store it in a shell variable 
+to reuse:
+
+```sh                                                                        
+TOKEN="eyJ...paste-token-here..."                                            
+```
+
+Verify it's set: `echo $TOKEN` should print the token.
+
+### Step 2 — Use the token in protected requests
+
+Add `-H "Authorization: Bearer $TOKEN"` to any request that requires auth:
+
+```sh                                                                           
+# Get profile                                                                   
+curl -s http://localhost:1323/profile \                                         
+  -H "Authorization: Bearer $TOKEN"                                             
+                                                                                
+# List shipping addresses                                                       
+curl -s http://localhost:1323/profile/addresses \                               
+  -H "Authorization: Bearer $TOKEN"                                             
+                                                                                
+# Create an address                                                             
+curl -s -X POST http://localhost:1323/profile/addresses \                       
+  -H "Authorization: Bearer $TOKEN" \                                           
+  -H "Content-Type: application/json" \                                         
+  -d '{"recipient":"John","line1":"123 Main                                     
+ St","city":"Jingdezhen","country":"CN","is_default":true}'                     
+                                                                                
+# GDPR data export                                                              
+curl -s http://localhost:1323/profile/export \                                  
+  -H "Authorization: Bearer $TOKEN"                                             
+                                                                                
+# Delete account (irreversible! skips for testing unless you mean it)           
+# curl -s -X POST http://localhost:1323/privacy/delete-account \                
+#   -H "Authorization: Bearer $TOKEN" \                                         
+#   -H "Content-Type: application/json" \                                       
+#   -d '{"confirm":"DELETE"}'                                                   
+```                                                                            
+
+### Step 3 — Public endpoints (no token needed)
+
+ ```sh                                                                          
+# Health check                                                                  
+curl -s http://localhost:1323/                                                  
+                                                                                
+# Public content (ceramic stories, empty for now)                               
+curl -s "http://localhost:1323/ceramicstory?locale=en-US"                       
+                                                                                
+# Public activities (Destinations & Local Lifestyle)                            
+curl -s "http://localhost:1323/activities?locale=en-US"                         
+```                                                                             
+
+### Step 4 — Admin CMS endpoints (need content_editor role)
+
+Your `admin@jingdezhen.test` user has content_editor — can create/edit/submit, but NOT 
+approve/reject/unpublish (those need `super_admin`):
+
+```sh                                                                           
+# Create a ceramic story (draft)                                                
+curl -s -X POST http://localhost:1323/admin/ceramicstory \                      
+  -H "Authorization: Bearer $TOKEN" \                                           
+  -H "Content-Type: application/json" \                                         
+  -d '{"locale":"en-US","dynasty_name":"Ming Dynasty","slug":"ming-dynasty",
+  "description":"The Ming dynasty porcelain era.","start_year":1368,
+  "end_year":1644,"display_order":1}'                          
+                                                                                
+# List all stories (all statuses, admin view)                                   
+curl -s "http://localhost:1323/admin/ceramicstory?locale=en-US" \               
+  -H "Authorization: Bearer $TOKEN"                                             
+                                                                                
+# Submit for review (draft → in_review)                                         
+curl -s -X POST http://localhost:1323/admin/ceramicstory/1/submit \             
+  -H "Authorization: Bearer $TOKEN" \                                           
+  -H "Content-Type: application/json" \                                         
+  -d '{"locale":"en-US"}'                                                       
+                                                                                
+# Approve (in_review → published) — will return 403 (needs super_admin)         
+curl -s -X POST http://localhost:1323/admin/ceramicstory/1/approve \            
+  -H "Authorization: Bearer $TOKEN" \                                           
+  -H "Content-Type: application/json" \                                         
+  -d '{"locale":"en-US"}'                                                       
+```                                                                            
+
+### Step 5 — Pretty-print JSON
+
+Pipe through `python3 -m json.tool` or `jq` for readable output:
+
+```sh                                                                          
+  curl -s http://localhost:1323/profile \                                      
+  -H "Authorization: Bearer $TOKEN" | python3 -m json.tool                     
+```                                                                            
+
+### Quick reference — the full pattern
+
+```sh                                                                           
+# 1. Login → copy access_token                                                  
+curl -s -X POST http://localhost:1323/auth/login \                              
+  -H "Content-Type: application/json" \                                         
+  -d '{"email":"admin@jingdezhen.test","password":"password123"}'               
+                                                                                
+# 2. Store token                                                                
+TOKEN="eyJ..."                                                                  
+                                                                                
+# 3. Make authenticated requests                                                
+curl -s http://localhost:1323/profile \                                         
+  -H "Authorization: Bearer $TOKEN" | python3 -m json.tool                      
+```                                                                            
+
+### Troubleshooting
+
+ ┌────────────────────────┬────────────────────┬────────────────────────────────────┐ 
+ │ Symptom                │ Cause              │ Fix                                │ 
+ ├────────────────────────┼────────────────────┼────────────────────────────────────┤ 
+ │ 000 status             │ API not reachable  │ Check docker ps + logs             │ 
+ ├────────────────────────┼────────────────────┼────────────────────────────────────┤ 
+ │ 400 Invalid request    │ Body didn't parse  │ Check for curly quotes; use -d     │ 
+ │ body                   │                    │ @file.json                         │ 
+ ├────────────────────────┼────────────────────┼────────────────────────────────────┤ 
+ │ 401 Invalid            │ Wrong              │ Regenerate bcrypt hash, update DB  │ 
+ │ credentials            │ email/password     │                                    │ 
+ ├────────────────────────┼────────────────────┼────────────────────────────────────┤ 
+ │ 401 on protected route │ No/invalid token   │ Re-login, set $TOKEN               │ 
+ ├────────────────────────┼────────────────────┼────────────────────────────────────┤ 
+ │ 403                    │ Wrong role         │ Check user_roles in psql           │ 
+ ├────────────────────────┼────────────────────┼────────────────────────────────────┤ 
+ │ 500                    │ Server bug         │ Check logs in terminal 1           │ 
+ └────────────────────────┴────────────────────┴────────────────────────────────────┘

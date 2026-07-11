@@ -45,13 +45,9 @@ CREATE TABLE ceramic_story_translations (
 -- Hot-path indexes (TDD §11.1.3): (entity_id, locale) and (locale, slug).
 CREATE INDEX idx_cs_trans_story_locale ON ceramic_story_translations (story_id, locale);
 CREATE INDEX idx_cs_trans_locale_slug  ON ceramic_story_translations (locale, slug);
--- Published-only listing/detail (the public read path).
-CREATE INDEX idx_cs_trans_published   ON ceramic_story_translations (locale, status, display_order)
-    INCLUDE (story_id)
-    WHERE status = 'published';
--- NOTE: display_order lives on the parent, so the published index above can't
--- include it directly; the service joins parent for ordering. The simpler
--- index below covers the common "all published for a locale" scan.
+-- Published-only listing/detail (the public read path). display_order lives on
+-- the parent ceramic_stories, so the service joins parent for ordering; this
+-- index covers the common "all published for a locale" scan.
 CREATE INDEX idx_cs_trans_locale_published ON ceramic_story_translations (locale) WHERE status = 'published';
 
 -- Backfill: existing content → en-US published translations so the timeline

@@ -6,7 +6,7 @@ services:
       # Explicitly target the 'builder' stage, which has Go installed.
       target: builder
     ports:
-      - "${SERVER_PORT:-8080}:8080"
+      - "${SERVER_PORT:-8080}:${SERVER_PORT:-8080}"
     volumes:
       # Mount local source code into the container.
       - .:/app
@@ -22,13 +22,14 @@ services:
       - GOOGLE_OAUTH_CLIENT_ID=${GOOGLE_OAUTH_CLIENT_ID}
       - GOOGLE_OAUTH_CLIENT_SECRET=${GOOGLE_OAUTH_CLIENT_SECRET}
       - GOOGLE_OAUTH_REDIRECT_URL=${GOOGLE_OAUTH_REDIRECT_URL}
-      - GOOGLE_MAP_API_KEY=${GOOGLE_MAP_API_KEY}
       - ADMIN_EMAIL=${ADMIN_EMAIL}
       - DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}?sslmode=${DB_SSLMODE}
       - REDIS_URL=redis://redis:6379/0
       - BREVO_API_KEY=${BREVO_API_KEY:-}
       - BREVO_SENDER_EMAIL=${BREVO_SENDER_EMAIL:-}
       - BREVO_SENDER_NAME=${BREVO_SENDER_NAME:-}
+      - CONSENT_HMAC_KEY=${CONSENT_HMAC_KEY}
+      - TWO_FA_ENCRYPTION_KEY=${TWO_FA_ENCRYPTION_KEY}
 
     depends_on:
       db:
@@ -67,6 +68,8 @@ services:
       - OSS_ACCESS_KEY_SECRET=${OSS_ACCESS_KEY_SECRET:-}
       - OSS_BUCKET=${OSS_BUCKET:-}
       - OSS_REGION=${OSS_REGION:-cn-hongkong}
+      - CONSENT_HMAC_KEY=${CONSENT_HMAC_KEY}
+      - TWO_FA_ENCRYPTION_KEY=${TWO_FA_ENCRYPTION_KEY}
     depends_on:
       db:
         condition: service_healthy
