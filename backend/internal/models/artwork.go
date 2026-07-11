@@ -2,16 +2,6 @@ package models
 
 import "time"
 
-// Artist represents an artist (can be a platform user or historical)
-type Artist struct {
-	ID        int64      `json:"id" db:"id"`
-	Name      string     `json:"name" db:"name"`
-	Bio       *string    `json:"bio,omitempty" db:"bio"`
-	UserID    *string    `json:"user_id,omitempty" db:"user_id"` // Link to users.id (UUID string)
-	CreatedAt time.Time  `json:"created_at" db:"created_at"`
-	UpdatedAt *time.Time `json:"updated_at" db:"updated_at"`
-}
-
 // ArtworkImage represents an image associated with an artwork
 type ArtworkImage struct {
 	ID           int    `json:"id" db:"id"`

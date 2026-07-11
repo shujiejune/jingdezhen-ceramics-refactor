@@ -4,6 +4,7 @@ import (
 	"jingdezhen-ceramics-backend/internal/api/middleware"
 	"jingdezhen-ceramics-backend/internal/models"
 	"jingdezhen-ceramics-backend/internal/modules/address"
+	"jingdezhen-ceramics-backend/internal/modules/artist"
 	"jingdezhen-ceramics-backend/internal/modules/ceramicstory"
 	"jingdezhen-ceramics-backend/internal/modules/consent"
 	"jingdezhen-ceramics-backend/internal/modules/engage"
@@ -29,6 +30,7 @@ func SetupRoutes(
 	engageHandler *engage.Handler,
 	addressHandler *address.Handler,
 	consentHandler *consent.Handler,
+	artistHandler *artist.Handler,
 	twoFAHandler *twofa.Handler,
 	privacyHandler *privacy.Handler,
 ) {
@@ -132,13 +134,18 @@ func SetupRoutes(
 		csGroup.Get("/:slug", csHandler.GetDynastyDetail)
 	}
 
+	/* --- Artist profiles (Public) — PRD §3.1.3 / §3.2.1 --- */
+	/* Artist reads are locale-aware (?locale= / Accept-Language) and return only
+	   published translations. Artist profiles are cross-linked from gallery
+	   products (PRD §3.2.1). */
+	app.Get("/artists", artistHandler.GetArtists)
+	app.Get("/artists/:slug", artistHandler.GetArtistBySlug)
+
 	/* --- Gallery (Public for viewing, Protected for actions) --- */
 	gGroup := app.Group("/gallery")
 	{
 		gGroup.Get("/artworks", galleryHandler.GetArtworks) // Params: ?category=...&artist=...
 		gGroup.Get("/artworks/:artwork_id", galleryHandler.GetArtworkByID)
-		gGroup.Get("/artists", galleryHandler.GetArtists)
-		gGroup.Get("/artists/:artist_id", galleryHandler.GetArtistByID)
 		gGroup.Get("/categories", galleryHandler.GetGalleryCategories)
 
 		// Protected actions for gallery
@@ -211,6 +218,25 @@ func SetupRoutes(
 			adminEngagePublish.Post("/:id/approve", engageHandler.AdminApproveActivity)
 			adminEngagePublish.Post("/:id/reject", engageHandler.AdminRejectActivity)
 			adminEngagePublish.Post("/:id/unpublish", engageHandler.AdminUnpublishActivity)
+		}
+
+		// --- CMS: Artist profiles (PRD §3.1.3 / §3.2.1) ---
+		adminArtists := adminGroup.Group("/artists")
+		adminArtists.Use(middleware.RequirePermission(models.PermContentWrite))
+		{
+			adminArtists.Get("", artistHandler.AdminListArtists)
+			adminArtists.Get("/:slug", artistHandler.AdminGetArtist)
+			adminArtists.Post("", artistHandler.AdminCreateArtist)
+			adminArtists.Put("/:id", artistHandler.AdminUpdateArtist)
+			adminArtists.Delete("/:id", artistHandler.AdminDeleteArtist)
+			adminArtists.Post("/:id/submit", artistHandler.AdminSubmitArtist)
+		}
+		adminArtistsPublish := adminGroup.Group("/artists")
+		adminArtistsPublish.Use(middleware.RequirePermission(models.PermContentPublish))
+		{
+			adminArtistsPublish.Post("/:id/approve", artistHandler.AdminApproveArtist)
+			adminArtistsPublish.Post("/:id/reject", artistHandler.AdminRejectArtist)
+			adminArtistsPublish.Post("/:id/unpublish", artistHandler.AdminUnpublishArtist)
 		}
 	}
 

@@ -12,6 +12,7 @@ import (
 	"jingdezhen-ceramics-backend/internal/api"
 	"jingdezhen-ceramics-backend/internal/config"
 	"jingdezhen-ceramics-backend/internal/modules/address"
+	"jingdezhen-ceramics-backend/internal/modules/artist"
 	"jingdezhen-ceramics-backend/internal/modules/ceramicstory"
 	"jingdezhen-ceramics-backend/internal/modules/consent"
 	"jingdezhen-ceramics-backend/internal/modules/engage"
@@ -195,6 +196,10 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 	galleryService := gallery.NewService(galleryRepo)
 	galleryHandler := gallery.NewHandler(galleryService)
 
+	artistRepo := artist.NewRepository(dbPool)
+	artistService := artist.NewService(artistRepo)
+	artistHandler := artist.NewHandler(artistService)
+
 	engageRepo := engage.NewRepository(dbPool)
 	engageService := engage.NewService(engageRepo)
 	engageHandler := engage.NewHandler(engageService)
@@ -214,7 +219,7 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 	api.SetupRoutes(app, cfg.JWTSecret,
 		wsHandler, userHandler, notifHandler,
 		ceramicStoryHandler, galleryHandler, engageHandler, addressHandler,
-		consentHandler, twoFAHandler, privacyHandler,
+		consentHandler, artistHandler, twoFAHandler, privacyHandler,
 	)
 
 	// --- Start server (graceful shutdown) ---

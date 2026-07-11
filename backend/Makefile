@@ -1,6 +1,5 @@
 # Use the development compose file by default for all commands.
 # Usage: `make <target>` (e.g. `make up`, `make down`, `make logs`).
-# If you're not in the `docker` group yet, prefix with sudo: `sudo make up`.
 COMPOSE = docker compose -f docker-compose.dev.yml
 
 # Load environment variables from .env file for use in this Makefile

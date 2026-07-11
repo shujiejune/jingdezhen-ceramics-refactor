@@ -65,32 +65,6 @@ func (h *Handler) GetArtworkByID(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(artwork)
 }
 
-func (h *Handler) GetArtists(c *fiber.Ctx) error {
-	page, limit := utils.GetPageLimit(c)
-	artists, total, err := h.service.GetArtists(c.Context(), page, limit)
-	if err != nil {
-		log.Printf("Handler.GetArtists: %v", err)
-		return c.Status(fiber.StatusInternalServerError).JSON(models.ErrorResponse{Message: "Failed to retrieve artists"})
-	}
-	return c.Status(fiber.StatusOK).JSON(models.NewPaginatedResponse(artists, page, limit, total))
-}
-
-func (h *Handler) GetArtistByID(c *fiber.Ctx) error {
-	artistID, err := strconv.ParseInt(c.Params("artist_id"), 10, 64)
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(models.ErrorResponse{Message: "Invalid artist ID"})
-	}
-	artist, err := h.service.GetArtistByID(c.Context(), artistID)
-	if err != nil {
-		if errors.Is(err, models.ErrNotFound) {
-			return c.Status(fiber.StatusNotFound).JSON(models.ErrorResponse{Message: "Artist not found"})
-		}
-		log.Printf("Handler.GetArtistByID: %v", err)
-		return c.Status(fiber.StatusInternalServerError).JSON(models.ErrorResponse{Message: "Failed to retrieve artist"})
-	}
-	return c.Status(fiber.StatusOK).JSON(artist)
-}
-
 func (h *Handler) GetGalleryCategories(c *fiber.Ctx) error {
 	categories, err := h.service.GetGalleryCategories(c.Context())
 	if err != nil {

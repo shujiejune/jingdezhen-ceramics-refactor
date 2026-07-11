@@ -10,8 +10,6 @@ import (
 type ServiceInterface interface {
 	GetArtworks(ctx context.Context, userID string, filters models.ArtworkFilters) ([]models.Artwork, int, error)
 	GetArtworkByID(ctx context.Context, userID string, artworkID int64) (*models.Artwork, error)
-	GetArtists(ctx context.Context, page, limit int) ([]models.Artist, int, error)
-	GetArtistByID(ctx context.Context, artistID int64) (*models.Artist, error)
 	GetGalleryCategories(ctx context.Context) ([]string, error)
 	GetFavArtworks(ctx context.Context, userID string, page, limit int) ([]models.UserFavArtworkEntry, int, error)
 	MarkAsFavorite(ctx context.Context, userID string, artworkID int64) error
@@ -83,12 +81,6 @@ func (s *Service) GetArtworkByID(ctx context.Context, userID string, artworkID i
 	return artwork, nil
 }
 
-func (s *Service) GetArtists(ctx context.Context, page, limit int) ([]models.Artist, int, error) {
-	return s.repo.FindAllArtists(ctx, page, limit)
-}
-func (s *Service) GetArtistByID(ctx context.Context, artistID int64) (*models.Artist, error) {
-	return s.repo.FindArtistByID(ctx, artistID)
-}
 func (s *Service) GetGalleryCategories(ctx context.Context) ([]string, error) {
 	return s.repo.FindAllCategories(ctx)
 }

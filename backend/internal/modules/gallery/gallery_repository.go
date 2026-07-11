@@ -27,8 +27,6 @@ type RepositoryInterface interface {
 	FindArtworkByID(ctx context.Context, artworkID int64) (*models.Artwork, error)
 	GetArtworkImages(ctx context.Context, artworkID int64) ([]models.ArtworkImage, error)
 	GetArtworkTags(ctx context.Context, artworkID int64) ([]models.Tag, error)
-	FindAllArtists(ctx context.Context, page, limit int) ([]models.Artist, int, error)
-	FindArtistByID(ctx context.Context, artistID int64) (*models.Artist, error)
 	FindAllCategories(ctx context.Context) ([]string, error)
 	GetFavArtworks(ctx context.Context, userID string, page, limit int) ([]models.UserFavArtworkEntry, int, error)
 	CheckFavorites(ctx context.Context, userID string, artworkIDs []int64) (map[int64]bool, error)
@@ -263,97 +261,6 @@ func (r *Repository) GetArtworkTags(ctx context.Context, artworkID int64) ([]mod
 	}
 
 	return tags, nil
-}
-
-func (r *Repository) scanArtist(row Scannable) (*models.Artist, error) {
-	var artist models.Artist
-
-	// Handle nullable fields for the Artist model
-	var bio sql.NullString
-	var userID sql.NullString
-
-	err := row.Scan(
-		&artist.ID,
-		&artist.Name,
-		&bio,
-		&userID,
-		&artist.CreatedAt,
-		&artist.UpdatedAt,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	if bio.Valid {
-		artist.Bio = &bio.String
-	}
-	if userID.Valid {
-		artist.UserID = &userID.String
-	}
-
-	return &artist, nil
-}
-
-// FindAllArtists retrieves a paginated list of all artists.
-func (r *Repository) FindAllArtists(ctx context.Context, page, limit int) ([]models.Artist, int, error) {
-	// First, get the total count of artists for pagination metadata.
-	var total int
-	countQuery := `SELECT COUNT(*) FROM artists`
-	err := r.executor.QueryRow(ctx, countQuery).Scan(&total)
-	if err != nil {
-		return nil, 0, fmt.Errorf("repository.FindAllArtists.Count: %w", err)
-	}
-
-	if total == 0 {
-		return []models.Artist{}, 0, nil
-	}
-
-	// Then, fetch the paginated list of artists.
-	offset := (page - 1) * limit
-	query := `
-		SELECT id, name, bio, user_id, created_at, updated_at
-		FROM artists
-		ORDER BY name ASC
-		LIMIT $1 OFFSET $2
-	`
-	rows, err := r.executor.Query(ctx, query, limit, offset)
-	if err != nil {
-		return nil, 0, fmt.Errorf("repository.FindAllArtists.Query: %w", err)
-	}
-	defer rows.Close()
-
-	artists := []models.Artist{}
-	for rows.Next() {
-		artist, err := r.scanArtist(rows)
-		if err != nil {
-			return nil, 0, fmt.Errorf("repository.FindAllArtists.Scan: %w", err)
-		}
-		artists = append(artists, *artist)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, 0, fmt.Errorf("repository.FindAllArtists.RowsErr: %w", err)
-	}
-
-	return artists, total, nil
-}
-
-// FindArtistByID retrieves a single artist by their ID.
-func (r *Repository) FindArtistByID(ctx context.Context, artistID int64) (*models.Artist, error) {
-	// The SELECT statement must match the fields expected by the scanArtist helper.
-	query := `
-		SELECT id, name, bio, user_id, created_at, updated_at
-		FROM artists
-		WHERE id = $1
-	`
-	row := r.executor.QueryRow(ctx, query, artistID)
-	artist, err := r.scanArtist(row)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, models.ErrNotFound
-		}
-		return nil, fmt.Errorf("repository.FindArtistByID: %w", err)
-	}
-	return artist, nil
 }
 
 func (r *Repository) FindAllCategories(ctx context.Context) ([]string, error) {

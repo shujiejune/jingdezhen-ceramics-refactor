@@ -1,0 +1,125 @@
+package artist
+
+import (
+	"context"
+	"fmt"
+	"jingdezhen-ceramics-backend/internal/models"
+	"jingdezhen-ceramics-backend/internal/platform/i18ncontent"
+)
+
+// ServiceInterface defines artist-profile business logic (i18n-aware).
+type ServiceInterface interface {
+	// --- Public reads ---
+	GetArtists(ctx context.Context, locale string, page, limit int) ([]models.Artist, int, error)
+	GetArtistBySlug(ctx context.Context, slug string, locale string) (*models.Artist, error)
+
+	// --- Admin / CMS ---
+	AdminListArtists(ctx context.Context, locale, status string, page, limit int) ([]models.Artist, int, error)
+	AdminGetArtist(ctx context.Context, slug string, locale string) (*models.Artist, error)
+	AdminCreateArtist(ctx context.Context, data models.CreateArtistData) (*models.Artist, error)
+	AdminUpdateArtist(ctx context.Context, artistID int64, locale string, data models.UpdateArtistData, actor i18ncontent.WorkflowActor) (*models.Artist, error)
+	AdminTransitionArtist(ctx context.Context, artistID int64, locale string, to models.ContentStatus, actor i18ncontent.WorkflowActor, reviewerID string) (*models.Artist, error)
+	AdminDeleteArtist(ctx context.Context, artistID int64) error
+}
+
+type Service struct {
+	repo RepositoryInterface
+}
+
+func NewService(repo RepositoryInterface) ServiceInterface {
+	return &Service{repo: repo}
+}
+
+// --- Public ---
+
+func (s *Service) GetArtists(ctx context.Context, locale string, page, limit int) ([]models.Artist, int, error) {
+	locale, _ = i18ncontent.NormalizeLocale(locale, false)
+	artists, total, err := s.repo.FindAllPublished(ctx, locale, page, limit)
+	if err != nil {
+		return nil, 0, fmt.Errorf("service.GetArtists: %w", err)
+	}
+	return artists, total, nil
+}
+
+func (s *Service) GetArtistBySlug(ctx context.Context, slug string, locale string) (*models.Artist, error) {
+	if slug == "" {
+		return nil, fmt.Errorf("service.GetArtistBySlug: slug cannot be empty")
+	}
+	locale, _ = i18ncontent.NormalizeLocale(locale, false)
+	artist, err := s.repo.FindPublishedBySlug(ctx, locale, slug)
+	if err != nil {
+		return nil, fmt.Errorf("service.GetArtistBySlug: %w", err)
+	}
+	return artist, nil
+}
+
+// --- Admin ---
+
+func (s *Service) AdminListArtists(ctx context.Context, locale, status string, page, limit int) ([]models.Artist, int, error) {
+	if locale != "" {
+		var err error
+		locale, err = i18ncontent.NormalizeLocale(locale, true)
+		if err != nil {
+			return nil, 0, models.ErrInvalidLocale
+		}
+	}
+	return s.repo.FindAllAdmin(ctx, locale, status, page, limit)
+}
+
+func (s *Service) AdminGetArtist(ctx context.Context, slug string, locale string) (*models.Artist, error) {
+	locale, err := i18ncontent.NormalizeLocale(locale, true)
+	if err != nil {
+		return nil, models.ErrInvalidLocale
+	}
+	return s.repo.FindAdminBySlug(ctx, locale, slug)
+}
+
+func (s *Service) AdminCreateArtist(ctx context.Context, data models.CreateArtistData) (*models.Artist, error) {
+	locale, err := i18ncontent.NormalizeLocale(data.Locale, true)
+	if err != nil {
+		return nil, models.ErrInvalidLocale
+	}
+	data.Locale = locale
+	return s.repo.CreateWithTranslation(ctx, data)
+}
+
+func (s *Service) AdminUpdateArtist(ctx context.Context, artistID int64, locale string, data models.UpdateArtistData, actor i18ncontent.WorkflowActor) (*models.Artist, error) {
+	locale, err := i18ncontent.NormalizeLocale(locale, true)
+	if err != nil {
+		return nil, models.ErrInvalidLocale
+	}
+	currentStatus, err := s.repo.GetTranslationStatus(ctx, artistID, locale)
+	if err != nil {
+		return nil, err
+	}
+	if !i18ncontent.CanEdit(currentStatus, actor) {
+		return nil, models.ErrInvalidWorkflowTransition
+	}
+	return s.repo.UpdateTranslation(ctx, artistID, locale, data)
+}
+
+func (s *Service) AdminTransitionArtist(ctx context.Context, artistID int64, locale string, to models.ContentStatus, actor i18ncontent.WorkflowActor, reviewerID string) (*models.Artist, error) {
+	locale, err := i18ncontent.NormalizeLocale(locale, true)
+	if err != nil {
+		return nil, models.ErrInvalidLocale
+	}
+	from, err := s.repo.GetTranslationStatus(ctx, artistID, locale)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := i18ncontent.Transition(from, to, actor); err != nil {
+		return nil, err
+	}
+	var reviewer *string
+	if reviewerID != "" {
+		reviewer = &reviewerID
+	}
+	if err := s.repo.UpdateTranslationStatus(ctx, artistID, locale, to, reviewer); err != nil {
+		return nil, err
+	}
+	return s.repo.FindAdminByID(ctx, artistID, locale)
+}
+
+func (s *Service) AdminDeleteArtist(ctx context.Context, artistID int64) error {
+	return s.repo.Delete(ctx, artistID)
+}
