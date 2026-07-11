@@ -302,3 +302,15 @@ func (h *Handler) AdminDeleteSKU(c *fiber.Ctx) error {
 	}
 	return c.SendStatus(fiber.StatusNoContent)
 }
+
+// --- Catalog helpers ---
+
+// GetCategories: GET /catalog/categories
+func (h *Handler) GetCategories(c *fiber.Ctx) error {
+	categories, err := h.service.GetCategories(c.Context())
+	if err != nil {
+		log.Printf("Handler.GetCategories: %v", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(models.ErrorResponse{Message: "Failed to retrieve categories"})
+	}
+	return c.Status(fiber.StatusOK).JSON(categories)
+}

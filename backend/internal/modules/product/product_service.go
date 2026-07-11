@@ -25,6 +25,9 @@ type ServiceInterface interface {
 	AdminCreateSKU(ctx context.Context, productID int64, data models.CreateSKUData) (*models.SKU, error)
 	AdminUpdateSKU(ctx context.Context, skuID int64, data models.UpdateSKUData) (*models.SKU, error)
 	AdminDeleteSKU(ctx context.Context, skuID int64) error
+
+	// --- Catalog helpers ---
+	GetCategories(ctx context.Context) ([]string, error)
 }
 
 type Service struct {
@@ -147,4 +150,10 @@ func (s *Service) AdminUpdateSKU(ctx context.Context, skuID int64, data models.U
 
 func (s *Service) AdminDeleteSKU(ctx context.Context, skuID int64) error {
 	return s.repo.DeleteSKU(ctx, skuID)
+}
+
+// --- Catalog helpers ---
+
+func (s *Service) GetCategories(ctx context.Context) ([]string, error) {
+	return s.repo.FindAllCategories(ctx)
 }

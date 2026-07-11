@@ -16,12 +16,12 @@ import (
 	"jingdezhen-ceramics-backend/internal/modules/ceramicstory"
 	"jingdezhen-ceramics-backend/internal/modules/consent"
 	"jingdezhen-ceramics-backend/internal/modules/engage"
-	"jingdezhen-ceramics-backend/internal/modules/gallery"
 	"jingdezhen-ceramics-backend/internal/modules/notification"
 	"jingdezhen-ceramics-backend/internal/modules/privacy"
 	"jingdezhen-ceramics-backend/internal/modules/product"
 	"jingdezhen-ceramics-backend/internal/modules/user"
 	"jingdezhen-ceramics-backend/internal/modules/twofa"
+	"jingdezhen-ceramics-backend/internal/modules/wishlist"
 	"jingdezhen-ceramics-backend/internal/platform/jobs"
 	platformredis "jingdezhen-ceramics-backend/internal/platform/redis"
 	"jingdezhen-ceramics-backend/internal/ws"
@@ -193,9 +193,9 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 	ceramicStoryService := ceramicstory.NewService(ceramicStoryRepo)
 	ceramicStoryHandler := ceramicstory.NewHandler(ceramicStoryService)
 
-	galleryRepo := gallery.NewRepository(dbPool)
-	galleryService := gallery.NewService(galleryRepo)
-	galleryHandler := gallery.NewHandler(galleryService)
+	wishlistRepo := wishlist.NewRepository(dbPool)
+	wishlistService := wishlist.NewService(wishlistRepo)
+	wishlistHandler := wishlist.NewHandler(wishlistService)
 
 	artistRepo := artist.NewRepository(dbPool)
 	artistService := artist.NewService(artistRepo)
@@ -223,8 +223,8 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 
 	api.SetupRoutes(app, cfg.JWTSecret,
 		wsHandler, userHandler, notifHandler,
-		ceramicStoryHandler, galleryHandler, engageHandler, addressHandler,
-		consentHandler, artistHandler, productHandler, twoFAHandler, privacyHandler,
+		ceramicStoryHandler, engageHandler, addressHandler,
+		consentHandler, artistHandler, productHandler, wishlistHandler, twoFAHandler, privacyHandler,
 	)
 
 	// --- Start server (graceful shutdown) ---

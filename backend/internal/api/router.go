@@ -8,11 +8,11 @@ import (
 	"jingdezhen-ceramics-backend/internal/modules/ceramicstory"
 	"jingdezhen-ceramics-backend/internal/modules/consent"
 	"jingdezhen-ceramics-backend/internal/modules/engage"
-	"jingdezhen-ceramics-backend/internal/modules/gallery"
 	"jingdezhen-ceramics-backend/internal/modules/notification"
 	"jingdezhen-ceramics-backend/internal/modules/product"
 	"jingdezhen-ceramics-backend/internal/modules/privacy"
 	"jingdezhen-ceramics-backend/internal/modules/twofa"
+	"jingdezhen-ceramics-backend/internal/modules/wishlist"
 	"jingdezhen-ceramics-backend/internal/modules/user"
 	"jingdezhen-ceramics-backend/internal/ws"
 
@@ -27,12 +27,12 @@ func SetupRoutes(
 	userHandler *user.Handler,
 	notifHandler *notification.Handler,
 	csHandler *ceramicstory.Handler,
-	galleryHandler *gallery.Handler,
 	engageHandler *engage.Handler,
 	addressHandler *address.Handler,
 	consentHandler *consent.Handler,
 	artistHandler *artist.Handler,
 	productHandler *product.Handler,
+	wishlistHandler *wishlist.Handler,
 	twoFAHandler *twofa.Handler,
 	privacyHandler *privacy.Handler,
 ) {
@@ -143,28 +143,23 @@ func SetupRoutes(
 	app.Get("/artists", artistHandler.GetArtists)
 	app.Get("/artists/:slug", artistHandler.GetArtistBySlug)
 
-	/* --- Gallery (Public for viewing, Protected for actions) --- */
-	gGroup := app.Group("/gallery")
-	{
-		gGroup.Get("/artworks", galleryHandler.GetArtworks) // Params: ?category=...&artist=...
-		gGroup.Get("/artworks/:artwork_id", galleryHandler.GetArtworkByID)
-		gGroup.Get("/categories", galleryHandler.GetGalleryCategories)
-
-		// Protected actions for gallery
-		authGalleryGroup := gGroup.Group("")
-		authGalleryGroup.Use(middleware.JWTMAuth(jwtSecretKey))
-		{
-			authGalleryGroup.Get("/favorites", galleryHandler.GetFavoriteArtworks)
-			authGalleryGroup.Post("/artworks/:artwork_id/favorite", galleryHandler.MarkAsFavorite)
-			authGalleryGroup.Delete("/artworks/:artwork_id/favorite", galleryHandler.UnmarkAsFavorite)
-		}
-	}
-
 	/* --- Product Catalog (Public) — PRD §3.2.1 --- */
 	/* Locale-aware (?locale= / Accept-Language), published-only. The detail view
 	   includes the product's SKUs (purchasable units). */
 	app.Get("/catalog/products", productHandler.GetProducts)
 	app.Get("/catalog/products/:slug", productHandler.GetProductBySlug)
+	app.Get("/catalog/categories", productHandler.GetCategories)
+
+	/* --- Wishlist (Protected) — PRD §3.5 --- */
+	/* Favorites are keyed on SKU (the purchasable unit). A customer favorites a
+	   specific variant, not a product. Locale-aware read path. */
+	wishlistGroup := app.Group("/wishlist")
+	wishlistGroup.Use(middleware.JWTMAuth(jwtSecretKey))
+	{
+		wishlistGroup.Get("", wishlistHandler.GetWishlist)
+		wishlistGroup.Post("", wishlistHandler.AddToWishlist)
+		wishlistGroup.Delete("/:sku_id", wishlistHandler.RemoveFromWishlist)
+	}
 
 	/* --- Engage (Destinations & Local Lifestyle, public) --- */
 	engageGroup := app.Group("/engage")

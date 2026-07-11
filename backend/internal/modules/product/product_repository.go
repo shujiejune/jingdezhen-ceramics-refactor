@@ -35,6 +35,9 @@ type RepositoryInterface interface {
 	UpdateSKU(ctx context.Context, skuID int64, data models.UpdateSKUData) (*models.SKU, error)
 	DeleteSKU(ctx context.Context, skuID int64) error
 	FindSKUByID(ctx context.Context, skuID int64) (*models.SKU, error)
+
+	// --- Catalog helpers ---
+	FindAllCategories(ctx context.Context) ([]string, error)
 }
 
 type Repository struct {
@@ -535,4 +538,25 @@ func nullableStr(s string) any {
 		return nil
 	}
 	return s
+}
+
+// --- Catalog helpers ---
+
+func (r *Repository) FindAllCategories(ctx context.Context) ([]string, error) {
+	rows, err := r.db.Query(ctx,
+		`SELECT DISTINCT category FROM products WHERE category IS NOT NULL AND category != '' ORDER BY category ASC`)
+	if err != nil {
+		return nil, fmt.Errorf("repository.FindAllCategories: %w", err)
+	}
+	defer rows.Close()
+
+	out := []string{}
+	for rows.Next() {
+		var cat string
+		if err := rows.Scan(&cat); err != nil {
+			return nil, fmt.Errorf("repository.FindAllCategories.Scan: %w", err)
+		}
+		out = append(out, cat)
+	}
+	return out, nil
 }
