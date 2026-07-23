@@ -13,6 +13,7 @@ import (
 	"jingdezhen-ceramics-backend/internal/modules/privacy"
 	"jingdezhen-ceramics-backend/internal/modules/twofa"
 	"jingdezhen-ceramics-backend/internal/modules/wishlist"
+	"jingdezhen-ceramics-backend/internal/modules/cart"
 	"jingdezhen-ceramics-backend/internal/platform/fx"
 	"jingdezhen-ceramics-backend/internal/modules/user"
 	"jingdezhen-ceramics-backend/internal/ws"
@@ -34,6 +35,7 @@ func SetupRoutes(
 	artistHandler *artist.Handler,
 	productHandler *product.Handler,
 	wishlistHandler *wishlist.Handler,
+	cartHandler *cart.Handler,
 	fxHandler *fx.Handler,
 	twoFAHandler *twofa.Handler,
 	privacyHandler *privacy.Handler,
@@ -164,6 +166,21 @@ func SetupRoutes(
 		wishlistGroup.Get("", wishlistHandler.GetWishlist)
 		wishlistGroup.Post("", wishlistHandler.AddToWishlist)
 		wishlistGroup.Delete("/:sku_id", wishlistHandler.RemoveFromWishlist)
+	}
+
+	/* --- Cart (Protected) — PRD §3.2.3, TDD §3.4 --- */
+	/* One server-side cart per signed-in user. Guests use a localStorage cart
+	   and merge it on login via POST /cart/merge. Items keyed on SKU (the
+	   purchasable unit). POST add is additive; PATCH sets absolute qty. */
+	cartGroup := app.Group("/cart")
+	cartGroup.Use(middleware.JWTMAuth(jwtSecretKey))
+	{
+		cartGroup.Get("", cartHandler.GetCart)
+		cartGroup.Post("/items", cartHandler.AddItem)
+		cartGroup.Patch("/items/:sku_id", cartHandler.UpdateItemQty)
+		cartGroup.Delete("/items/:sku_id", cartHandler.RemoveItem)
+		cartGroup.Delete("/items", cartHandler.BulkRemove)
+		cartGroup.Post("/merge", cartHandler.MergeCart)
 	}
 
 	/* --- Engage (Destinations & Local Lifestyle, public) --- */

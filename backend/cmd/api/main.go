@@ -22,6 +22,7 @@ import (
 	"jingdezhen-ceramics-backend/internal/modules/user"
 	"jingdezhen-ceramics-backend/internal/modules/twofa"
 	"jingdezhen-ceramics-backend/internal/modules/wishlist"
+	"jingdezhen-ceramics-backend/internal/modules/cart"
 	"jingdezhen-ceramics-backend/internal/platform/fx"
 	"jingdezhen-ceramics-backend/internal/platform/jobs"
 	platformredis "jingdezhen-ceramics-backend/internal/platform/redis"
@@ -198,6 +199,12 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 	wishlistService := wishlist.NewService(wishlistRepo)
 	wishlistHandler := wishlist.NewHandler(wishlistService)
 
+	// --- Cart (PRD §3.2.3, TDD §3.4) ---
+	// One server-side cart per signed-in user; guest carts merge on login.
+	cartRepo := cart.NewRepository(dbPool)
+	cartService := cart.NewService(cartRepo)
+	cartHandler := cart.NewHandler(cartService)
+
 	artistRepo := artist.NewRepository(dbPool)
 	artistService := artist.NewService(artistRepo)
 	artistHandler := artist.NewHandler(artistService)
@@ -219,6 +226,7 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 	fxService := fx.NewService(fxRepo, fxRateSource, cfg.FXMarkupBPS)
 	fxHandler := fx.NewHandler(fxService, jobClient)
 	productHandler.SetPriceConverter(fxService)
+	cartHandler.SetPriceConverter(fxService)
 
 
 	engageRepo := engage.NewRepository(dbPool)
@@ -240,7 +248,7 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 	api.SetupRoutes(app, cfg.JWTSecret,
 		wsHandler, userHandler, notifHandler,
 		ceramicStoryHandler, engageHandler, addressHandler,
-		consentHandler, artistHandler, productHandler, wishlistHandler, fxHandler, twoFAHandler, privacyHandler,
+		consentHandler, artistHandler, productHandler, wishlistHandler, cartHandler, fxHandler, twoFAHandler, privacyHandler,
 	)
 
 	// --- Start server (graceful shutdown) ---

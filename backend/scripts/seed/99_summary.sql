@@ -9,4 +9,6 @@ UNION ALL SELECT 'artist_translations',  count(*) FROM artist_translations
 UNION ALL SELECT 'products',             count(*) FROM products
 UNION ALL SELECT 'product_translations', count(*) FROM product_translations
 UNION ALL SELECT 'skus',                 count(*) FROM skus
-UNION ALL SELECT 'wishlists',            count(*) FROM wishlists;
+UNION ALL SELECT 'wishlists',            count(*) FROM wishlists
+UNION ALL SELECT 'carts',                count(*) FROM carts
+UNION ALL SELECT 'cart_items',           count(*) FROM cart_items;
