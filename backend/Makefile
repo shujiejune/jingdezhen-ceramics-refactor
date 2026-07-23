@@ -33,7 +33,7 @@ help:
 	@echo "  migrate-down   - Roll back the last migration"
 	@echo "  migrate-force  - Force-set migration version (recover from dirty)"
 	@echo "  db-shell        - Open a psql shell in the db container"
-	@echo "  db-seed        - Seed the database with initial test data"
+	@echo "  db-seed        - Seed the database with dev test data (scripts/seed/seed.sql)"
 
 build:
 	@echo "Building Docker images..."
@@ -88,5 +88,5 @@ db-shell:
 	$(COMPOSE) exec db psql -U "$(DB_USER)" -d "$(DB_NAME)"
 
 db-seed:
-	@echo "Seeding database with test data..."
-	$(COMPOSE) exec db psql -U "$(DB_USER)" -d "$(DB_NAME)" -f internal/migrations/seed.sql
+	@echo "Seeding database with dev test data..."
+	$(COMPOSE) exec -T db psql -U "$(DB_USER)" -d "$(DB_NAME)" < scripts/seed/seed.sql
