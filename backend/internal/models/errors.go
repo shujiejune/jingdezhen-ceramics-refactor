@@ -20,3 +20,6 @@ var ErrAccountDeleted = errors.New("user account has been deleted")          // 
 var ErrRateNotFound = errors.New("fx: rate not found for currency")         // no fx_rates row exists for the requested currency (refresh not yet run)
 var ErrInvalidLocale = errors.New("unsupported locale")
 var ErrInvalidWorkflowTransition = errors.New("invalid content workflow transition for this actor")
+var ErrCartEmpty = errors.New("cart is empty; cannot check out")                // checkout on an empty cart (PRD §3.2.3)
+var ErrUnshippable = errors.New("destination country is not shippable")       // no shipping_fee_tiers row for the country (PRD §3.2.3)
+var ErrOverweight = errors.New("order exceeds the maximum shipping weight for the destination") // PRD §3.2.3 overweight block

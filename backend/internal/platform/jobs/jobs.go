@@ -45,10 +45,13 @@ type EmailSendPayload struct {
 }
 
 // PaymentFinalizePayload is the body for TypePaymentFinalize, enqueued by
-// the webhook handler after signature verification. Idempotent by GatewayRef.
+// the webhook handler after signature verification. Idempotent by GatewayRef,
+// or by the mock seam in dev (payments_mode=mock).
 type PaymentFinalizePayload struct {
-	GatewayRef string `json:"gateway_ref"`
-	Gateway    string `json:"gateway"` // "airwallex" | "paypal"
+	OrderID    int64  `json:"order_id"`            // drives order.Status created→paid
+	Success    bool   `json:"success"`            // true → MarkPaid; false → (TBD) cancel
+	Gateway    string `json:"gateway,omitempty"`  // "airwallex" | "paypal" | "mock"
+	GatewayRef string `json:"gateway_ref,omitempty"`
 }
 
 // FXRefreshPayload triggers an FX-rate refresh (ECB fetch → 2% markup → upsert).

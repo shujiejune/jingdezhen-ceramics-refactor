@@ -14,6 +14,8 @@ import (
 	"jingdezhen-ceramics-backend/internal/modules/twofa"
 	"jingdezhen-ceramics-backend/internal/modules/wishlist"
 	"jingdezhen-ceramics-backend/internal/modules/cart"
+	"jingdezhen-ceramics-backend/internal/modules/shipping"
+	"jingdezhen-ceramics-backend/internal/modules/order"
 	"jingdezhen-ceramics-backend/internal/platform/fx"
 	"jingdezhen-ceramics-backend/internal/modules/user"
 	"jingdezhen-ceramics-backend/internal/ws"
@@ -37,6 +39,8 @@ func SetupRoutes(
 	wishlistHandler *wishlist.Handler,
 	cartHandler *cart.Handler,
 	fxHandler *fx.Handler,
+	shippingHandler *shipping.Handler,
+	orderHandler *order.Handler,
 	twoFAHandler *twofa.Handler,
 	privacyHandler *privacy.Handler,
 ) {
@@ -157,6 +161,9 @@ func SetupRoutes(
 	/* --- FX rates (dev-debug, public read) — TDD §7 --- */
 	app.Get("/fx/rates", fxHandler.ListRates)
 
+	/* --- Shipping quote (public preview) — PRD §3.2.3, TDD §5.2 --- */
+	app.Get("/shipping/quote", shippingHandler.Quote)
+
 	/* --- Wishlist (Protected) — PRD §3.5 --- */
 	/* Favorites are keyed on SKU (the purchasable unit). A customer favorites a
 	   specific variant, not a product. Locale-aware read path. */
@@ -183,6 +190,19 @@ func SetupRoutes(
 		cartGroup.Post("/merge", cartHandler.MergeCart)
 	}
 
+	/* --- Checkout + Orders (signed-in customers) — PRD §3.2.3, TDD §8 --- */
+	/* Checkout is signed-in-only (PRD §3.2.3). Customer cancels only an unpaid
+	   (created) order. Lifecycle: created→paid→shipped→completed; cancelled;
+	   refunded (full refunds only). */
+	checkoutGroup := app.Group("")
+	checkoutGroup.Use(middleware.JWTMAuth(jwtSecretKey))
+	{
+		checkoutGroup.Post("/checkout", orderHandler.Checkout)
+		checkoutGroup.Get("/orders", orderHandler.ListMine)
+		checkoutGroup.Get("/orders/:id", orderHandler.GetMine)
+		checkoutGroup.Post("/orders/:id/cancel", orderHandler.CancelMine)
+	}
+
 	/* --- Engage (Destinations & Local Lifestyle, public) --- */
 	engageGroup := app.Group("/engage")
 	{
@@ -201,6 +221,31 @@ func SetupRoutes(
 		adminFX := adminGroup.Group("/fx")
 		adminFX.Use(middleware.RequirePermission(models.PermSettingsManage))
 		adminFX.Post("/refresh", fxHandler.RefreshFX)
+
+		// Shipping fee tiers CRUD — settings.manage (E-commerce Operators
+		// maintain the per-country weight-tiered fee table, PRD §3.2.3).
+		adminShipping := adminGroup.Group("/shipping/tiers")
+		adminShipping.Use(middleware.RequirePermission(models.PermSettingsManage))
+		adminShipping.Get("", shippingHandler.ListTiers)
+		adminShipping.Post("", shippingHandler.CreateTier)
+		adminShipping.Put("/:id", shippingHandler.UpdateTier)
+		adminShipping.Delete("/:id", shippingHandler.DeleteTier)
+
+		// Orders — list/read (order.read), ship+complete (order.write),
+		// refund (order.refund, full refunds only — PRD §3.2.3).
+		adminOrdersRead := adminGroup.Group("/orders")
+		adminOrdersRead.Use(middleware.RequirePermission(models.PermOrderRead))
+		adminOrdersRead.Get("", orderHandler.ListAdmin)
+		adminOrdersRead.Get("/:id", orderHandler.GetAdmin)
+
+		adminOrdersWrite := adminGroup.Group("/orders")
+		adminOrdersWrite.Use(middleware.RequirePermission(models.PermOrderWrite))
+		adminOrdersWrite.Post("/:id/ship", orderHandler.Ship)
+		adminOrdersWrite.Post("/:id/complete", orderHandler.Complete)
+
+		adminOrdersRefund := adminGroup.Group("/orders")
+		adminOrdersRefund.Use(middleware.RequirePermission(models.PermOrderRefund))
+		adminOrdersRefund.Post("/:id/refund", orderHandler.Refund)
 		// Staff account & role management (Super Admin only in v1).
 		adminUsers := adminGroup.Group("/users")
 		adminUsers.Use(middleware.RequirePermission(models.PermUsersManage))

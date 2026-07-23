@@ -11,4 +11,7 @@ UNION ALL SELECT 'product_translations', count(*) FROM product_translations
 UNION ALL SELECT 'skus',                 count(*) FROM skus
 UNION ALL SELECT 'wishlists',            count(*) FROM wishlists
 UNION ALL SELECT 'carts',                count(*) FROM carts
-UNION ALL SELECT 'cart_items',           count(*) FROM cart_items;
+UNION ALL SELECT 'cart_items',           count(*) FROM cart_items
+UNION ALL SELECT 'shipping_fee_tiers',   count(*) FROM shipping_fee_tiers
+UNION ALL SELECT 'orders',               count(*) FROM orders
+UNION ALL SELECT 'order_items',           count(*) FROM order_items;

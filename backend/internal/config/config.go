@@ -72,6 +72,13 @@ type Config struct {
 	// basis points (200 = 2%); will move to a CMS settings table post-MVP.
 	ECB_API_URL  string `mapstructure:"ECB_API_URL"`
 	FXMarkupBPS  int    `mapstructure:"FX_MARKUP_BPS"`
+
+	// --- Payments (TDD §4.1) ---
+	// PAYMENTS_MODE=mock (dev default): checkout enqueues payment:finalize
+	// {success} to drive created→paid without a real gateway. "live" requires
+	// the Airwallex/PayPal adapters (#6) + sandbox creds; until then checkout
+	// in live mode returns an error so no order dangles in `created`.
+	PaymentsMode string `mapstructure:"PAYMENTS_MODE"`
 }
 
 func LoadConfig(path string) (config Config, err error) {
@@ -98,6 +105,7 @@ func LoadConfig(path string) (config Config, err error) {
 // initDefaults sets env-var defaults that are not secrets. Called from init()
 // so they apply before Unmarshal (env vars / .env still override).
 func init() {
-	viper.SetDefault("ECB_API_URL", "") // empty => fixture rates in dev
+	viper.SetDefault("ECB_API_URL", "")   // empty => fixture rates in dev
 	viper.SetDefault("FX_MARKUP_BPS", 200) // 200 bps = 2% (PRD §3.2.3 default)
+	viper.SetDefault("PAYMENTS_MODE", "mock") // dev: mock payment finalize seam
 }

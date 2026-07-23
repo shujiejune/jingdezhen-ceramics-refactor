@@ -36,6 +36,10 @@ type ServiceInterface interface {
 	UpdateUserProfile(ctx context.Context, userID string, data models.UserUpdateData) (*models.User, error)
 	HandleContactSubmission(ctx context.Context, data models.ContactFormData) error
 
+	// PreferredCurrency returns the user's preferred presentment currency
+	// (USD/EUR/GBP); empty if unset. Used by checkout as the default currency.
+	PreferredCurrency(ctx context.Context, userID string) (string, error)
+
 	// Admin
 	AdminListUsers(ctx context.Context, page, limit int) ([]models.User, int, error)
 	AdminAssignRole(ctx context.Context, targetUserID string, roleKey string) error
@@ -623,6 +627,17 @@ func (s *Service) GetUserProfile(ctx context.Context, userID string) (*models.Us
 	}
 	user.Roles = roles
 	return user, nil
+}
+
+// PreferredCurrency returns the user's preferred presentment currency
+// (USD/EUR/GBP); empty if unset. Checkout uses this as the default currency
+// when the request doesn't specify one (PRD §3.2.3).
+func (s *Service) PreferredCurrency(ctx context.Context, userID string) (string, error) {
+	user, err := s.userRepo.FindByID(ctx, userID)
+	if err != nil {
+		return "", fmt.Errorf("service.PreferredCurrency: %w", err)
+	}
+	return user.PreferredCurrency, nil
 }
 
 func (s *Service) UpdateUserProfile(ctx context.Context, userID string, data models.UserUpdateData) (*models.User, error) {

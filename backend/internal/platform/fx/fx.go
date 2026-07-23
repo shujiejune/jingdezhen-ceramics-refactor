@@ -191,7 +191,7 @@ func (r *Repository) ListAll(ctx context.Context) ([]RateRow, error) {
 // --- Service (refresh job + read-time convert) -------------------------------
 
 // ServiceInterface defines the FX service surface used by the worker (Refresh)
-// and by request handlers (Convert).
+// and by request handlers (Convert) + checkout (Rate, for the order snapshot).
 type ServiceInterface interface {
 	// Refresh fetches live rates, derives CNY→{USD,EUR,GBP}, applies the markup,
 	// and upserts into fx_rates. Called by the fx:refresh worker job.
@@ -199,6 +199,10 @@ type ServiceInterface interface {
 	// Convert returns the presentment-currency minor-unit amount for a CNY
 	// minor-unit amount. Reads the stored (cached) rate.
 	Convert(ctx context.Context, cnyMinor int64, currency string) (int64, error)
+	// Rate returns the stored presentment→CNY rate for a currency, for the
+	// order's fx_rate_used snapshot at checkout. Returns models.ErrRateNotFound
+	// if the currency has no row (refresh not yet run).
+	Rate(ctx context.Context, currency string) (decimal.Decimal, error)
 }
 
 // Service is the FX service. markup is applied at refresh time (stored in the
@@ -268,6 +272,19 @@ func (s *Service) Convert(ctx context.Context, cnyMinor int64, currency string) 
 		return 0, fmt.Errorf("fx.Convert: %w", err)
 	}
 	return Convert(cnyMinor, currency, rate)
+}
+
+// Rate returns the stored presentment→CNY rate for a currency (the snapshot value
+// stored on orders at checkout). Returns models.ErrRateNotFound if absent.
+func (s *Service) Rate(ctx context.Context, currency string) (decimal.Decimal, error) {
+	if !IsSupportedPresentment(currency) {
+		return decimal.Zero, fmt.Errorf("fx.Rate: unsupported currency %q", currency)
+	}
+	rate, _, err := s.repo.GetRate(ctx, currency)
+	if err != nil {
+		return decimal.Zero, models.ErrRateNotFound
+	}
+	return rate, nil
 }
 
 // --- helpers -----------------------------------------------------------------

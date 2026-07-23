@@ -23,6 +23,8 @@ import (
 	"jingdezhen-ceramics-backend/internal/modules/twofa"
 	"jingdezhen-ceramics-backend/internal/modules/wishlist"
 	"jingdezhen-ceramics-backend/internal/modules/cart"
+	"jingdezhen-ceramics-backend/internal/modules/shipping"
+	"jingdezhen-ceramics-backend/internal/modules/order"
 	"jingdezhen-ceramics-backend/internal/platform/fx"
 	"jingdezhen-ceramics-backend/internal/platform/jobs"
 	platformredis "jingdezhen-ceramics-backend/internal/platform/redis"
@@ -92,6 +94,27 @@ func redisAddrFromURL(redisURL string) (string, error) {
 		return u.Host + ":6379", nil // default port
 	}
 	return u.Host, nil
+}
+
+// --- Adapters: wire the jobs.Client to the order service's narrow interfaces ---
+// The order module defines its own interfaces (EmailEnqueuer, PaymentEnqueuer)
+// to stay free of an internal/platform/jobs import; these adapters satisfy
+// them with the Asynq client.
+
+type paymentEnqueuer struct{ c *jobs.Client }
+
+func (p paymentEnqueuer) EnqueuePaymentFinalize(ctx context.Context, orderID int64, success bool, gateway, gatewayRef string) error {
+	return p.c.EnqueuePaymentFinalize(ctx, jobs.PaymentFinalizePayload{
+		OrderID: orderID, Success: success, Gateway: gateway, GatewayRef: gatewayRef,
+	})
+}
+
+type orderEmailEnqueuer struct{ c *jobs.Client }
+
+func (e orderEmailEnqueuer) EnqueueEmailSend(ctx context.Context, to, subject, plainText, html string) error {
+	return e.c.EnqueueEmailSend(ctx, jobs.EmailSendPayload{
+		To: to, Subject: subject, PlainText: plainText, HTML: html,
+	})
 }
 
 // --- serve mode (API + WebSocket) --------------------------------------------
@@ -237,6 +260,29 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 	addressService := address.NewService(addressRepo)
 	addressHandler := address.NewHandler(addressService)
 
+	// --- Shipping fee tiers (PRD §3.2.3) ---
+	shippingRepo := shipping.NewRepository(dbPool)
+	shippingService := shipping.NewService(shippingRepo)
+	shippingHandler := shipping.NewHandler(shippingService)
+
+	// --- Orders + checkout (PRD §3.2.3, TDD §7/§8) ---
+	// Mock payment seam: in PAYMENTS_MODE=mock (dev default), checkout enqueues
+	// payment:finalize{success} to drive created→paid. Live mode lands in #6.
+	orderRepo := order.NewRepository(dbPool)
+	orderService := order.NewService(
+		orderRepo,
+		cartService,                  // CartFetcher
+		cartService,                  // CartClearer (BulkRemove)
+		addressService,               // AddressFetcher (GetAddress)
+		shippingService,              // ShippingCalcer (TiersForCountry)
+		fxService,                    // CheckoutFX (Convert + Rate)
+		orderEmailEnqueuer{jobClient}, // EmailEnqueuer
+		paymentEnqueuer{jobClient},    // PaymentEnqueuer
+		userService,                   // UserPrefFetcher (PreferredCurrency)
+		cfg.PaymentsMode,
+	)
+	orderHandler := order.NewHandler(orderService)
+
 	consentRepo := consent.NewRepository(dbPool)
 	consentService := consent.NewService(consentRepo, []byte(cfg.ConsentHMACKey))
 	consentHandler := consent.NewHandler(consentService)
@@ -248,7 +294,8 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 	api.SetupRoutes(app, cfg.JWTSecret,
 		wsHandler, userHandler, notifHandler,
 		ceramicStoryHandler, engageHandler, addressHandler,
-		consentHandler, artistHandler, productHandler, wishlistHandler, cartHandler, fxHandler, twoFAHandler, privacyHandler,
+		consentHandler, artistHandler, productHandler, wishlistHandler, cartHandler, fxHandler,
+		shippingHandler, orderHandler, twoFAHandler, privacyHandler,
 	)
 
 	// --- Start server (graceful shutdown) ---
@@ -299,6 +346,12 @@ func runWorker(rootCtx context.Context, cfg config.Config) {
 	fxRepo := fx.NewRepository(dbPool)
 	fxService := fx.NewService(fxRepo, fxRateSource, cfg.FXMarkupBPS)
 
+	// --- Orders (worker owns payment:finalize → MarkPaid) ---
+	orderRepo := order.NewRepository(dbPool)
+	orderService := order.NewService(
+		orderRepo, nil, nil, nil, nil, fxService, nil, nil, nil, cfg.PaymentsMode,
+	)
+
 	// The worker sends emails via Brevo. The serve mode renders templates at
 	// enqueue time, so the worker only needs the sender (no template manager).
 	emailer := email.NewBrevoSender(cfg.BrevoAPIKey, cfg.BrevoSenderEmail, cfg.BrevoSenderName)
@@ -308,6 +361,16 @@ func runWorker(rootCtx context.Context, cfg config.Config) {
 		return emailer.SendEmail(ctx, p.To, p.Subject, p.PlainText, p.HTML)
 	}
 	jobServer.FXRefresh = fxService.Refresh
+	// payment:finalize drives order created→paid. On success → MarkPaid.
+	// (mock seam enqueues {success:true} from checkout in dev; the gateway
+	// webhook enqueues it in live mode, #6.)
+	jobServer.PaymentFinalize = func(ctx context.Context, p jobs.PaymentFinalizePayload) error {
+		if !p.Success {
+			log.Printf("worker.PaymentFinalize: order=%d reported failure (no-op for now)", p.OrderID)
+			return nil // cancel-on-failure lands with #6
+		}
+		return orderService.MarkPaid(ctx, p.OrderID)
+	}
 	jobScheduler := jobs.NewScheduler(redisAddr)
 
 	// Feature modules will assign real handlers here, e.g.:
