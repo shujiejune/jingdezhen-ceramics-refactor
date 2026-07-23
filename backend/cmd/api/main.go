@@ -26,7 +26,9 @@ import (
 	"jingdezhen-ceramics-backend/internal/modules/shipping"
 	"jingdezhen-ceramics-backend/internal/modules/order"
 	"jingdezhen-ceramics-backend/internal/modules/payment"
+	"jingdezhen-ceramics-backend/internal/modules/certificate"
 	"jingdezhen-ceramics-backend/pkg/adapters/payments"
+	"jingdezhen-ceramics-backend/pkg/adapters/certchain"
 	"jingdezhen-ceramics-backend/internal/platform/fx"
 	"jingdezhen-ceramics-backend/internal/platform/jobs"
 	platformredis "jingdezhen-ceramics-backend/internal/platform/redis"
@@ -320,6 +322,16 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 	paymentHandler := payment.NewHandler(paymentService)
 	orderHandler := order.NewHandler(orderService)
 
+	// --- Certificates (PRD §3.2.1/§5.4, TDD §8) ---
+	// certchain.NoopChain for v1 (reserved blockchain adapter, PRD §5.4). The
+	// certificate service auto-issues at product creation + appends `sold`
+	// provenance at order-paid. NoopChain = no on-chain registration yet.
+	certRepo := certificate.NewRepository(dbPool)
+	certService := certificate.NewService(certRepo, certchain.NewNoopChain())
+	productService.SetCertificateIssuer(certService) // auto-issue at create
+	orderService.SetProvenanceRecorder(certService)  // `sold` at MarkPaid
+	certificateHandler := certificate.NewHandler(certService)
+
 	consentRepo := consent.NewRepository(dbPool)
 	consentService := consent.NewService(consentRepo, []byte(cfg.ConsentHMACKey))
 	consentHandler := consent.NewHandler(consentService)
@@ -332,7 +344,7 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 		wsHandler, userHandler, notifHandler,
 		ceramicStoryHandler, engageHandler, addressHandler,
 		consentHandler, artistHandler, productHandler, wishlistHandler, cartHandler, fxHandler,
-		shippingHandler, orderHandler, paymentHandler, twoFAHandler, privacyHandler,
+		shippingHandler, orderHandler, paymentHandler, certificateHandler, twoFAHandler, privacyHandler,
 	)
 
 	// --- Start server (graceful shutdown) ---
@@ -388,6 +400,12 @@ func runWorker(rootCtx context.Context, cfg config.Config) {
 	orderService := order.NewService(
 		orderRepo, nil, nil, nil, nil, fxService, nil, nil, nil, nil, nil, nil, cfg.PaymentsMode,
 	)
+
+	// The worker's MarkPaid appends `sold` provenance — wire the cert service
+	// (NoopChain; no DB writes beyond the provenance row).
+	wCertRepo := certificate.NewRepository(dbPool)
+	wCertService := certificate.NewService(wCertRepo, certchain.NewNoopChain())
+	orderService.SetProvenanceRecorder(wCertService)
 
 	// The worker sends emails via Brevo. The serve mode renders templates at
 	// enqueue time, so the worker only needs the sender (no template manager).

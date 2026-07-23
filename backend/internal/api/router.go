@@ -17,6 +17,7 @@ import (
 	"jingdezhen-ceramics-backend/internal/modules/shipping"
 	"jingdezhen-ceramics-backend/internal/modules/order"
 	"jingdezhen-ceramics-backend/internal/modules/payment"
+	"jingdezhen-ceramics-backend/internal/modules/certificate"
 	"jingdezhen-ceramics-backend/internal/platform/fx"
 	"jingdezhen-ceramics-backend/internal/modules/user"
 	"jingdezhen-ceramics-backend/internal/ws"
@@ -43,6 +44,7 @@ func SetupRoutes(
 	shippingHandler *shipping.Handler,
 	orderHandler *order.Handler,
 	paymentHandler *payment.Handler,
+	certificateHandler *certificate.Handler,
 	twoFAHandler *twofa.Handler,
 	privacyHandler *privacy.Handler,
 ) {
@@ -173,6 +175,14 @@ func SetupRoutes(
 	app.Post("/webhooks/airwallex", paymentHandler.AirwallexWebhook)
 	app.Post("/webhooks/paypal", paymentHandler.PayPalWebhook)
 
+	/* --- Certificates (public QR target, no auth) — PRD §3.2.1 --- */
+	/* Each product gets a digital certificate with a unique cert_code + QR.
+	   GET /certificates/:code is the QR target page (product + artist +
+	   provenance chain). GET /certificates/:code/qr renders the QR PNG
+	   on-demand (no OSS storage needed). */
+	app.Get("/certificates/:code", certificateHandler.GetByCode)
+	app.Get("/certificates/:code/qr", certificateHandler.QRCode)
+
 	/* --- Wishlist (Protected) — PRD §3.5 --- */
 	/* Favorites are keyed on SKU (the purchasable unit). A customer favorites a
 	   specific variant, not a product. Locale-aware read path. */
@@ -255,6 +265,13 @@ func SetupRoutes(
 		adminOrdersRefund := adminGroup.Group("/orders")
 		adminOrdersRefund.Use(middleware.RequirePermission(models.PermOrderRefund))
 		adminOrdersRefund.Post("/:id/refund", orderHandler.Refund)
+
+		// Certificates — list/view (certificate.manage), regenerate.
+		adminCerts := adminGroup.Group("/certificates")
+		adminCerts.Use(middleware.RequirePermission(models.PermCertificateManage))
+		adminCerts.Get("", certificateHandler.ListCertificates)
+		adminCerts.Get("/:id", certificateHandler.GetCertificate)
+		adminCerts.Post("/:id/regenerate", certificateHandler.Regenerate)
 		// Staff account & role management (Super Admin only in v1).
 		adminUsers := adminGroup.Group("/users")
 		adminUsers.Use(middleware.RequirePermission(models.PermUsersManage))

@@ -30,13 +30,24 @@ type ServiceInterface interface {
 	GetCategories(ctx context.Context) ([]string, error)
 }
 
-type Service struct {
-	repo RepositoryInterface
+// CertificateIssuer auto-generates a digital certificate for a product at
+// creation (PRD §3.2.1). Best-effort: the caller logs + continues on error.
+type CertificateIssuer interface {
+	IssueForProduct(ctx context.Context, productID int64) error
 }
 
-func NewService(repo RepositoryInterface) ServiceInterface {
+type Service struct {
+	repo           RepositoryInterface
+	certIssuer     CertificateIssuer // optional; nil => no auto-issue (e.g. worker mode)
+}
+
+func NewService(repo RepositoryInterface) *Service {
 	return &Service{repo: repo}
 }
+
+// SetCertificateIssuer wires the auto-issue client post-construction (called
+// in main.go after both the product + certificate services are built).
+func (s *Service) SetCertificateIssuer(ci CertificateIssuer) { s.certIssuer = ci }
 
 // --- Public ---
 
@@ -94,7 +105,21 @@ func (s *Service) AdminCreateProduct(ctx context.Context, data models.CreateProd
 		return nil, models.ErrInvalidLocale
 	}
 	data.Locale = locale
-	return s.repo.CreateWithTranslation(ctx, data)
+	p, err := s.repo.CreateWithTranslation(ctx, data)
+	if err != nil {
+		return nil, err
+	}
+	// Auto-generate the digital certificate (PRD §3.2.1). Best-effort: a
+	// certificate error must not fail product creation — the operator can
+	// regenerate from the CMS.
+	if s.certIssuer != nil {
+		if err := s.certIssuer.IssueForProduct(ctx, p.ID); err != nil {
+			// Log + continue; the product is created. The cert can be issued
+			// later via regenerate (or the admin certificate list will show none).
+			fmt.Printf("product.AdminCreateProduct.IssueCert(product=%d): %v\n", p.ID, err)
+		}
+	}
+	return p, nil
 }
 
 func (s *Service) AdminUpdateProduct(ctx context.Context, productID int64, locale string, data models.UpdateProductData, actor i18ncontent.WorkflowActor) (*models.Product, error) {

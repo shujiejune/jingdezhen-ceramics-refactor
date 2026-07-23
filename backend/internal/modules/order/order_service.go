@@ -78,6 +78,14 @@ type UserFetcher interface {
 	GetUserProfile(ctx context.Context, userID string) (*models.User, error)
 }
 
+// ProvenanceRecorder appends a `sold` provenance record per order item's
+// product certificate at order-paid (TDD §8). Best-effort: a failure is logged
+// + skipped (the certificate is the source of truth; a missed row is
+// backfillable). Implemented by certificate.Service.RecordSale.
+type ProvenanceRecorder interface {
+	RecordSale(ctx context.Context, orderID int64, items []models.SaleItemSnapshot) error
+}
+
 // ServiceInterface defines order business logic.
 type ServiceInterface interface {
 	Checkout(ctx context.Context, userID string, req models.CheckoutRequest, locale string) (*models.Order, error)
@@ -106,6 +114,7 @@ type Service struct {
 	paymentRefunder PaymentRefunder // nil if refunds go through a different path
 	userFetcher    UserFetcher      // customer email for the order confirmation
 	paymentsMode string // "mock" (dev) | "live" (#6, not yet configured)
+	provenance   ProvenanceRecorder // optional; nil => no provenance (worker without the cert service)
 }
 
 func NewService(
@@ -140,6 +149,10 @@ func (s *Service) SetPaymentIntenter(pi PaymentIntenter) { s.paymentIntenter = p
 
 // SetPaymentRefunder wires the gateway-refund client post-construction.
 func (s *Service) SetPaymentRefunder(pr PaymentRefunder) { s.paymentRefunder = pr }
+
+// SetProvenanceRecorder wires the certificate provenance recorder
+// post-construction (called in main.go after both services are built).
+func (s *Service) SetProvenanceRecorder(pr ProvenanceRecorder) { s.provenance = pr }
 
 // Checkout creates an order from the user's cart (PRD §3.2.3, TDD §7/§8):
 //  1. Load + validate cart (non-empty).
@@ -296,7 +309,13 @@ func (s *Service) Checkout(ctx context.Context, userID string, req models.Checko
 // on a successful payment). Idempotent: a replayed webhook that arrives after
 // the order is already paid returns nil (the gateway may retry; the
 // idempotency_key on the payments row + this idempotent transition together
+// MarkPaid moves created→paid (called by the worker's payment:finalize handler
+// on a successful payment). Idempotent: a replayed webhook that arrives after
+// the order is already paid returns nil (the gateway may retry; the
+// idempotency_key on the payments row + this idempotent transition together
 // guarantee at-most-once side effects, TDD §11).
+// Side effect (TDD §8): appends a `sold` provenance record per order item's
+// product certificate. Best-effort — logged + skipped on failure.
 func (s *Service) MarkPaid(ctx context.Context, orderID int64) error {
 	if err := s.repo.TransitionStatus(ctx, orderID, models.StatusCreated, models.StatusPaid, ""); err != nil {
 		if errors.Is(err, models.ErrConflict) {
@@ -305,7 +324,28 @@ func (s *Service) MarkPaid(ctx context.Context, orderID int64) error {
 		}
 		return err
 	}
+	// Provenance `sold` (TDD §8). Only on a real transition (not a replay), so
+	// the record is appended once.
+	if s.provenance != nil {
+		if err := s.appendSoldProvenance(ctx, orderID); err != nil {
+			log.Printf("order.MarkPaid.Provenance(order=%d): %v", orderID, err)
+		}
+	}
 	return nil
+}
+
+// appendSoldProvenance loads the order's items + records a `sold` provenance
+// row per product certificate via the injected recorder.
+func (s *Service) appendSoldProvenance(ctx context.Context, orderID int64) error {
+	o, err := s.repo.GetByID(ctx, orderID)
+	if err != nil {
+		return err
+	}
+	items := make([]models.SaleItemSnapshot, len(o.Items))
+	for i, it := range o.Items {
+		items[i] = models.SaleItemSnapshot{SkuID: it.SkuID, Qty: it.Qty}
+	}
+	return s.provenance.RecordSale(ctx, orderID, items)
 }
 
 func (s *Service) Ship(ctx context.Context, orderID int64, req models.ShipOrderRequest) error {

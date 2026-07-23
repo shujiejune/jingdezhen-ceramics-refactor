@@ -117,6 +117,7 @@ var permissionRoleGate = map[string][]string{
 	models.PermContentPublish:   {models.RoleSuperAdmin},
 	models.PermProductRead:      {models.RoleEcommerceOperator},
 	models.PermProductWrite:     {models.RoleEcommerceOperator},
+	models.PermCertificateManage: {models.RoleEcommerceOperator},
 	models.PermOrderRead:        {models.RoleEcommerceOperator, models.RoleCustomerService, models.RoleTravelPlanner},
 	models.PermOrderWrite:       {models.RoleEcommerceOperator},
 	models.PermOrderRefund:      {models.RoleEcommerceOperator},

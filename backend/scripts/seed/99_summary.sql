@@ -14,4 +14,7 @@ UNION ALL SELECT 'carts',                count(*) FROM carts
 UNION ALL SELECT 'cart_items',           count(*) FROM cart_items
 UNION ALL SELECT 'shipping_fee_tiers',   count(*) FROM shipping_fee_tiers
 UNION ALL SELECT 'orders',               count(*) FROM orders
-UNION ALL SELECT 'order_items',           count(*) FROM order_items;
+UNION ALL SELECT 'order_items',           count(*) FROM order_items
+UNION ALL SELECT 'payments',              count(*) FROM payments
+UNION ALL SELECT 'certificates',          count(*) FROM certificates
+UNION ALL SELECT 'provenance_records',    count(*) FROM provenance_records;
