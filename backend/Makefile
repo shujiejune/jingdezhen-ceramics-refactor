@@ -10,7 +10,7 @@ ifneq (,$(wildcard ./.env))
 endif
 
 .PHONY: help build up up-db down down-v stop logs logs-api logs-worker \
-        migrate-up migrate-down migrate-force db-shell db-seed
+        migrate-up migrate-down migrate-force db-shell db-reset db-seed
 
 help:
 	@echo "Usage: make [target]"
@@ -33,7 +33,8 @@ help:
 	@echo "  migrate-down   - Roll back the last migration"
 	@echo "  migrate-force  - Force-set migration version (recover from dirty)"
 	@echo "  db-shell        - Open a psql shell in the db container"
-	@echo "  db-seed        - Seed the database with dev test data (scripts/seed/seed.sql)"
+	@echo "  db-reset        - Truncate commerce tables (dev clean slate; preserves users)"
+	@echo "  db-seed        - Seed dev data from scripts/seed/[0-9][0-9]_*.sql (reset + all seeds)"
 
 build:
 	@echo "Building Docker images..."
@@ -87,6 +88,10 @@ db-shell:
 	@echo "Opening psql shell in db container..."
 	$(COMPOSE) exec db psql -U "$(DB_USER)" -d "$(DB_NAME)"
 
+db-reset:
+	@echo "Resetting commerce tables (dev clean slate)..."
+	$(COMPOSE) exec -T db psql -U "$(DB_USER)" -d "$(DB_NAME)" < scripts/seed/00_reset.sql
+
 db-seed:
 	@echo "Seeding database with dev test data..."
-	$(COMPOSE) exec -T db psql -U "$(DB_USER)" -d "$(DB_NAME)" < scripts/seed/seed.sql
+	cat scripts/seed/[0-9][0-9]_*.sql | $(COMPOSE) exec -T db psql -U "$(DB_USER)" -d "$(DB_NAME)"
