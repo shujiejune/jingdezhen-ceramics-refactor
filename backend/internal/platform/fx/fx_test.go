@@ -2,6 +2,7 @@ package fx
 
 import (
 	"context"
+	"jingdezhen-ceramics-backend/internal/models"
 	"testing"
 	"time"
 
@@ -94,7 +95,7 @@ type fakeRepo struct {
 func (f *fakeRepo) GetRate(_ context.Context, currency string) (decimal.Decimal, time.Time, error) {
 	r, ok := f.rates[currency]
 	if !ok {
-		return decimal.Zero, time.Time{}, ErrRateNotFound
+		return decimal.Zero, time.Time{}, models.ErrRateNotFound
 	}
 	return r, time.Now(), nil
 }

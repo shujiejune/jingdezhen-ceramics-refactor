@@ -1,7 +1,5 @@
 package models
 
-import "errors"
-
 // =============================================================================
 // i18n content infrastructure (TDD §3.2, §3.3, PRD §3.5.1)
 //
@@ -117,6 +115,5 @@ type TranslationMeta struct {
 }
 
 // --- Workflow transition errors ---------------------------------------------
-
-var ErrInvalidLocale = errors.New("unsupported locale")
-var ErrInvalidWorkflowTransition = errors.New("invalid content workflow transition for this actor")
+// (ErrInvalidLocale, ErrInvalidWorkflowTransition live in errors.go with the
+// other domain errors for centralized HTTP-status mapping.)

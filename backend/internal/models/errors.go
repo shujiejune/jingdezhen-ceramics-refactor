@@ -17,3 +17,6 @@ var ErrNotOwned = errors.New("not owned by this user")
 var Err2FARequired = errors.New("two-factor authentication code required")          // password OK but a TOTP code is needed to complete login
 var Err2FAEnrollmentRequired = errors.New("two-factor enrollment required") // super_admin must enroll 2FA before a full session is granted
 var ErrAccountDeleted = errors.New("user account has been deleted")          // GDPR erasure: login rejected for an anonymized stub
+var ErrRateNotFound = errors.New("fx: rate not found for currency")         // no fx_rates row exists for the requested currency (refresh not yet run)
+var ErrInvalidLocale = errors.New("unsupported locale")
+var ErrInvalidWorkflowTransition = errors.New("invalid content workflow transition for this actor")

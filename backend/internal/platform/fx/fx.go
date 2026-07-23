@@ -20,7 +20,6 @@ package fx
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"jingdezhen-ceramics-backend/internal/models"
 	"time"
@@ -54,12 +53,8 @@ func IsSupportedPresentment(code string) bool {
 
 // --- Errors ------------------------------------------------------------------
 
-var (
-	// ErrRateNotFound is returned when no fx_rates row exists for a currency
-	// (e.g. the fx:refresh job has never run). Callers should surface a
-	// "pricing unavailable, try later" message rather than charge a wrong amount.
-	ErrRateNotFound = errors.New("fx: rate not found for currency")
-)
+// (ErrRateNotFound lives in internal/models/errors.go with the other domain
+// errors, so the error-mapper middleware can centralize HTTP status mapping.)
 
 // --- RateSource (TDD §4.1 adapter) -------------------------------------------
 // ECB is the only live source for MVP; the interface exists so tests + dev can
@@ -146,7 +141,7 @@ func (r *Repository) GetRate(ctx context.Context, currency string) (decimal.Deci
 		Scan(&rate, &fetchedAt)
 	if err != nil {
 		if err.Error() == "no rows in result set" {
-			return decimal.Zero, time.Time{}, ErrRateNotFound
+			return decimal.Zero, time.Time{}, models.ErrRateNotFound
 		}
 		return decimal.Zero, time.Time{}, fmt.Errorf("fx.Repository.GetRate: %w", err)
 	}
