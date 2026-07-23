@@ -16,6 +16,7 @@ import (
 	"jingdezhen-ceramics-backend/internal/modules/cart"
 	"jingdezhen-ceramics-backend/internal/modules/shipping"
 	"jingdezhen-ceramics-backend/internal/modules/order"
+	"jingdezhen-ceramics-backend/internal/modules/payment"
 	"jingdezhen-ceramics-backend/internal/platform/fx"
 	"jingdezhen-ceramics-backend/internal/modules/user"
 	"jingdezhen-ceramics-backend/internal/ws"
@@ -41,6 +42,7 @@ func SetupRoutes(
 	fxHandler *fx.Handler,
 	shippingHandler *shipping.Handler,
 	orderHandler *order.Handler,
+	paymentHandler *payment.Handler,
 	twoFAHandler *twofa.Handler,
 	privacyHandler *privacy.Handler,
 ) {
@@ -163,6 +165,13 @@ func SetupRoutes(
 
 	/* --- Shipping quote (public preview) — PRD §3.2.3, TDD §5.2 --- */
 	app.Get("/shipping/quote", shippingHandler.Quote)
+
+	/* --- Payment webhooks (public, signature-verified) — PRD §3.2.3, TDD §10 --- */
+	/* Enqueue-and-ack: verify the gateway signature, record the event
+	   idempotently (idempotency_key UNIQUE), enqueue payment:finalize, ack 200.
+	   The worker drives the order created→paid. TDD §2.2. */
+	app.Post("/webhooks/airwallex", paymentHandler.AirwallexWebhook)
+	app.Post("/webhooks/paypal", paymentHandler.PayPalWebhook)
 
 	/* --- Wishlist (Protected) — PRD §3.5 --- */
 	/* Favorites are keyed on SKU (the purchasable unit). A customer favorites a

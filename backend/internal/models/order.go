@@ -64,6 +64,9 @@ type Order struct {
 	UpdatedAt       time.Time      `json:"updated_at" db:"updated_at"`
 	// Items loaded by the service (detail view only).
 	Items           []OrderItem    `json:"items,omitempty" db:"-"`
+	// HostedURL is the gateway's hosted-checkout URL (sandbox/live). Empty in
+	// mock mode. The client redirects the customer here to pay off-site.
+	HostedURL       string         `json:"hosted_url,omitempty" db:"-"`
 }
 
 // OrderItem is an immutable line snapshot on an order.
@@ -83,10 +86,12 @@ type OrderItem struct {
 
 // CheckoutRequest is the body for POST /checkout. The address must belong to
 // the signed-in user; currency defaults to the user's preferred_currency (or
-// USD) if omitted (PRD §3.2.3).
+// USD) if omitted (PRD §3.2.3). Gateway is required in sandbox/live mode
+// ("airwallex" | "paypal"); ignored in mock mode (dev auto-succeeds).
 type CheckoutRequest struct {
 	AddressID int64  `json:"address_id" validate:"required,gt=0"`
 	Currency  string `json:"currency,omitempty" validate:"omitempty,len=3"`
+	Gateway   string `json:"gateway,omitempty" validate:"omitempty,oneof=airwallex paypal mock"`
 }
 
 // ShipOrderRequest is the body for POST /admin/orders/:id/ship. Operator enters

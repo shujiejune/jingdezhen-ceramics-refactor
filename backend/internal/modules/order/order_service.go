@@ -57,6 +57,27 @@ type UserPrefFetcher interface {
 	PreferredCurrency(ctx context.Context, userID string) (string, error)
 }
 
+// PaymentIntenter creates a gateway payment intent for an order + records the
+// pending payment row. Returns the hosted checkout URL. Implemented by
+// payment.Service (kept as an interface to avoid an import cycle: payment
+// imports order for MarkPaid/GetAdmin, so order imports payment only via this
+// narrow interface).
+type PaymentIntenter interface {
+	CreateIntent(ctx context.Context, gatewayName string, orderID int64, amountMinor int64, currency string) (string, error)
+}
+
+// PaymentRefunder issues a full refund for an order's succeeded payment via
+// the gateway, marks the payment refunded. Implemented by payment.Service.
+type PaymentRefunder interface {
+	Refund(ctx context.Context, orderID int64, reason string) error
+}
+
+// UserFetcher loads the user profile (for the customer email on the order
+// confirmation). Implemented by user.Service.GetUserProfile.
+type UserFetcher interface {
+	GetUserProfile(ctx context.Context, userID string) (*models.User, error)
+}
+
 // ServiceInterface defines order business logic.
 type ServiceInterface interface {
 	Checkout(ctx context.Context, userID string, req models.CheckoutRequest, locale string) (*models.Order, error)
@@ -81,6 +102,9 @@ type Service struct {
 	email       EmailEnqueuer
 	payment     PaymentEnqueuer
 	userPref    UserPrefFetcher
+	paymentIntenter PaymentIntenter  // nil in mock mode (auto-finalize seam)
+	paymentRefunder PaymentRefunder // nil if refunds go through a different path
+	userFetcher    UserFetcher      // customer email for the order confirmation
 	paymentsMode string // "mock" (dev) | "live" (#6, not yet configured)
 }
 
@@ -94,14 +118,28 @@ func NewService(
 	email EmailEnqueuer,
 	payment PaymentEnqueuer,
 	userPref UserPrefFetcher,
+	paymentIntenter PaymentIntenter,
+	paymentRefunder PaymentRefunder,
+	userFetcher UserFetcher,
 	paymentsMode string,
-) ServiceInterface {
+) *Service {
 	return &Service{
 		repo: repo, cart: cart, cartClear: cartClear, address: address,
 		shipping: shipping, fx: fx, email: email, payment: payment,
-		userPref: userPref, paymentsMode: paymentsMode,
+		userPref: userPref, paymentIntenter: paymentIntenter,
+		paymentRefunder: paymentRefunder, userFetcher: userFetcher,
+		paymentsMode: paymentsMode,
 	}
 }
+
+// SetPaymentIntenter wires the gateway-intent client post-construction to
+// break the order↔payment import cycle (payment.Service needs order.Service as
+// OrderFinalizer/OrderLoader; order.Service needs payment.Service as
+// PaymentIntenter). Called in main.go after both services are built.
+func (s *Service) SetPaymentIntenter(pi PaymentIntenter) { s.paymentIntenter = pi }
+
+// SetPaymentRefunder wires the gateway-refund client post-construction.
+func (s *Service) SetPaymentRefunder(pr PaymentRefunder) { s.paymentRefunder = pr }
 
 // Checkout creates an order from the user's cart (PRD §3.2.3, TDD §7/§8):
 //  1. Load + validate cart (non-empty).
@@ -222,20 +260,32 @@ func (s *Service) Checkout(ctx context.Context, userID string, req models.Checko
 		log.Printf("order.Checkout.ClearCart(order=%d): %v (order still placed)", orderID, err)
 	}
 
-	// 8. Mock payment: enqueue a finalize job that drives created→paid. In live
-	// mode (PAYMENTS_MODE != "mock"), the gateway webhook does this instead —
-	// until #6 wires the real gateway, live mode returns an error (501) so no
-	// order is left dangling in `created`.
+	// 8. Payment. mock mode: auto-succeed (dev seam). sandbox/live: create a
+	// gateway intent + return the hosted checkout URL so the client redirects.
 	if s.paymentsMode == "mock" {
 		if err := s.payment.EnqueuePaymentFinalize(ctx, orderID, true, "mock", "mock-"+strconv.FormatInt(orderID, 10)); err != nil {
 			log.Printf("order.Checkout.EnqueuePayment(order=%d): %v (order placed, manual finalize needed)", orderID, err)
 		}
+	} else if s.paymentIntenter != nil {
+		hosted, err := s.paymentIntenter.CreateIntent(ctx, req.Gateway, orderID, totalMinor, currency)
+		if err != nil {
+			log.Printf("order.Checkout.CreateIntent(order=%d): %v (order left in `created`; customer can cancel)", orderID, err)
+			return nil, fmt.Errorf("%w: %v", models.ErrGatewayUnavailable, err)
+		}
+		o.HostedURL = hosted // surface to the client for redirect
 	}
-	// (live mode: the order is created in `created`; the gateway webhook enqueues
-	// payment:finalize on success. #6 wires the real webhook.)
 
-	// Enqueue order-confirmation email (best-effort).
-	if err := s.email.EnqueueEmailSend(ctx, "customer@example.com", "Order confirmed", "Your order #"+strconv.FormatInt(orderID, 10)+" was received.", ""); err != nil {
+	// Enqueue order-confirmation email (best-effort) to the real customer email.
+	emailTo := ""
+	if s.userFetcher != nil {
+		if u, err := s.userFetcher.GetUserProfile(ctx, userID); err == nil {
+			emailTo = u.Email
+		}
+	}
+	if emailTo == "" {
+		emailTo = "customer@example.com"
+	}
+	if err := s.email.EnqueueEmailSend(ctx, emailTo, "Order confirmed", "Your order #"+strconv.FormatInt(orderID, 10)+" was received.", ""); err != nil {
 		log.Printf("order.Checkout.Email(order=%d): %v", orderID, err)
 	}
 
@@ -243,9 +293,16 @@ func (s *Service) Checkout(ctx context.Context, userID string, req models.Checko
 }
 
 // MarkPaid moves created→paid (called by the worker's payment:finalize handler
-// on a successful payment). Side effect: provenance + low-stock check deferred.
+// on a successful payment). Idempotent: a replayed webhook that arrives after
+// the order is already paid returns nil (the gateway may retry; the
+// idempotency_key on the payments row + this idempotent transition together
+// guarantee at-most-once side effects, TDD §11).
 func (s *Service) MarkPaid(ctx context.Context, orderID int64) error {
 	if err := s.repo.TransitionStatus(ctx, orderID, models.StatusCreated, models.StatusPaid, ""); err != nil {
+		if errors.Is(err, models.ErrConflict) {
+			// Already paid (replayed webhook) — idempotent success.
+			return nil
+		}
 		return err
 	}
 	return nil
@@ -270,14 +327,22 @@ func (s *Service) Cancel(ctx context.Context, userID string, orderID int64, req 
 }
 
 // Refund moves paid|shipped→refunded (operator, full refunds only — PRD §3.2.3).
-// The real gateway.Refund call lands in #6; this marks the order status now.
-func (s *Service) Refund(ctx context.Context, orderID int64, _ models.RefundOrderRequest) error {
+// Fail-closed: the gateway refund is called first; a gateway error leaves the
+// order paid (no status transition). The payment row is marked refunded by the
+// payment service after the gateway confirms.
+func (s *Service) Refund(ctx context.Context, orderID int64, req models.RefundOrderRequest) error {
 	o, err := s.repo.GetByID(ctx, orderID)
 	if err != nil {
 		return err
 	}
 	if o.Status != models.StatusPaid && o.Status != models.StatusShipped {
 		return models.ErrConflict
+	}
+	// Issue the gateway refund first (fail-closed).
+	if s.paymentRefunder != nil {
+		if err := s.paymentRefunder.Refund(ctx, orderID, req.Reason); err != nil {
+			return err
+		}
 	}
 	return s.repo.TransitionStatus(ctx, orderID, o.Status, models.StatusRefunded, "")
 }

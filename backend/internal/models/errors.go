@@ -23,3 +23,6 @@ var ErrInvalidWorkflowTransition = errors.New("invalid content workflow transiti
 var ErrCartEmpty = errors.New("cart is empty; cannot check out")                // checkout on an empty cart (PRD §3.2.3)
 var ErrUnshippable = errors.New("destination country is not shippable")       // no shipping_fee_tiers row for the country (PRD §3.2.3)
 var ErrOverweight = errors.New("order exceeds the maximum shipping weight for the destination") // PRD §3.2.3 overweight block
+var ErrWebhookSignatureInvalid = errors.New("webhook signature verification failed") // gateway webhook signature mismatch (TDD §10)
+var ErrPaymentNotSucceeded = errors.New("no succeeded payment found for the order") // refund on an unpaid order
+var ErrGatewayUnavailable = errors.New("payment gateway is not configured") // PAYMENTS_MODE live but no creds / unknown gateway

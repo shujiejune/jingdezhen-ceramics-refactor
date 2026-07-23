@@ -25,6 +25,8 @@ import (
 	"jingdezhen-ceramics-backend/internal/modules/cart"
 	"jingdezhen-ceramics-backend/internal/modules/shipping"
 	"jingdezhen-ceramics-backend/internal/modules/order"
+	"jingdezhen-ceramics-backend/internal/modules/payment"
+	"jingdezhen-ceramics-backend/pkg/adapters/payments"
 	"jingdezhen-ceramics-backend/internal/platform/fx"
 	"jingdezhen-ceramics-backend/internal/platform/jobs"
 	platformredis "jingdezhen-ceramics-backend/internal/platform/redis"
@@ -271,16 +273,51 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 	orderRepo := order.NewRepository(dbPool)
 	orderService := order.NewService(
 		orderRepo,
-		cartService,                  // CartFetcher
-		cartService,                  // CartClearer (BulkRemove)
-		addressService,               // AddressFetcher (GetAddress)
-		shippingService,              // ShippingCalcer (TiersForCountry)
-		fxService,                    // CheckoutFX (Convert + Rate)
-		orderEmailEnqueuer{jobClient}, // EmailEnqueuer
-		paymentEnqueuer{jobClient},    // PaymentEnqueuer
-		userService,                   // UserPrefFetcher (PreferredCurrency)
+		cartService,                   // CartFetcher
+		cartService,                   // CartClearer (BulkRemove)
+		addressService,                // AddressFetcher (GetAddress)
+		shippingService,               // ShippingCalcer (TiersForCountry)
+		fxService,                     // CheckoutFX (Convert + Rate)
+		orderEmailEnqueuer{jobClient},  // EmailEnqueuer
+		paymentEnqueuer{jobClient},     // PaymentEnqueuer
+		userService,                    // UserPrefFetcher (PreferredCurrency)
+		nil,                           // PaymentIntenter (wired after payment.Service below)
+		nil,                           // PaymentRefunder (wired after payment.Service below)
+		userService,                    // UserFetcher (GetUserProfile for the email)
 		cfg.PaymentsMode,
 	)
+
+	// --- Payments (TDD §10, PRD §3.2.3) ---
+	// Gateway registry: mock → MockGateway for all names; sandbox/live → real
+	// Airwallex + PayPal HTTP clients. The webhook handler resolves by name.
+	var gatewayRegistry *payment.Registry
+	switch cfg.PaymentsMode {
+	case "sandbox", "live":
+		gatewayRegistry = payment.NewRegistry(
+			payments.NewAirwallexGateway(cfg.AirwallexClientID, cfg.AirwallexAPIKey, cfg.AirwallexEnv, cfg.AirwallexWebhookSecret),
+			payments.NewPayPalGateway(cfg.PayPalClientID, cfg.PayPalClientSecret, cfg.PayPalEnv, cfg.PayPalWebhookID),
+			payments.NewMockGateway(), // mock stays available so dev webhooks still resolve
+		)
+	default: // "mock"
+		// Mock resolves all three names (airwallex/paypal/mock) so dev webhooks
+		// + checkout in mock mode both work.
+		mock := payments.NewMockGateway()
+		gatewayRegistry = payment.NewRegistry()
+		gatewayRegistry.Register("mock", mock)
+		gatewayRegistry.Register("airwallex", mock)
+		gatewayRegistry.Register("paypal", mock)
+	}
+	paymentRepo := payment.NewRepository(dbPool)
+	paymentService := payment.NewService(
+		paymentRepo, gatewayRegistry,
+		orderService,                 // OrderFinalizer (MarkPaid)
+		orderService,                 // OrderLoader (GetAdmin)
+		paymentEnqueuer{jobClient},    // PaymentEnqueuer
+		cfg.ClientOrigin+"/checkout/return", // gateway redirect URL after payment
+	)
+	orderService.SetPaymentIntenter(paymentService) // break order↔payment cycle
+	orderService.SetPaymentRefunder(paymentService)
+	paymentHandler := payment.NewHandler(paymentService)
 	orderHandler := order.NewHandler(orderService)
 
 	consentRepo := consent.NewRepository(dbPool)
@@ -295,7 +332,7 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 		wsHandler, userHandler, notifHandler,
 		ceramicStoryHandler, engageHandler, addressHandler,
 		consentHandler, artistHandler, productHandler, wishlistHandler, cartHandler, fxHandler,
-		shippingHandler, orderHandler, twoFAHandler, privacyHandler,
+		shippingHandler, orderHandler, paymentHandler, twoFAHandler, privacyHandler,
 	)
 
 	// --- Start server (graceful shutdown) ---
@@ -349,7 +386,7 @@ func runWorker(rootCtx context.Context, cfg config.Config) {
 	// --- Orders (worker owns payment:finalize → MarkPaid) ---
 	orderRepo := order.NewRepository(dbPool)
 	orderService := order.NewService(
-		orderRepo, nil, nil, nil, nil, fxService, nil, nil, nil, cfg.PaymentsMode,
+		orderRepo, nil, nil, nil, nil, fxService, nil, nil, nil, nil, nil, nil, cfg.PaymentsMode,
 	)
 
 	// The worker sends emails via Brevo. The serve mode renders templates at
