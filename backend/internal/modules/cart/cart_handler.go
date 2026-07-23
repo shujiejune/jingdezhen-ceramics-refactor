@@ -181,34 +181,46 @@ func (h *Handler) MergeCart(c *fiber.Ctx) error {
 }
 
 // applyPresentment enriches the cart + each line with presentment-currency
-// totals when ?currency= is supplied and an FX converter is wired. On any FX
-// error it degrades gracefully (CNY-only, logged) so the cart stays readable.
+// amounts when ?currency= is supplied and an FX converter is wired. The cart
+// fully reconciles: each line's presentment = unit_presentment × qty, and the
+// cart total = Σ line. This matches the checkout snapshot model (TDD §7: order
+// total = Σ item unit_price_minor × qty) so the customer pays exactly what the
+// displayed unit prices imply — no lump-sum conversion that disagrees with the
+// per-line display. On any FX error it degrades gracefully (CNY-only, logged).
 func (h *Handler) applyPresentment(c *fiber.Ctx, cart *models.Cart) {
-	cur := requestCurrency(c)
-	if cur == "" || h.priceConverter == nil || !isSupportedCurrency(cur) {
+	applyPresentmentConv(c.Context(), requestCurrency(c), h.priceConverter, cart)
+}
+
+// applyPresentmentConv is the testable core of applyPresentment (no fiber.Ctx).
+// All-or-nothing: presentment fields are only set if every line converts, so a
+// mid-cart FX failure leaves the cart CNY-only rather than half-converted.
+func applyPresentmentConv(ctx context.Context, cur string, conv PriceConverter, cart *models.Cart) {
+	if cur == "" || conv == nil || !isSupportedCurrency(cur) {
 		return
 	}
-	total, err := h.priceConverter.Convert(c.Context(), cart.TotalCNY, cur)
-	if err != nil {
-		log.Printf("Handler.applyPresentment.Convert(total): %v", err)
-		return
+	// Convert each unit price (PRD §3.2.3 rounding applies to the unit price),
+	// then derive line = unit × qty. Compute into temps first so a mid-loop
+	// error leaves the cart CNY-only (all-or-nothing).
+	units := make([]int64, len(cart.Items))
+	lines := make([]int64, len(cart.Items))
+	var sum int64
+	for i := range cart.Items {
+		unit, err := conv.Convert(ctx, cart.Items[i].UnitPriceCNY, cur)
+		if err != nil {
+			log.Printf("applyPresentment.Convert(sku=%d): %v", cart.Items[i].SkuID, err)
+			return
+		}
+		line := unit * int64(cart.Items[i].Qty)
+		units[i] = unit
+		lines[i] = line
+		sum += line
 	}
 	for i := range cart.Items {
-		unit, err := h.priceConverter.Convert(c.Context(), cart.Items[i].UnitPriceCNY, cur)
-		if err != nil {
-			log.Printf("Handler.applyPresentment.Convert(sku=%d): %v", cart.Items[i].SkuID, err)
-			return
-		}
-		line, err := h.priceConverter.Convert(c.Context(), cart.Items[i].LineTotalCNY, cur)
-		if err != nil {
-			log.Printf("Handler.applyPresentment.Convert(line sku=%d): %v", cart.Items[i].SkuID, err)
-			return
-		}
-		cart.Items[i].UnitPrice = &unit
-		cart.Items[i].LineTotal = &line
+		cart.Items[i].UnitPrice = &units[i]
+		cart.Items[i].LineTotal = &lines[i]
 	}
 	curCopy := cur
-	cart.Total = &total
+	cart.Total = &sum
 	cart.Currency = &curCopy
 }
 
