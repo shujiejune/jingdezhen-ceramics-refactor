@@ -1,6 +1,7 @@
 package product
 
 import (
+	"context"
 	"errors"
 	"jingdezhen-ceramics-backend/internal/models"
 	"jingdezhen-ceramics-backend/internal/platform/i18ncontent"
@@ -12,14 +13,28 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
+// PriceConverter converts a CNY minor-unit price to a presentment currency.
+// Implemented by platform/fx.Service; nil means no conversion (backward-compat).
+type PriceConverter interface {
+	Convert(ctx context.Context, cnyMinor int64, currency string) (int64, error)
+}
+
 // Handler handles HTTP requests for the product catalog (PRD §3.2.1).
 type Handler struct {
-	service  ServiceInterface
-	validate *validator.Validate
+	service        ServiceInterface
+	validate       *validator.Validate
+	priceConverter PriceConverter // optional; nil => no ?currency= conversion
 }
 
 func NewHandler(service ServiceInterface) *Handler {
 	return &Handler{service: service, validate: validator.New()}
+}
+
+// SetPriceConverter injects the FX converter (called in main.go after both
+// the product and FX services are built). Kept separate from NewHandler so the
+// converter stays optional (tests + modules that don't need FX skip it).
+func (h *Handler) SetPriceConverter(pc PriceConverter) {
+	h.priceConverter = pc
 }
 
 // requestLocale returns the locale from ?locale= query param, falling back to
@@ -57,7 +72,10 @@ func (h *Handler) GetProducts(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(models.NewPaginatedResponse(products, page, limit, total))
 }
 
-// GetProductBySlug: GET /catalog/products/:slug?locale=en-US
+// GetProductBySlug: GET /catalog/products/:slug?locale=en-US&currency=USD
+// When ?currency= is a supported presentment currency (USD/EUR/GBP) and an FX
+// converter is wired, each SKU's response gains `price` + `price_currency`
+// (presentment minor units, PRD rounding applied). price_cny is always present.
 func (h *Handler) GetProductBySlug(c *fiber.Ctx) error {
 	slug := c.Params("slug")
 	if slug == "" {
@@ -72,7 +90,35 @@ func (h *Handler) GetProductBySlug(c *fiber.Ctx) error {
 		log.Printf("Handler.GetProductBySlug: %v", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(models.ErrorResponse{Message: "Failed to retrieve product"})
 	}
+
+	// Optional presentment-currency conversion (TDD §7). Failures here degrade
+	// gracefully: log + return the product with CNY-only pricing rather than a
+	// 500, so the catalog stays browseable when FX rates are stale/missing.
+	if cur := c.Query("currency"); cur != "" && h.priceConverter != nil && isSupportedCurrency(cur) {
+		for i := range product.SKUs {
+			p, convErr := h.priceConverter.Convert(c.Context(), product.SKUs[i].PriceCNY, cur)
+			if convErr != nil {
+				log.Printf("Handler.GetProductBySlug.Convert(sku=%d): %v", product.SKUs[i].ID, convErr)
+				continue
+			}
+			product.SKUs[i].Price = &p
+			product.SKUs[i].PriceCurrency = &cur
+		}
+	}
+
 	return c.Status(fiber.StatusOK).JSON(product)
+}
+
+// isSupportedCurrency checks the presentment-currency set (USD/EUR/GBP).
+// Duplicated locally to avoid importing platform/fx from the product module
+// (which would create a layering smell: a feature module reaching into a
+// platform package for a constant). The set is fixed for MVP (PRD §3.2.3).
+func isSupportedCurrency(code string) bool {
+	switch code {
+	case "USD", "EUR", "GBP":
+		return true
+	}
+	return false
 }
 
 // =============================================================================

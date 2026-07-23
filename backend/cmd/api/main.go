@@ -22,6 +22,7 @@ import (
 	"jingdezhen-ceramics-backend/internal/modules/user"
 	"jingdezhen-ceramics-backend/internal/modules/twofa"
 	"jingdezhen-ceramics-backend/internal/modules/wishlist"
+	"jingdezhen-ceramics-backend/internal/platform/fx"
 	"jingdezhen-ceramics-backend/internal/platform/jobs"
 	platformredis "jingdezhen-ceramics-backend/internal/platform/redis"
 	"jingdezhen-ceramics-backend/internal/ws"
@@ -205,6 +206,21 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 	productService := product.NewService(productRepo)
 	productHandler := product.NewHandler(productService)
 
+	// --- FX pipeline (TDD §7) ---
+	// Empty ECB_API_URL => fixture rates in dev (no network call). The worker
+	// owns Refresh; serve mode owns Convert (read-time display conversion).
+	var fxRateSource fx.RateSource
+	if cfg.ECB_API_URL != "" {
+		fxRateSource = fx.NewECBClient(cfg.ECB_API_URL)
+	} else {
+		fxRateSource = fx.FixtureRateSource{Rates: fx.DefaultFixtureRates()}
+	}
+	fxRepo := fx.NewRepository(dbPool)
+	fxService := fx.NewService(fxRepo, fxRateSource, cfg.FXMarkupBPS)
+	fxHandler := fx.NewHandler(fxService, jobClient)
+	productHandler.SetPriceConverter(fxService)
+
+
 	engageRepo := engage.NewRepository(dbPool)
 	engageService := engage.NewService(engageRepo)
 	engageHandler := engage.NewHandler(engageService)
@@ -224,7 +240,7 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 	api.SetupRoutes(app, cfg.JWTSecret,
 		wsHandler, userHandler, notifHandler,
 		ceramicStoryHandler, engageHandler, addressHandler,
-		consentHandler, artistHandler, productHandler, wishlistHandler, twoFAHandler, privacyHandler,
+		consentHandler, artistHandler, productHandler, wishlistHandler, fxHandler, twoFAHandler, privacyHandler,
 	)
 
 	// --- Start server (graceful shutdown) ---
@@ -252,6 +268,29 @@ func runWorker(rootCtx context.Context, cfg config.Config) {
 		log.Fatalf("Invalid REDIS_URL: %v", err)
 	}
 
+	// --- Database connection (worker needs DB for FX refresh + future jobs) ---
+	dbConfig, err := pgxpool.ParseConfig(cfg.DatabaseURL)
+	if err != nil {
+		log.Fatalf("Unable to parse database configuration: %v\n", err)
+	}
+	dbPool, err := pgxpool.NewWithConfig(context.Background(), dbConfig)
+	if err != nil {
+		log.Fatalf("Unable to create connection pool: %v\n", err)
+	}
+	defer dbPool.Close()
+
+	// --- FX pipeline (TDD §7) ---
+	// The worker owns Refresh: ECB fetch → markup → upsert. Serve mode owns
+	// Convert (read-time); both share the fx_rates table.
+	var fxRateSource fx.RateSource
+	if cfg.ECB_API_URL != "" {
+		fxRateSource = fx.NewECBClient(cfg.ECB_API_URL)
+	} else {
+		fxRateSource = fx.FixtureRateSource{Rates: fx.DefaultFixtureRates()}
+	}
+	fxRepo := fx.NewRepository(dbPool)
+	fxService := fx.NewService(fxRepo, fxRateSource, cfg.FXMarkupBPS)
+
 	// The worker sends emails via Brevo. The serve mode renders templates at
 	// enqueue time, so the worker only needs the sender (no template manager).
 	emailer := email.NewBrevoSender(cfg.BrevoAPIKey, cfg.BrevoSenderEmail, cfg.BrevoSenderName)
@@ -260,6 +299,7 @@ func runWorker(rootCtx context.Context, cfg config.Config) {
 	jobServer.EmailSend = func(ctx context.Context, p jobs.EmailSendPayload) error {
 		return emailer.SendEmail(ctx, p.To, p.Subject, p.PlainText, p.HTML)
 	}
+	jobServer.FXRefresh = fxService.Refresh
 	jobScheduler := jobs.NewScheduler(redisAddr)
 
 	// Feature modules will assign real handlers here, e.g.:

@@ -62,6 +62,11 @@ type SKU struct {
 	IsActive           bool            `json:"is_active" db:"is_active"`
 	CreatedAt          time.Time       `json:"created_at" db:"created_at"`
 	UpdatedAt          time.Time       `json:"updated_at" db:"updated_at"`
+	// Presentment-currency price (populated when the request carries ?currency=).
+	// Nil when no conversion was requested. TDD §7: converted at read time from
+	// the cached fx_rates, with the PRD rounding rule applied.
+	Price         *int64  `json:"price,omitempty" db:"-"`         // presentment minor units
+	PriceCurrency *string `json:"price_currency,omitempty" db:"-"` // ISO 4217
 }
 
 // --- Admin / CMS DTOs ---

@@ -13,6 +13,7 @@ import (
 	"jingdezhen-ceramics-backend/internal/modules/privacy"
 	"jingdezhen-ceramics-backend/internal/modules/twofa"
 	"jingdezhen-ceramics-backend/internal/modules/wishlist"
+	"jingdezhen-ceramics-backend/internal/platform/fx"
 	"jingdezhen-ceramics-backend/internal/modules/user"
 	"jingdezhen-ceramics-backend/internal/ws"
 
@@ -33,6 +34,7 @@ func SetupRoutes(
 	artistHandler *artist.Handler,
 	productHandler *product.Handler,
 	wishlistHandler *wishlist.Handler,
+	fxHandler *fx.Handler,
 	twoFAHandler *twofa.Handler,
 	privacyHandler *privacy.Handler,
 ) {
@@ -150,6 +152,9 @@ func SetupRoutes(
 	app.Get("/catalog/products/:slug", productHandler.GetProductBySlug)
 	app.Get("/catalog/categories", productHandler.GetCategories)
 
+	/* --- FX rates (dev-debug, public read) — TDD §7 --- */
+	app.Get("/fx/rates", fxHandler.ListRates)
+
 	/* --- Wishlist (Protected) — PRD §3.5 --- */
 	/* Favorites are keyed on SKU (the purchasable unit). A customer favorites a
 	   specific variant, not a product. Locale-aware read path. */
@@ -174,6 +179,11 @@ func SetupRoutes(
 	adminGroup := app.Group("/admin")
 	adminGroup.Use(middleware.JWTMAuth(jwtSecretKey))
 	{
+		// FX rate refresh — settings.manage (operator-triggered; the daily cron
+		// also enqueues fx:refresh from the worker). PRD §3.2.3.
+		adminFX := adminGroup.Group("/fx")
+		adminFX.Use(middleware.RequirePermission(models.PermSettingsManage))
+		adminFX.Post("/refresh", fxHandler.RefreshFX)
 		// Staff account & role management (Super Admin only in v1).
 		adminUsers := adminGroup.Group("/users")
 		adminUsers.Use(middleware.RequirePermission(models.PermUsersManage))

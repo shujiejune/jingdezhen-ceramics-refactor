@@ -66,6 +66,12 @@ type Config struct {
 	OSSAccessKeySecret string `mapstructure:"OSS_ACCESS_KEY_SECRET"`
 	OSSBucket          string `mapstructure:"OSS_BUCKET"`
 	OSSRegion          string `mapstructure:"OSS_REGION"` // e.g. cn-hongkong
+
+	// --- FX pipeline (TDD §7, PRD §3.2.3) ---
+	// ECB_API_URL empty => fixture rates in dev (TDD §4.1). FX_MARKUP_BPS is
+	// basis points (200 = 2%); will move to a CMS settings table post-MVP.
+	ECB_API_URL  string `mapstructure:"ECB_API_URL"`
+	FXMarkupBPS  int    `mapstructure:"FX_MARKUP_BPS"`
 }
 
 func LoadConfig(path string) (config Config, err error) {
@@ -87,4 +93,11 @@ func LoadConfig(path string) (config Config, err error) {
 
 	err = viper.Unmarshal(&config)
 	return
+}
+
+// initDefaults sets env-var defaults that are not secrets. Called from init()
+// so they apply before Unmarshal (env vars / .env still override).
+func init() {
+	viper.SetDefault("ECB_API_URL", "") // empty => fixture rates in dev
+	viper.SetDefault("FX_MARKUP_BPS", 200) // 200 bps = 2% (PRD §3.2.3 default)
 }
