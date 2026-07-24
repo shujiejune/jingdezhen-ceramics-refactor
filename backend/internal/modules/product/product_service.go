@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"jingdezhen-ceramics-backend/internal/models"
 	"jingdezhen-ceramics-backend/internal/platform/i18ncontent"
+	"log"
 )
 
 // ServiceInterface defines product/SKU business logic (i18n-aware).
@@ -39,6 +40,14 @@ type CertificateIssuer interface {
 type Service struct {
 	repo           RepositoryInterface
 	certIssuer     CertificateIssuer // optional; nil => no auto-issue (e.g. worker mode)
+	galleryLoader  GalleryLoader    // optional; nil => no gallery (list view)
+}
+
+// GalleryLoader loads a product's ordered media gallery. Implemented by the
+// media service; injected post-construction to avoid a product→media import
+// edge (the media module is a sibling).
+type GalleryLoader interface {
+	ListProductMedia(ctx context.Context, productID int64) ([]models.ProductMediaItem, error)
 }
 
 func NewService(repo RepositoryInterface) *Service {
@@ -48,6 +57,9 @@ func NewService(repo RepositoryInterface) *Service {
 // SetCertificateIssuer wires the auto-issue client post-construction (called
 // in main.go after both the product + certificate services are built).
 func (s *Service) SetCertificateIssuer(ci CertificateIssuer) { s.certIssuer = ci }
+
+// SetGalleryLoader wires the gallery loader post-construction.
+func (s *Service) SetGalleryLoader(gl GalleryLoader) { s.galleryLoader = gl }
 
 // --- Public ---
 
@@ -75,6 +87,20 @@ func (s *Service) GetProductBySlug(ctx context.Context, slug string, locale stri
 		return nil, fmt.Errorf("service.GetProductBySlug.SKUs: %w", err)
 	}
 	product.SKUs = skus
+	// Load the ordered media gallery (detail view). The first item's media
+	// PublicURL is the preferred thumbnail; ThumbnailURL is the fallback.
+	if s.galleryLoader != nil {
+		gallery, gerr := s.galleryLoader.ListProductMedia(ctx, product.ID)
+		if gerr != nil {
+			log.Printf("product.GetProductBySlug.Gallery(%d): %v", product.ID, gerr)
+		} else if len(gallery) > 0 {
+			product.Gallery = gallery
+			if gallery[0].MediaAsset.PublicURL != "" {
+				u := gallery[0].MediaAsset.PublicURL
+				product.ThumbnailURL = &u
+			}
+		}
+	}
 	return product, nil
 }
 
@@ -96,7 +122,24 @@ func (s *Service) AdminGetProduct(ctx context.Context, slug string, locale strin
 	if err != nil {
 		return nil, models.ErrInvalidLocale
 	}
-	return s.repo.FindAdminBySlug(ctx, locale, slug)
+	p, err := s.repo.FindAdminBySlug(ctx, locale, slug)
+	if err != nil {
+		return nil, err
+	}
+	// Load the gallery for the admin detail view too (CMS edits the gallery here).
+	if s.galleryLoader != nil {
+		gallery, gerr := s.galleryLoader.ListProductMedia(ctx, p.ID)
+		if gerr != nil {
+			log.Printf("product.AdminGetProduct.Gallery(%d): %v", p.ID, gerr)
+		} else if len(gallery) > 0 {
+			p.Gallery = gallery
+			if gallery[0].MediaAsset.PublicURL != "" {
+				u := gallery[0].MediaAsset.PublicURL
+				p.ThumbnailURL = &u
+			}
+		}
+	}
+	return p, nil
 }
 
 func (s *Service) AdminCreateProduct(ctx context.Context, data models.CreateProductData) (*models.Product, error) {

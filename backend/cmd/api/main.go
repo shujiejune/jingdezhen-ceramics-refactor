@@ -27,8 +27,10 @@ import (
 	"jingdezhen-ceramics-backend/internal/modules/order"
 	"jingdezhen-ceramics-backend/internal/modules/payment"
 	"jingdezhen-ceramics-backend/internal/modules/certificate"
+	"jingdezhen-ceramics-backend/internal/modules/media"
 	"jingdezhen-ceramics-backend/pkg/adapters/payments"
 	"jingdezhen-ceramics-backend/pkg/adapters/certchain"
+	"jingdezhen-ceramics-backend/pkg/adapters/storage"
 	"jingdezhen-ceramics-backend/internal/platform/fx"
 	"jingdezhen-ceramics-backend/internal/platform/jobs"
 	platformredis "jingdezhen-ceramics-backend/internal/platform/redis"
@@ -332,6 +334,30 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 	orderService.SetProvenanceRecorder(certService)  // `sold` at MarkPaid
 	certificateHandler := certificate.NewHandler(certService)
 
+	// --- Media assets + product gallery (TDD §3.4 line 127/143, PRD §3.2.1) ---
+	// STORAGE_MODE=local (dev): LocalStore writes to a local dir served via a
+	// Fiber static mount at /media. "oss": live Alibaba Cloud OSS presign +
+	// CDN (NOT live-tested until creds land). The store is injected into the
+	// media service for PublicURL resolution + dev uploads + GC deletes.
+	var storageStore storage.Store
+	switch cfg.StorageMode {
+	case "oss":
+		storageStore = storage.NewOSSStore(
+			cfg.OSSAccessKeyID, cfg.OSSAccessKeySecret, cfg.OSSBucket,
+			cfg.OSSEndpoint, cfg.OSSPublicBaseURL,
+		)
+	default: // "local"
+		ls, err := storage.NewLocalStore(cfg.StorageLocalDir, cfg.StoragePublicBaseURL)
+		if err != nil {
+			log.Fatalf("storage.NewLocalStore: %v", err)
+		}
+		storageStore = ls
+	}
+	mediaRepo := media.NewRepository(dbPool)
+	mediaService := media.NewService(mediaRepo, storageStore)
+	mediaHandler := media.NewHandler(mediaService, storageStore)
+	productService.SetGalleryLoader(mediaService) // surface gallery on product detail
+
 	consentRepo := consent.NewRepository(dbPool)
 	consentService := consent.NewService(consentRepo, []byte(cfg.ConsentHMACKey))
 	consentHandler := consent.NewHandler(consentService)
@@ -344,8 +370,16 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 		wsHandler, userHandler, notifHandler,
 		ceramicStoryHandler, engageHandler, addressHandler,
 		consentHandler, artistHandler, productHandler, wishlistHandler, cartHandler, fxHandler,
-		shippingHandler, orderHandler, paymentHandler, certificateHandler, twoFAHandler, privacyHandler,
+		shippingHandler, orderHandler, paymentHandler, certificateHandler, mediaHandler, twoFAHandler, privacyHandler,
 	)
+
+	// --- Static mount for local-dev media (STORAGE_MODE=local) ---
+	// Serves uploaded files from STORAGE_LOCAL_DIR at STORAGE_PUBLIC_BASE_URL.
+	// In OSS mode this is a no-op — the CDN serves media directly.
+	if cfg.StorageMode != "oss" && cfg.StorageLocalDir != "" && cfg.StoragePublicBaseURL != "" {
+		app.Static(cfg.StoragePublicBaseURL, cfg.StorageLocalDir)
+		log.Printf("media: local store at %s -> %s", cfg.StorageLocalDir, cfg.StoragePublicBaseURL)
+	}
 
 	// --- Start server (graceful shutdown) ---
 	quit := make(chan os.Signal, 1)

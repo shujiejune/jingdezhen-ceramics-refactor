@@ -75,7 +75,7 @@ docker exec jdz-db psql -U postgres -d jingdezhen_ceramics_db -c "\dt"
 Spot-check a few of the things the migrations built.
 
 ```sh 
-# RBAC seed: 5 staff roles + 14 permissions + role_permissions wired               
+# RBAC seed: 5 staff roles + 14 permissions + role_permissions wired
 docker exec jdz-db psql -U postgres -d jingdezhen_ceramics_db -c "SELECT key FROM roles ORDER BY key;"
 # Expect: content_editor, customer, customer_service, ecommerce_operator, super_admin, travel_planner
 docker exec jdz-db psql -U postgres -d jingdezhen_ceramics_db -c "SELECT COUNT(*) FROM permissions;"

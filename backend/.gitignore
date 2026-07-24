@@ -27,3 +27,6 @@ Thumbs.db
 *.env
 .env.*
 !.env.example
+
+# Local-dev media uploads (STORAGE_MODE=local writes here)
+_media/

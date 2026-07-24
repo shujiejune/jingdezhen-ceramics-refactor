@@ -29,8 +29,8 @@ type Product struct {
 	ArtistID        *int64         `json:"artist_id,omitempty" db:"artist_id"`     // parent: FK to artists.id
 	ArtistName      *string        `json:"artist_name,omitempty" db:"-"`           // populated by service (joined or from artist_translations)
 	ArtistSlug      *string        `json:"artist_slug,omitempty" db:"-"`           // for cross-link to artist profile
-	Category        *string        `json:"category,omitempty" db:"category"`       // parent: bare string for now
-	ThumbnailURL    *string        `json:"thumbnail_url,omitempty" db:"thumbnail_url"` // parent
+	Category        *string        `json:"category,omitempty" db:"category"`       // parent: bare string for now (dead post-media; kept for back-comat)
+	ThumbnailURL    *string        `json:"thumbnail_url,omitempty" db:"thumbnail_url"` // parent: primary display (dead post-media; gallery preferred)
 	DisplayOrder    int            `json:"display_order" db:"display_order"`       // parent
 	// Translation fields.
 	Title           string         `json:"title" db:"title"`
@@ -43,6 +43,10 @@ type Product struct {
 	PublishedAt     *time.Time     `json:"published_at,omitempty" db:"published_at"`
 	// SKUs loaded by the service (detail view only; omitted from list view).
 	SKUs            []SKU          `json:"skus,omitempty" db:"-"`
+	// Gallery loaded by the service (detail view only). Empty when no
+	// product_media rows. The first item's media PublicURL is the preferred
+	// thumbnail; ThumbnailURL above is the fallback for back-comat.
+	Gallery         []ProductMediaItem `json:"gallery,omitempty" db:"-"`
 	CreatedAt       time.Time      `json:"created_at" db:"created_at"`             // parent
 	UpdatedAt       time.Time      `json:"updated_at" db:"updated_at"`             // parent
 }

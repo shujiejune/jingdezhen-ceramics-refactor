@@ -18,6 +18,7 @@ import (
 	"jingdezhen-ceramics-backend/internal/modules/order"
 	"jingdezhen-ceramics-backend/internal/modules/payment"
 	"jingdezhen-ceramics-backend/internal/modules/certificate"
+	"jingdezhen-ceramics-backend/internal/modules/media"
 	"jingdezhen-ceramics-backend/internal/platform/fx"
 	"jingdezhen-ceramics-backend/internal/modules/user"
 	"jingdezhen-ceramics-backend/internal/ws"
@@ -45,6 +46,7 @@ func SetupRoutes(
 	orderHandler *order.Handler,
 	paymentHandler *payment.Handler,
 	certificateHandler *certificate.Handler,
+	mediaHandler *media.Handler,
 	twoFAHandler *twofa.Handler,
 	privacyHandler *privacy.Handler,
 ) {
@@ -160,6 +162,7 @@ func SetupRoutes(
 	   includes the product's SKUs (purchasable units). */
 	app.Get("/catalog/products", productHandler.GetProducts)
 	app.Get("/catalog/products/:slug", productHandler.GetProductBySlug)
+	app.Get("/catalog/products/:id/media", mediaHandler.PublicListProductMedia)
 	app.Get("/catalog/categories", productHandler.GetCategories)
 
 	/* --- FX rates (dev-debug, public read) — TDD §7 --- */
@@ -267,6 +270,18 @@ func SetupRoutes(
 		adminOrdersRefund.Post("/:id/refund", orderHandler.Refund)
 
 		// Certificates — list/view (certificate.manage), regenerate.
+		// Media assets (central registry). content.write (content editors + super
+		// admin) — taxonomy + media are content-editor tools. Upload via presign
+		// (OSS) or direct POST (local dev); then register the asset.
+		adminMedia := adminGroup.Group("/media")
+		adminMedia.Use(middleware.RequirePermission(models.PermContentWrite))
+		adminMedia.Post("/presign", mediaHandler.PresignUpload)
+		adminMedia.Post("/upload", mediaHandler.UploadLocal)
+		adminMedia.Get("/assets", mediaHandler.ListAssets)
+		adminMedia.Post("/assets", mediaHandler.RegisterAsset)
+		adminMedia.Delete("/assets/:id", mediaHandler.DeleteAsset)
+
+		// Certificates — list/view (certificate.manage), regenerate.
 		adminCerts := adminGroup.Group("/certificates")
 		adminCerts.Use(middleware.RequirePermission(models.PermCertificateManage))
 		adminCerts.Get("", certificateHandler.ListCertificates)
@@ -354,6 +369,11 @@ func SetupRoutes(
 			adminProducts.Post("/:id/submit", productHandler.AdminSubmitProduct)
 			// SKU management (nested under the product for creation).
 			adminProducts.Post("/:id/skus", productHandler.AdminCreateSKU)
+			// Ordered media gallery (attach/detach/reorder/list).
+			adminProducts.Get("/:id/media", mediaHandler.ListProductMedia)
+			adminProducts.Post("/:id/media", mediaHandler.AttachToProduct)
+			adminProducts.Delete("/:id/media/:media_id", mediaHandler.DetachFromProduct)
+			adminProducts.Patch("/:id/media/order", mediaHandler.ReorderProductMedia)
 		}
 		adminProductsPublish := adminGroup.Group("/products")
 		adminProductsPublish.Use(middleware.RequirePermission(models.PermProductPublish))

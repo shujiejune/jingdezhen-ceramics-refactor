@@ -67,6 +67,16 @@ type Config struct {
 	OSSBucket          string `mapstructure:"OSS_BUCKET"`
 	OSSRegion          string `mapstructure:"OSS_REGION"` // e.g. cn-hongkong
 
+	// --- Object-storage adapter (TDD §4.1/§2.1) ---
+	// STORAGE_MODE=local (dev default): LocalStore writes to a local dir,
+	// served via a Fiber static mount at STORAGE_PUBLIC_BASE_URL. "oss": live
+	// Alibaba Cloud OSS presign + CDN (NOT live-tested until creds land). The
+	// media module depends on the Store interface, so swapping is an env flip.
+	StorageMode        string `mapstructure:"STORAGE_MODE"`         // local | oss
+	StorageLocalDir    string `mapstructure:"STORAGE_LOCAL_DIR"`    // e.g. ./_media
+	StoragePublicBaseURL string `mapstructure:"STORAGE_PUBLIC_BASE_URL"` // e.g. /media or https://cdn...com
+	OSSPublicBaseURL   string `mapstructure:"OSS_PUBLIC_BASE_URL"`   // CDN domain override (empty = bucket URL)
+
 	// --- FX pipeline (TDD §7, PRD §3.2.3) ---
 	// ECB_API_URL empty => fixture rates in dev (TDD §4.1). FX_MARKUP_BPS is
 	// basis points (200 = 2%); will move to a CMS settings table post-MVP.
@@ -108,4 +118,11 @@ func init() {
 	viper.SetDefault("ECB_API_URL", "")   // empty => fixture rates in dev
 	viper.SetDefault("FX_MARKUP_BPS", 200) // 200 bps = 2% (PRD §3.2.3 default)
 	viper.SetDefault("PAYMENTS_MODE", "mock") // dev: mock payment finalize seam
+
+	// Storage adapter defaults (TDD §4.1). Local dev = local-dir store;
+	// flip to "oss" when merchant OSS creds land.
+	viper.SetDefault("STORAGE_MODE", "local")
+	viper.SetDefault("STORAGE_LOCAL_DIR", "./_media")
+	viper.SetDefault("STORAGE_PUBLIC_BASE_URL", "/media")
+	viper.SetDefault("OSS_PUBLIC_BASE_URL", "") // empty = bucket URL
 }
