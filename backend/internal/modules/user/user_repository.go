@@ -33,6 +33,7 @@ type RepositoryInterface interface {
 	Update(ctx context.Context, userID string, updateData models.UserUpdateData) (*models.User, error)
 
 	ListAll(ctx context.Context, page, limit int) ([]models.User, int, error) // Admin: list users
+	ListByRole(ctx context.Context, roleKey string) ([]models.User, error)        // staff users with a role (low-stock alert recipients)
 	GetUserRoles(ctx context.Context, userID string) ([]string, error)        // RBAC: load role keys
 	AssignRole(ctx context.Context, userID string, roleKey string) error     // Admin: set single staff role
 }
@@ -422,6 +423,36 @@ func (r *Repository) ListAll(ctx context.Context, page, limit int) ([]models.Use
 		return nil, 0, fmt.Errorf("repository.ListAllUsers.Count: %w", err)
 	}
 	return users, total, nil
+}
+
+// ListByRole returns active users holding a given staff role (e.g. all
+// ecommerce_operator users for low-stock alert delivery, PRD §3.4.1).
+func (r *Repository) ListByRole(ctx context.Context, roleKey string) ([]models.User, error) {
+	// Qualify every column with u. — the JOIN to roles (which also has id) would
+	// otherwise make "id" ambiguous (userColumns is unqualified for the
+	// no-JOIN queries).
+	query := `SELECT u.id, u.nickname, u.email, u.avatar_url, u.profile_data,
+	                 u.preferred_locale, u.preferred_currency, u.auth_provider,
+	                 u.is_active, u.deleted_at, u.created_at, u.updated_at
+		FROM users u
+		JOIN user_roles ur ON ur.user_id = u.id
+		JOIN roles r ON r.id = ur.role_id
+		WHERE r.key = $1 AND u.is_active = TRUE AND u.deleted_at IS NULL
+		ORDER BY u.created_at ASC`
+	rows, err := r.db.Query(ctx, query, roleKey)
+	if err != nil {
+		return nil, fmt.Errorf("repository.ListByRole: %w", err)
+	}
+	defer rows.Close()
+	users := []models.User{}
+	for rows.Next() {
+		user, err := r.scanUser(rows)
+		if err != nil {
+			return nil, fmt.Errorf("repository.ListByRole.Scan: %w", err)
+		}
+		users = append(users, *user)
+	}
+	return users, rows.Err()
 }
 
 // GetUserRoles returns the staff role keys assigned to a user (empty for customers).

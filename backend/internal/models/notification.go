@@ -8,12 +8,13 @@ type NotificationType string
 const (
 	// System notifications (PRD-aligned types to be added as modules land:
 	// order status, low-stock alerts, itinerary status, chat handoff, content approval)
-	NotificationTypeSystem NotificationType = "system"
+	NotificationTypeSystem   NotificationType = "system"
+	NotificationTypeLowStock NotificationType = "low_stock" // PRD §3.4.1: low-stock alert to E-commerce Operators
 )
 
 // Notification represents a single notification for a user.
 type Notification struct {
-	ID               int64            `json:"notification_id" db:"notification_id"`
+	ID               int64            `json:"notification_id" db:"id"`
 	RecipientUserID  string           `json:"recipient_user_id" db:"recipient_user_id"`
 	ActorUserID      *string          `json:"actor_user_id,omitempty" db:"actor_user_id"`
 	ActorUser        *User            `json:"actor_user,omitempty" db:"-"`

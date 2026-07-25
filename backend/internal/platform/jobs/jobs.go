@@ -58,6 +58,15 @@ type PaymentFinalizePayload struct {
 // Empty by design; the cron-scheduled instance uses defaults.
 type FXRefreshPayload struct{}
 
+// StockCheckPayload triggers a low-stock alert check for the SKUs touched by a
+// paid order (TDD line 234: "order paid | fires low-stock notification/email").
+// Enqueued by order.MarkPaid; the worker queries each SKU's post-decrement
+// stock + fires dashboard notifications + Brevo emails to ecommerce operators.
+type StockCheckPayload struct {
+	OrderID int64   `json:"order_id"`
+	SkuIDs  []int64 `json:"sku_ids"`
+}
+
 // --- Enqueue helpers (used by the `serve` mode) -----------------------------
 
 // Client wraps asynq.Client for enqueuing jobs. Services depend on this to
@@ -104,6 +113,12 @@ func (c *Client) EnqueueFXRefresh(ctx context.Context) error {
 	return c.enqueue(ctx, TypeFXRefresh, FXRefreshPayload{})
 }
 
+// EnqueueStockCheck enqueues a low-stock alert check for a paid order's SKUs
+// (TDD line 234). Retried ×5 — a flaky alert shouldn't be silently lost.
+func (c *Client) EnqueueStockCheck(ctx context.Context, p StockCheckPayload) error {
+	return c.enqueue(ctx, TypeStockCheck, p, asynq.MaxRetry(5))
+}
+
 // --- Server / worker (the `worker` mode) -------------------------------------
 
 // Server wraps the Asynq server + mux with the platform's job types.
@@ -133,7 +148,7 @@ type Server struct {
 	MediaTranscode  func(context.Context) error
 	PDFGenerate     func(context.Context) error
 	SitemapRebuild  func(context.Context) error
-	StockCheck      func(context.Context) error
+	StockCheck      func(context.Context, StockCheckPayload) error
 }
 
 // NewServer constructs the Asynq worker server. Concurrency defaults to a
@@ -185,8 +200,15 @@ func (s *Server) Run(ctx context.Context) error {
 	s.mux.HandleFunc(TypeSitemapRebuild, func(_ context.Context, _ *asynq.Task) error {
 		return runNoop(s.SitemapRebuild, "sitemap:rebuild")
 	})
-	s.mux.HandleFunc(TypeStockCheck, func(_ context.Context, _ *asynq.Task) error {
-		return runNoop(s.StockCheck, "stock:check")
+	s.mux.HandleFunc(TypeStockCheck, func(_ context.Context, t *asynq.Task) error {
+		var p StockCheckPayload
+		if err := json.Unmarshal(t.Payload(), &p); err != nil {
+			return fmt.Errorf("jobs: unmarshal %s: %w", TypeStockCheck, err)
+		}
+		if s.StockCheck == nil {
+			return nil // no-op when not wired (e.g. serve mode)
+		}
+		return s.StockCheck(context.Background(), p)
 	})
 
 	errCh := make(chan error, 1)

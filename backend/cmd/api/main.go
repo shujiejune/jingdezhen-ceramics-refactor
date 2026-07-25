@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/url"
 	"os"
@@ -11,6 +12,7 @@ import (
 
 	"jingdezhen-ceramics-backend/internal/api"
 	"jingdezhen-ceramics-backend/internal/config"
+	"jingdezhen-ceramics-backend/internal/models"
 	"jingdezhen-ceramics-backend/internal/modules/address"
 	"jingdezhen-ceramics-backend/internal/modules/artist"
 	"jingdezhen-ceramics-backend/internal/modules/ceramicstory"
@@ -121,6 +123,14 @@ func (e orderEmailEnqueuer) EnqueueEmailSend(ctx context.Context, to, subject, p
 	return e.c.EnqueueEmailSend(ctx, jobs.EmailSendPayload{
 		To: to, Subject: subject, PlainText: plainText, HTML: html,
 	})
+}
+
+// orderStockCheckEnqueuer adapts jobs.Client → order.StockCheckEnqueuer
+// (serve mode enqueues the job; the worker handles it).
+type orderStockCheckEnqueuer struct{ c *jobs.Client }
+
+func (e orderStockCheckEnqueuer) EnqueueStockCheck(ctx context.Context, orderID int64, skuIDs []int64) error {
+	return e.c.EnqueueStockCheck(ctx, jobs.StockCheckPayload{OrderID: orderID, SkuIDs: skuIDs})
 }
 
 // --- serve mode (API + WebSocket) --------------------------------------------
@@ -332,6 +342,7 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 	certService := certificate.NewService(certRepo, certchain.NewNoopChain())
 	productService.SetCertificateIssuer(certService) // auto-issue at create
 	orderService.SetProvenanceRecorder(certService)  // `sold` at MarkPaid
+	orderService.SetStockCheckEnqueuer(orderStockCheckEnqueuer{jobClient}) // low-stock alert at MarkPaid
 	certificateHandler := certificate.NewHandler(certService)
 
 	// --- Media assets + product gallery (TDD §3.4 line 127/143, PRD §3.2.1) ---
@@ -459,6 +470,56 @@ func runWorker(rootCtx context.Context, cfg config.Config) {
 			return nil // cancel-on-failure lands with #6
 		}
 		return orderService.MarkPaid(ctx, p.OrderID)
+	}
+
+	// stock:check (TDD line 234) — low-stock alert after an order is paid.
+	// Loads post-decrement stock for the order's SKUs; for each at/below
+	// threshold, creates a dashboard notification + enqueues a Brevo email to
+	// every ecommerce_operator. Best-effort: a single notification/email
+	// failure is logged + skipped, never blocks the job.
+	wProductRepo := product.NewRepository(dbPool)
+	wUserRepo := user.NewRepository(dbPool)
+	wNotifRepo := notification.NewRepository(dbPool)
+	// Worker has no WS hub (only serve mode serves WebSockets); pass nil — the
+	// notification service is nil-safe (creates the row, skips the WS push).
+	wNotifService := notification.NewService(wNotifRepo, wUserRepo, nil)
+	wJobClient := jobs.NewClient(redisAddr) // for enqueuing low-stock emails
+	// The worker's MarkPaid enqueues stock:check to itself (asynq supports
+	// enqueue-from-worker). Same client as the emails.
+	orderService.SetStockCheckEnqueuer(orderStockCheckEnqueuer{wJobClient})
+	jobServer.StockCheck = func(ctx context.Context, p jobs.StockCheckPayload) error {
+		lowStock, err := wProductRepo.FindLowStock(ctx, p.SkuIDs)
+		if err != nil {
+			return fmt.Errorf("worker.StockCheck.FindLowStock: %w", err)
+		}
+		if len(lowStock) == 0 {
+			return nil
+		}
+		operators, err := wUserRepo.ListByRole(ctx, models.RoleEcommerceOperator)
+		if err != nil {
+			return fmt.Errorf("worker.StockCheck.ListByRole: %w", err)
+		}
+		for _, sku := range lowStock {
+			msg := fmt.Sprintf("SKU %s is low on stock (%d left, threshold %d)",
+				sku.SKUCode, sku.Stock, sku.LowStockThreshold)
+			for _, op := range operators {
+				// Dashboard notification (creates a row + WS push if online).
+				if _, err := wNotifService.CreateNotification(ctx, models.CreateNotificationParams{
+					RecipientUserID: op.ID,
+					Type:            models.NotificationTypeLowStock,
+					ExtraData:       map[string]string{"message": msg},
+				}); err != nil {
+					log.Printf("worker.StockCheck.Notify(user=%s sku=%s): %v", op.ID, sku.SKUCode, err)
+				}
+				// Brevo email (plain text; HTML template deferred).
+				if err := wJobClient.EnqueueEmailSend(ctx, jobs.EmailSendPayload{
+					To: op.Email, Subject: "Low stock: " + sku.SKUCode, PlainText: msg,
+				}); err != nil {
+					log.Printf("worker.StockCheck.Email(user=%s sku=%s): %v", op.ID, sku.SKUCode, err)
+				}
+			}
+		}
+		return nil
 	}
 	jobScheduler := jobs.NewScheduler(redisAddr)
 

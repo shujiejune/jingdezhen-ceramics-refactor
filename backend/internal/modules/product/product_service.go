@@ -2,6 +2,7 @@ package product
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"jingdezhen-ceramics-backend/internal/models"
 	"jingdezhen-ceramics-backend/internal/platform/i18ncontent"
@@ -18,6 +19,7 @@ type ServiceInterface interface {
 	AdminListProducts(ctx context.Context, locale, status string, page, limit int) ([]models.Product, int, error)
 	AdminGetProduct(ctx context.Context, slug string, locale string) (*models.Product, error)
 	AdminCreateProduct(ctx context.Context, data models.CreateProductData) (*models.Product, error)
+	AdminBulkImport(ctx context.Context, rows []models.BulkImportRow) (models.BulkImportSummary, error)
 	AdminUpdateProduct(ctx context.Context, productID int64, locale string, data models.UpdateProductData, actor i18ncontent.WorkflowActor) (*models.Product, error)
 	AdminTransitionProduct(ctx context.Context, productID int64, locale string, to models.ContentStatus, actor i18ncontent.WorkflowActor, reviewerID string) (*models.Product, error)
 	AdminDeleteProduct(ctx context.Context, productID int64) error
@@ -163,6 +165,74 @@ func (s *Service) AdminCreateProduct(ctx context.Context, data models.CreateProd
 		}
 	}
 	return p, nil
+}
+
+// AdminBulkImport creates products (+ their first SKU) from CSV rows, one tx
+// per row so a bad row doesn't poison good ones. Returns a per-row report
+// (PRD §3.4.1 line 175: "bulk upload CSV/Excel import"). Multi-SKU products
+// are created via the regular per-product SKU endpoint after import.
+func (s *Service) AdminBulkImport(ctx context.Context, rows []models.BulkImportRow) (models.BulkImportSummary, error) {
+	summary := models.BulkImportSummary{Results: []models.BulkImportResult{}}
+	for i, row := range rows {
+		res := models.BulkImportResult{Row: i + 1}
+		if row.Title == "" || row.Slug == "" {
+			res.Error = "missing required field: title or slug"
+			summary.Failed++
+			summary.Results = append(summary.Results, res)
+			continue
+		}
+		locale := row.Locale
+		if locale == "" {
+			locale = "en-US"
+		}
+		loc, err := i18ncontent.NormalizeLocale(locale, true)
+		if err != nil {
+			res.Error = "invalid locale: " + locale
+			summary.Failed++
+			summary.Results = append(summary.Results, res)
+			continue
+		}
+		data := models.CreateProductData{
+			Locale: loc, Title: row.Title, Slug: row.Slug, Category: row.Category,
+			ArtistID: row.ArtistID, ThumbnailURL: row.ThumbnailURL,
+			DisplayOrder: row.DisplayOrder, Description: row.Description,
+		}
+		p, err := s.repo.CreateWithTranslation(ctx, data)
+		if err != nil {
+			res.Error = fmt.Sprintf("create product: %v", err)
+			summary.Failed++
+			summary.Results = append(summary.Results, res)
+			continue
+		}
+		res.ProductID = p.ID
+		// Best-effort cert auto-issue (same as AdminCreateProduct).
+		if s.certIssuer != nil {
+			if err := s.certIssuer.IssueForProduct(ctx, p.ID); err != nil {
+				log.Printf("product.BulkImport.IssueCert(product=%d): %v", p.ID, err)
+			}
+		}
+		// Optional first SKU.
+		if row.SKUCode != "" {
+			skuData := models.CreateSKUData{
+				SKUCode: row.SKUCode, PriceCNY: row.PriceCNY, Stock: row.Stock,
+				WeightGrams: row.WeightGrams, LowStockThreshold: row.LowStockThreshold,
+			}
+			if row.Attributes != "" {
+				skuData.Attributes = json.RawMessage(row.Attributes)
+			}
+			sku, err := s.repo.CreateSKU(ctx, p.ID, skuData)
+			if err != nil {
+				res.Error = fmt.Sprintf("product %d created but SKU failed: %v", p.ID, err)
+				summary.Failed++
+				summary.Results = append(summary.Results, res)
+				continue
+			}
+			res.SKUCode = sku.SKUCode
+		}
+		summary.Imported++
+		summary.Results = append(summary.Results, res)
+	}
+	return summary, nil
 }
 
 func (s *Service) AdminUpdateProduct(ctx context.Context, productID int64, locale string, data models.UpdateProductData, actor i18ncontent.WorkflowActor) (*models.Product, error) {

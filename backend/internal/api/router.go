@@ -364,6 +364,7 @@ func SetupRoutes(
 			adminProducts.Get("", productHandler.AdminListProducts)
 			adminProducts.Get("/:slug", productHandler.AdminGetProduct)
 			adminProducts.Post("", productHandler.AdminCreateProduct)
+			adminProducts.Post("/import", productHandler.AdminBulkImport)
 			adminProducts.Put("/:id", productHandler.AdminUpdateProduct)
 			adminProducts.Delete("/:id", productHandler.AdminDeleteProduct)
 			adminProducts.Post("/:id/submit", productHandler.AdminSubmitProduct)

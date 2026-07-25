@@ -2,12 +2,15 @@ package product
 
 import (
 	"context"
+	"encoding/csv"
 	"errors"
+	"io"
 	"jingdezhen-ceramics-backend/internal/models"
 	"jingdezhen-ceramics-backend/internal/platform/i18ncontent"
 	"jingdezhen-ceramics-backend/pkg/utils"
 	"log"
 	"strconv"
+	"strings"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
@@ -191,6 +194,109 @@ func (h *Handler) AdminCreateProduct(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(models.ErrorResponse{Message: "Failed to create product"})
 	}
 	return c.Status(fiber.StatusCreated).JSON(product)
+}
+
+// AdminBulkImport: POST /admin/products/import (multipart "file" CSV, or raw CSV body)
+// PRD §3.4.1 line 175: bulk upload CSV import. One product per row (+ optional
+// first SKU). Returns a per-row summary (imported / failed / errors).
+func (h *Handler) AdminBulkImport(c *fiber.Ctx) error {
+	var reader io.Reader
+	// Prefer a multipart "file" upload; fall back to raw CSV body.
+	if fh, err := c.FormFile("file"); err == nil {
+		f, err := fh.Open()
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(models.ErrorResponse{Message: "Failed to open upload"})
+		}
+		defer f.Close()
+		reader = f
+	} else if body := c.Body(); len(body) > 0 {
+		reader = strings.NewReader(string(body))
+	} else {
+		return c.Status(fiber.StatusBadRequest).JSON(models.ErrorResponse{Message: "Missing CSV file (multipart 'file' field or raw body)"})
+	}
+
+	rows, err := parseCSV(reader)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(models.ErrorResponse{Message: "CSV parse: " + err.Error()})
+	}
+	if len(rows) == 0 {
+		return c.Status(fiber.StatusBadRequest).JSON(models.ErrorResponse{Message: "CSV has no data rows"})
+	}
+	summary, err := h.service.AdminBulkImport(c.Context(), rows)
+	if err != nil {
+		log.Printf("Handler.AdminBulkImport: %v", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(models.ErrorResponse{Message: "Import failed"})
+	}
+	return c.Status(fiber.StatusOK).JSON(summary)
+}
+
+// parseCSV maps CSV columns → BulkImportRow. Header row required; columns:
+// title,slug,category,artist_id,thumbnail_url,display_order,description,locale,
+// sku_code,price_cny,stock,weight_grams,low_stock_threshold,attributes
+func parseCSV(r io.Reader) ([]models.BulkImportRow, error) {
+	cr := csv.NewReader(r)
+	cr.FieldsPerRecord = -1 // tolerate ragged rows
+	header, err := cr.Read()
+	if err != nil {
+		return nil, err
+	}
+	idx := map[string]int{}
+	for i, h := range header {
+		idx[strings.ToLower(strings.TrimSpace(h))] = i
+	}
+	out := []models.BulkImportRow{}
+	for {
+		rec, err := cr.Read()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+		row := models.BulkImportRow{}
+		get := func(col string) string {
+			if i, ok := idx[col]; ok && i < len(rec) {
+				return strings.TrimSpace(rec[i])
+			}
+			return ""
+		}
+		row.Title = get("title")
+		row.Slug = get("slug")
+		row.Category = get("category")
+		if v := get("artist_id"); v != "" {
+			id, err := strconv.ParseInt(v, 10, 64)
+			if err == nil {
+				row.ArtistID = &id
+			}
+		}
+		row.ThumbnailURL = get("thumbnail_url")
+		if v := get("display_order"); v != "" {
+			n, _ := strconv.Atoi(v)
+			row.DisplayOrder = n
+		}
+		row.Description = get("description")
+		row.Locale = get("locale")
+		row.SKUCode = get("sku_code")
+		if v := get("price_cny"); v != "" {
+			n, _ := strconv.ParseInt(v, 10, 64)
+			row.PriceCNY = n
+		}
+		if v := get("stock"); v != "" {
+			n, _ := strconv.Atoi(v)
+			row.Stock = n
+		}
+		if v := get("weight_grams"); v != "" {
+			n, _ := strconv.Atoi(v)
+			row.WeightGrams = n
+		}
+		if v := get("low_stock_threshold"); v != "" {
+			n, _ := strconv.Atoi(v)
+			row.LowStockThreshold = &n
+		}
+		row.Attributes = get("attributes")
+		out = append(out, row)
+	}
+	return out, nil
 }
 
 // AdminUpdateProduct: PUT /admin/products/:id?locale=en-US

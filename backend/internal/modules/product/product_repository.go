@@ -19,6 +19,7 @@ type RepositoryInterface interface {
 	FindAllPublished(ctx context.Context, locale, category string, artistID int64, page, limit int) ([]models.Product, int, error)
 	FindPublishedBySlug(ctx context.Context, locale, slug string) (*models.Product, error)
 	FindSKUsByProductID(ctx context.Context, productID int64) ([]models.SKU, error)
+	FindLowStock(ctx context.Context, skuIDs []int64) ([]models.SKU, error) // stock <= low_stock_threshold
 
 	// --- Admin / CMS (products) ---
 	FindAllAdmin(ctx context.Context, locale, status string, page, limit int) ([]models.Product, int, error)
@@ -170,6 +171,36 @@ func (r *Repository) FindSKUsByProductID(ctx context.Context, productID int64) (
 		out = append(out, s)
 	}
 	return out, nil
+}
+
+// FindLowStock returns the subset of the given SKUs whose stock is at or below
+// their low_stock_threshold (PRD §3.4.1: default 2). Called by the stock:check
+// worker after an order is paid (stock already decremented at checkout).
+func (r *Repository) FindLowStock(ctx context.Context, skuIDs []int64) ([]models.SKU, error) {
+	if len(skuIDs) == 0 {
+		return nil, nil
+	}
+	rows, err := r.db.Query(ctx, `
+		SELECT id, product_id, sku_code, price_cny, stock, weight_grams,
+		       low_stock_threshold, attributes, is_active, created_at, updated_at
+		FROM skus
+		WHERE id = ANY($1) AND stock <= low_stock_threshold
+		ORDER BY id ASC`, skuIDs)
+	if err != nil {
+		return nil, fmt.Errorf("repository.FindLowStock: %w", err)
+	}
+	defer rows.Close()
+	out := []models.SKU{}
+	for rows.Next() {
+		var s models.SKU
+		if err := rows.Scan(&s.ID, &s.ProductID, &s.SKUCode, &s.PriceCNY, &s.Stock,
+			&s.WeightGrams, &s.LowStockThreshold, &s.Attributes, &s.IsActive,
+			&s.CreatedAt, &s.UpdatedAt); err != nil {
+			return nil, fmt.Errorf("repository.FindLowStock.Scan: %w", err)
+		}
+		out = append(out, s)
+	}
+	return out, rows.Err()
 }
 
 // --- Admin / CMS (products) ---

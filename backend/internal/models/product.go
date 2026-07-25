@@ -115,6 +115,43 @@ type CreateSKUData struct {
 	IsActive          *bool           `json:"is_active,omitempty"`
 }
 
+// --- Bulk CSV import (PRD §3.4.1 line 175) ---
+// One row = one product + its first SKU. Multi-SKU products are created via
+// the regular per-product SKU endpoint after import. The CSV columns mirror
+// CreateProductData + CreateSKUData; the handler maps them.
+type BulkImportRow struct {
+	Title             string // required
+	Slug              string // required
+	Category          string
+	ArtistID          *int64
+	ThumbnailURL      string
+	DisplayOrder      int
+	Description       string
+	Locale            string // defaults to en-US
+	// First SKU (optional — a product row may have no SKU).
+	SKUCode           string
+	PriceCNY          int64
+	Stock             int
+	WeightGrams       int
+	LowStockThreshold *int
+	Attributes        string // raw JSON string; empty → NULL
+}
+
+// BulkImportResult is the per-row outcome of a bulk import.
+type BulkImportResult struct {
+	Row        int    `json:"row"`         // 1-indexed CSV row number (after header)
+	ProductID  int64  `json:"product_id,omitempty"`
+	SKUCode    string `json:"sku_code,omitempty"`
+	Error      string `json:"error,omitempty"`
+}
+
+// BulkImportSummary is the response for POST /admin/products/import.
+type BulkImportSummary struct {
+	Imported int                `json:"imported"`
+	Failed   int                `json:"failed"`
+	Results  []BulkImportResult `json:"results"`
+}
+
 // UpdateSKUData updates a SKU. A nil pointer = leave unchanged.
 type UpdateSKUData struct {
 	SKUCode           *string         `json:"sku_code,omitempty" validate:"omitempty,max=100"`

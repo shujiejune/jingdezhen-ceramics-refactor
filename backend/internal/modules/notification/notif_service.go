@@ -190,7 +190,10 @@ func (s *Service) generateMessage(params models.CreateNotificationParams) (strin
 	switch params.Type {
 	case models.NotificationTypeSystem:
 		return params.ExtraData["message"], nil
-	// PRD-aligned types (order status, low-stock, itinerary status, chat handoff,
+	case models.NotificationTypeLowStock:
+		// PRD §3.4.1: low-stock alert to E-commerce Operators.
+		return params.ExtraData["message"], nil
+	// PRD-aligned types (order status, itinerary status, chat handoff,
 	// content approval) will be added as their modules land.
 	default:
 		return "", fmt.Errorf("unrecognized notification type: %s", params.Type)

@@ -86,6 +86,13 @@ type ProvenanceRecorder interface {
 	RecordSale(ctx context.Context, orderID int64, items []models.SaleItemSnapshot) error
 }
 
+// StockCheckEnqueuer enqueues a low-stock alert check for a paid order's SKUs
+// (TDD line 234). Implemented by a thin wrapper over jobs.Client; nil in worker
+// mode (the worker handles the job, it doesn't enqueue it).
+type StockCheckEnqueuer interface {
+	EnqueueStockCheck(ctx context.Context, orderID int64, skuIDs []int64) error
+}
+
 // ServiceInterface defines order business logic.
 type ServiceInterface interface {
 	Checkout(ctx context.Context, userID string, req models.CheckoutRequest, locale string) (*models.Order, error)
@@ -115,6 +122,7 @@ type Service struct {
 	userFetcher    UserFetcher      // customer email for the order confirmation
 	paymentsMode string // "mock" (dev) | "live" (#6, not yet configured)
 	provenance   ProvenanceRecorder // optional; nil => no provenance (worker without the cert service)
+	stockCheck   StockCheckEnqueuer  // optional; nil => no low-stock alert (worker mode)
 }
 
 func NewService(
@@ -153,6 +161,10 @@ func (s *Service) SetPaymentRefunder(pr PaymentRefunder) { s.paymentRefunder = p
 // SetProvenanceRecorder wires the certificate provenance recorder
 // post-construction (called in main.go after both services are built).
 func (s *Service) SetProvenanceRecorder(pr ProvenanceRecorder) { s.provenance = pr }
+
+// SetStockCheckEnqueuer wires the low-stock alert enqueuer (serve mode only —
+// the worker handles the job, it doesn't enqueue it).
+func (s *Service) SetStockCheckEnqueuer(sc StockCheckEnqueuer) { s.stockCheck = sc }
 
 // Checkout creates an order from the user's cart (PRD §3.2.3, TDD §7/§8):
 //  1. Load + validate cart (non-empty).
@@ -331,21 +343,47 @@ func (s *Service) MarkPaid(ctx context.Context, orderID int64) error {
 			log.Printf("order.MarkPaid.Provenance(order=%d): %v", orderID, err)
 		}
 	}
+	// Low-stock alert (TDD line 234). Best-effort enqueue — a job failure is
+	// logged, never blocks the order. The worker queries post-decrement stock.
+	if s.stockCheck != nil {
+		items, err := s.loadOrderItems(ctx, orderID)
+		if err != nil {
+			log.Printf("order.MarkPaid.LoadItems(order=%d): %v", orderID, err)
+		} else {
+			skuIDs := make([]int64, 0, len(items))
+			for _, it := range items {
+				skuIDs = append(skuIDs, it.SkuID)
+			}
+			if err := s.stockCheck.EnqueueStockCheck(ctx, orderID, skuIDs); err != nil {
+				log.Printf("order.MarkPaid.StockCheck(order=%d): %v", orderID, err)
+			}
+		}
+	}
 	return nil
+}
+
+// loadOrderItems fetches the order's items (sku_id + qty). Shared by the
+// provenance + low-stock side effects to avoid a double query.
+func (s *Service) loadOrderItems(ctx context.Context, orderID int64) ([]models.OrderItem, error) {
+	o, err := s.repo.GetByID(ctx, orderID)
+	if err != nil {
+		return nil, err
+	}
+	return o.Items, nil
 }
 
 // appendSoldProvenance loads the order's items + records a `sold` provenance
 // row per product certificate via the injected recorder.
 func (s *Service) appendSoldProvenance(ctx context.Context, orderID int64) error {
-	o, err := s.repo.GetByID(ctx, orderID)
+	items, err := s.loadOrderItems(ctx, orderID)
 	if err != nil {
 		return err
 	}
-	items := make([]models.SaleItemSnapshot, len(o.Items))
-	for i, it := range o.Items {
-		items[i] = models.SaleItemSnapshot{SkuID: it.SkuID, Qty: it.Qty}
+	snapshots := make([]models.SaleItemSnapshot, len(items))
+	for i, it := range items {
+		snapshots[i] = models.SaleItemSnapshot{SkuID: it.SkuID, Qty: it.Qty}
 	}
-	return s.provenance.RecordSale(ctx, orderID, items)
+	return s.provenance.RecordSale(ctx, orderID, snapshots)
 }
 
 func (s *Service) Ship(ctx context.Context, orderID int64, req models.ShipOrderRequest) error {
