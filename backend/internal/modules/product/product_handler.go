@@ -61,13 +61,15 @@ func requestLocale(c *fiber.Ctx) string {
 
 // --- Public reads ---
 
-// GetProducts: GET /catalog/products?locale=en-US&category=&artist=&page=&limit=
+// GetProducts: GET /catalog/products?locale=en-US&category=&artist=&tag=&page=&limit=
+// `tag` is a comma-separated list of canonical tag keys (ANY-match).
 func (h *Handler) GetProducts(c *fiber.Ctx) error {
 	page, limit := utils.GetPageLimit(c)
 	locale := requestLocale(c)
 	category := c.Query("category")
 	artistID, _ := strconv.ParseInt(c.Query("artist"), 10, 64)
-	products, total, err := h.service.GetProducts(c.Context(), locale, category, artistID, page, limit)
+	tags := parseTagKeys(c.Query("tag"))
+	products, total, err := h.service.GetProducts(c.Context(), locale, category, artistID, tags, page, limit)
 	if err != nil {
 		log.Printf("Handler.GetProducts: %v", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(models.ErrorResponse{Message: "Failed to retrieve products"})
@@ -142,12 +144,14 @@ type localeBody struct {
 	Locale string `json:"locale" validate:"required,len=5"`
 }
 
-// AdminListProducts: GET /admin/products?locale=&status=&page=&limit=
+// AdminListProducts: GET /admin/products?locale=&status=&tag=&page=&limit=
+// `tag` is a comma-separated list of canonical tag keys (ANY-match).
 func (h *Handler) AdminListProducts(c *fiber.Ctx) error {
 	page, limit := utils.GetPageLimit(c)
 	locale := c.Query("locale")
 	status := c.Query("status")
-	products, total, err := h.service.AdminListProducts(c.Context(), locale, status, page, limit)
+	tags := parseTagKeys(c.Query("tag"))
+	products, total, err := h.service.AdminListProducts(c.Context(), locale, status, tags, page, limit)
 	if err != nil {
 		if errors.Is(err, models.ErrInvalidLocale) {
 			return c.Status(fiber.StatusBadRequest).JSON(models.ErrorResponse{Message: err.Error()})
@@ -230,9 +234,30 @@ func (h *Handler) AdminBulkImport(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(summary)
 }
 
+// parseCSVTags splits a semicolon-separated CSV cell into normalized tag keys
+// (lowercase, trimmed; empty entries dropped). Returns nil when the cell is
+// empty — the repo treats nil as "no tags to set".
+func parseCSVTags(raw string) []string {
+	if raw == "" {
+		return nil
+	}
+	parts := strings.Split(raw, ";")
+	out := []string{}
+	for _, p := range parts {
+		k := strings.ToLower(strings.TrimSpace(p))
+		if k != "" {
+			out = append(out, k)
+		}
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
+}
+
 // parseCSV maps CSV columns → BulkImportRow. Header row required; columns:
 // title,slug,category,artist_id,thumbnail_url,display_order,description,locale,
-// sku_code,price_cny,stock,weight_grams,low_stock_threshold,attributes
+// sku_code,price_cny,stock,weight_grams,low_stock_threshold,attributes,tags
 func parseCSV(r io.Reader) ([]models.BulkImportRow, error) {
 	cr := csv.NewReader(r)
 	cr.FieldsPerRecord = -1 // tolerate ragged rows
@@ -294,6 +319,9 @@ func parseCSV(r io.Reader) ([]models.BulkImportRow, error) {
 			row.LowStockThreshold = &n
 		}
 		row.Attributes = get("attributes")
+		// Tags: semicolon-separated canonical keys within the cell (e.g.
+		// `hand-painted;cobalt-blue`). Empty → no tags.
+		row.Tags = parseCSVTags(get("tags"))
 		out = append(out, row)
 	}
 	return out, nil
@@ -465,4 +493,38 @@ func (h *Handler) GetCategories(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(models.ErrorResponse{Message: "Failed to retrieve categories"})
 	}
 	return c.Status(fiber.StatusOK).JSON(categories)
+}
+
+// GetTags: GET /catalog/tags?locale=en-US
+// Lists tags attached to ≥1 published product, with the locale-resolved display
+// name + a product count (public facet list, PRD §3.2.1 line 173).
+func (h *Handler) GetTags(c *fiber.Ctx) error {
+	locale := requestLocale(c)
+	tags, err := h.service.GetTags(c.Context(), locale)
+	if err != nil {
+		log.Printf("Handler.GetTags: %v", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(models.ErrorResponse{Message: "Failed to retrieve tags"})
+	}
+	return c.Status(fiber.StatusOK).JSON(tags)
+}
+
+// parseTagKeys splits a comma-separated `?tag=` query value into normalized tag
+// keys (lowercase, trimmed; empty entries dropped). Returns nil when the param
+// is absent or empty — the repo treats nil as "no tag filter".
+func parseTagKeys(raw string) []string {
+	if raw == "" {
+		return nil
+	}
+	parts := strings.Split(raw, ",")
+	out := []string{}
+	for _, p := range parts {
+		k := strings.ToLower(strings.TrimSpace(p))
+		if k != "" {
+			out = append(out, k)
+		}
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
 }

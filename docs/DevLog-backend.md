@@ -401,3 +401,52 @@ curl -s http://localhost:1323/profile \
  ├────────────────────────┼────────────────────┼────────────────────────────────────┤ 
  │ 500                    │ Server bug         │ Check logs in terminal 1           │ 
  └────────────────────────┴────────────────────┴────────────────────────────────────┘
+
+## `media_assets` table vs. scattered URLs
+
+Scattered URL strings: Every entity just has a text column: `products.thumbnail_url`, `artist.avatar_url`, etc. The DB stores a full string.
+
+What do `media_assets` and ordered galleries bring?
+
+### Multiple images per entity
+
+A product can have more than one `thumbnail_url`, e.g. a main short + 3 detail shots + a firing video.
+If you go with N image columns or a comma-separated string, the ordering, captions and queries will be broken.
+
+### Metadata the frontend needs
+
+`media_assets` carries width, height, mime, duration. A bare URL string has none of it.
+- `<img width height>` prevents layout shift (CLS), which is a core web vitals and SEO ranking signal. With a bare URL the frontend can't render dimensions until the image loads.
+- Aspect-ratio CSS for placeholders, responsive `srcset`, video-duration badges, all need metadata the DB doesn't hold.
+
+### CDN URL resolution in one place
+
+With scattered strings, the URL is baked ino every row of every table. If you change OSS bucket, CDN domain, or want to add OSS image-processing params (`?x-oss-process=image/resize,w_400`), you do a data migration across products + artists + stories + activities. With `media_assets`, the DB stores the stable `oss_key`. The storage adapter resolves `oss_key` to CDN URL at read time. Config change = one adapter edit without data migration.
+
+### Referential integrity
+
+A FK means a product's gallery can't point at a deleted/renamed OSS object without surfacing it. A bare string can silently dangle.
+
+### Reuse without duplication
+
+One detail shot shared across a product, a ceramic story, and the artist's profile is one `media_assets` row referenced by 3 gallery rows.
+With strings you paste the URL 3x and fix 3 places if the file moves.
+
+### The video pipeline can't exist without it
+
+Video streaming needs FFmpeg -> HLS transcoding, with the result stored in `media_assets.hls_key`. A bare `image_url` string can't carry it.
+
+### Upload accounting + cost control
+
+- `uploaded_by`, `created_at`
+- orphan detection: assets referenced by nothing -> GC from OSS to save storage cost
+- quota per admin
+
+### Type-aware rendering
+
+`kind image|video` lets the frontend pick `<img>` vs a player without sniffing the file extension out of a URL.
+
+### Trade-off
+
+More joins, more code, more migration surface.
+Advantages are as above.

@@ -22,6 +22,14 @@ import (
 // migrations.
 // =============================================================================
 
+// TagWithCount is a tag plus the number of published products it is attached
+// to — used for the public facet list (GET /catalog/tags). The embedded Tag
+// holds the locale-resolved display name.
+type TagWithCount struct {
+	Tag          `json:",inline"`
+	ProductCount int `json:"product_count"`
+}
+
 // Product is the merged public view: parent fields + the requested locale's
 // translation. Scanned from a JOIN of products + product_translations.
 type Product struct {
@@ -47,6 +55,9 @@ type Product struct {
 	// product_media rows. The first item's media PublicURL is the preferred
 	// thumbnail; ThumbnailURL above is the fallback for back-comat.
 	Gallery         []ProductMediaItem `json:"gallery,omitempty" db:"-"`
+	// Tags loaded by the service (list + detail views; batch-loaded to avoid N+1).
+	// `Name` is the locale-resolved display name (en-US → key fallback).
+	Tags            []Tag              `json:"tags,omitempty" db:"-"`
 	CreatedAt       time.Time      `json:"created_at" db:"created_at"`             // parent
 	UpdatedAt       time.Time      `json:"updated_at" db:"updated_at"`             // parent
 }
@@ -88,6 +99,10 @@ type CreateProductData struct {
 	Category        string `json:"category,omitempty" validate:"omitempty,max=100"`
 	ThumbnailURL    string `json:"thumbnail_url,omitempty" validate:"omitempty,url"`
 	DisplayOrder    int    `json:"display_order" validate:"gte=0"`
+	// Tags is a list of canonical tag keys (lowercase kebab-case). Unknown keys
+	// are created inline with an en-US display name defaulting to the key itself
+	// (the operator edits the name later from the CMS).
+	Tags            []string `json:"tags,omitempty"`
 }
 
 // UpdateProductData updates a product's translation (localized fields) and/or
@@ -102,6 +117,9 @@ type UpdateProductData struct {
 	Category        *string `json:"category,omitempty" validate:"omitempty,max=100"`
 	ThumbnailURL    *string `json:"thumbnail_url,omitempty" validate:"omitempty,url"`
 	DisplayOrder    *int    `json:"display_order,omitempty" validate:"omitempty,gte=0"`
+	// Tags replaces the full tag set (absolute, like cart PATCH). nil = leave
+	// unchanged; an empty slice = clear all tags. Values are canonical keys.
+	Tags            *[]string `json:"tags,omitempty"`
 }
 
 // CreateSKUData creates a new SKU under a product.
@@ -135,6 +153,9 @@ type BulkImportRow struct {
 	WeightGrams       int
 	LowStockThreshold *int
 	Attributes        string // raw JSON string; empty → NULL
+	// Tags: semicolon-separated canonical keys within the CSV cell (e.g.
+	// `hand-painted;cobalt-blue`). Empty → no tags.
+	Tags              []string
 }
 
 // BulkImportResult is the per-row outcome of a bulk import.

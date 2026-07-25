@@ -12,11 +12,12 @@ import (
 // ServiceInterface defines product/SKU business logic (i18n-aware).
 type ServiceInterface interface {
 	// --- Public reads ---
-	GetProducts(ctx context.Context, locale, category string, artistID int64, page, limit int) ([]models.Product, int, error)
+	GetProducts(ctx context.Context, locale, category string, artistID int64, tags []string, page, limit int) ([]models.Product, int, error)
 	GetProductBySlug(ctx context.Context, slug string, locale string) (*models.Product, error)
+	GetTags(ctx context.Context, locale string) ([]models.TagWithCount, error)
 
 	// --- Admin / CMS (products) ---
-	AdminListProducts(ctx context.Context, locale, status string, page, limit int) ([]models.Product, int, error)
+	AdminListProducts(ctx context.Context, locale, status string, tags []string, page, limit int) ([]models.Product, int, error)
 	AdminGetProduct(ctx context.Context, slug string, locale string) (*models.Product, error)
 	AdminCreateProduct(ctx context.Context, data models.CreateProductData) (*models.Product, error)
 	AdminBulkImport(ctx context.Context, rows []models.BulkImportRow) (models.BulkImportSummary, error)
@@ -65,11 +66,26 @@ func (s *Service) SetGalleryLoader(gl GalleryLoader) { s.galleryLoader = gl }
 
 // --- Public ---
 
-func (s *Service) GetProducts(ctx context.Context, locale, category string, artistID int64, page, limit int) ([]models.Product, int, error) {
+func (s *Service) GetProducts(ctx context.Context, locale, category string, artistID int64, tags []string, page, limit int) ([]models.Product, int, error) {
 	locale, _ = i18ncontent.NormalizeLocale(locale, false)
-	products, total, err := s.repo.FindAllPublished(ctx, locale, category, artistID, page, limit)
+	products, total, err := s.repo.FindAllPublished(ctx, locale, category, artistID, tags, page, limit)
 	if err != nil {
 		return nil, 0, fmt.Errorf("service.GetProducts: %w", err)
+	}
+	// Batch-load tags (locale-resolved name) for the page — no N+1.
+	if len(products) > 0 {
+		ids := make([]int64, len(products))
+		for i := range products {
+			ids[i] = products[i].ID
+		}
+		tagMap, terr := s.repo.FindTagsByProductIDs(ctx, ids, locale)
+		if terr != nil {
+			log.Printf("product.GetProducts.Tags: %v", terr) // best-effort
+		} else {
+			for i := range products {
+				products[i].Tags = tagMap[products[i].ID]
+			}
+		}
 	}
 	return products, total, nil
 }
@@ -103,12 +119,19 @@ func (s *Service) GetProductBySlug(ctx context.Context, slug string, locale stri
 			}
 		}
 	}
+	// Load the product's tags (locale-resolved name).
+	tagMap, terr := s.repo.FindTagsByProductIDs(ctx, []int64{product.ID}, locale)
+	if terr != nil {
+		log.Printf("product.GetProductBySlug.Tags(%d): %v", product.ID, terr)
+	} else {
+		product.Tags = tagMap[product.ID]
+	}
 	return product, nil
 }
 
 // --- Admin / CMS (products) ---
 
-func (s *Service) AdminListProducts(ctx context.Context, locale, status string, page, limit int) ([]models.Product, int, error) {
+func (s *Service) AdminListProducts(ctx context.Context, locale, status string, tags []string, page, limit int) ([]models.Product, int, error) {
 	if locale != "" {
 		var err error
 		locale, err = i18ncontent.NormalizeLocale(locale, true)
@@ -116,7 +139,26 @@ func (s *Service) AdminListProducts(ctx context.Context, locale, status string, 
 			return nil, 0, models.ErrInvalidLocale
 		}
 	}
-	return s.repo.FindAllAdmin(ctx, locale, status, page, limit)
+	products, total, err := s.repo.FindAllAdmin(ctx, locale, status, tags, page, limit)
+	if err != nil {
+		return nil, 0, err
+	}
+	// Batch-load tags (locale-resolved name) for the admin list too.
+	if len(products) > 0 {
+		ids := make([]int64, len(products))
+		for i := range products {
+			ids[i] = products[i].ID
+		}
+		tagMap, terr := s.repo.FindTagsByProductIDs(ctx, ids, locale)
+		if terr != nil {
+			log.Printf("product.AdminListProducts.Tags: %v", terr)
+		} else {
+			for i := range products {
+				products[i].Tags = tagMap[products[i].ID]
+			}
+		}
+	}
+	return products, total, nil
 }
 
 func (s *Service) AdminGetProduct(ctx context.Context, slug string, locale string) (*models.Product, error) {
@@ -141,6 +183,13 @@ func (s *Service) AdminGetProduct(ctx context.Context, slug string, locale strin
 			}
 		}
 	}
+	// Load the product's tags (locale-resolved name).
+	tagMap, terr := s.repo.FindTagsByProductIDs(ctx, []int64{p.ID}, locale)
+	if terr != nil {
+		log.Printf("product.AdminGetProduct.Tags(%d): %v", p.ID, terr)
+	} else {
+		p.Tags = tagMap[p.ID]
+	}
 	return p, nil
 }
 
@@ -163,6 +212,13 @@ func (s *Service) AdminCreateProduct(ctx context.Context, data models.CreateProd
 			// later via regenerate (or the admin certificate list will show none).
 			fmt.Printf("product.AdminCreateProduct.IssueCert(product=%d): %v\n", p.ID, err)
 		}
+	}
+	// Attach the tags we just set so the create response is complete.
+	tagMap, terr := s.repo.FindTagsByProductIDs(ctx, []int64{p.ID}, locale)
+	if terr != nil {
+		log.Printf("product.AdminCreateProduct.Tags(%d): %v", p.ID, terr)
+	} else {
+		p.Tags = tagMap[p.ID]
 	}
 	return p, nil
 }
@@ -196,6 +252,7 @@ func (s *Service) AdminBulkImport(ctx context.Context, rows []models.BulkImportR
 			Locale: loc, Title: row.Title, Slug: row.Slug, Category: row.Category,
 			ArtistID: row.ArtistID, ThumbnailURL: row.ThumbnailURL,
 			DisplayOrder: row.DisplayOrder, Description: row.Description,
+			Tags: row.Tags,
 		}
 		p, err := s.repo.CreateWithTranslation(ctx, data)
 		if err != nil {
@@ -247,7 +304,18 @@ func (s *Service) AdminUpdateProduct(ctx context.Context, productID int64, local
 	if !i18ncontent.CanEdit(currentStatus, actor) {
 		return nil, models.ErrInvalidWorkflowTransition
 	}
-	return s.repo.UpdateTranslation(ctx, productID, locale, data)
+	p, err := s.repo.UpdateTranslation(ctx, productID, locale, data)
+	if err != nil {
+		return nil, err
+	}
+	// Attach the (possibly updated) tag set so the update response is complete.
+	tagMap, terr := s.repo.FindTagsByProductIDs(ctx, []int64{p.ID}, locale)
+	if terr != nil {
+		log.Printf("product.AdminUpdateProduct.Tags(%d): %v", p.ID, terr)
+	} else {
+		p.Tags = tagMap[p.ID]
+	}
+	return p, nil
 }
 
 func (s *Service) AdminTransitionProduct(ctx context.Context, productID int64, locale string, to models.ContentStatus, actor i18ncontent.WorkflowActor, reviewerID string) (*models.Product, error) {
@@ -294,4 +362,11 @@ func (s *Service) AdminDeleteSKU(ctx context.Context, skuID int64) error {
 
 func (s *Service) GetCategories(ctx context.Context) ([]string, error) {
 	return s.repo.FindAllCategories(ctx)
+}
+
+// GetTags lists tags attached to ≥1 published product, with the locale-resolved
+// display name + a product count (public facet list, GET /catalog/tags).
+func (s *Service) GetTags(ctx context.Context, locale string) ([]models.TagWithCount, error) {
+	locale, _ = i18ncontent.NormalizeLocale(locale, false)
+	return s.repo.FindAllTagsInUse(ctx, locale)
 }

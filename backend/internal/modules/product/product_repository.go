@@ -16,13 +16,13 @@ import (
 // RepositoryInterface defines product/SKU storage operations (i18n-aware).
 type RepositoryInterface interface {
 	// --- Public reads ---
-	FindAllPublished(ctx context.Context, locale, category string, artistID int64, page, limit int) ([]models.Product, int, error)
+	FindAllPublished(ctx context.Context, locale, category string, artistID int64, tags []string, page, limit int) ([]models.Product, int, error)
 	FindPublishedBySlug(ctx context.Context, locale, slug string) (*models.Product, error)
 	FindSKUsByProductID(ctx context.Context, productID int64) ([]models.SKU, error)
 	FindLowStock(ctx context.Context, skuIDs []int64) ([]models.SKU, error) // stock <= low_stock_threshold
 
 	// --- Admin / CMS (products) ---
-	FindAllAdmin(ctx context.Context, locale, status string, page, limit int) ([]models.Product, int, error)
+	FindAllAdmin(ctx context.Context, locale, status string, tags []string, page, limit int) ([]models.Product, int, error)
 	FindAdminBySlug(ctx context.Context, locale, slug string) (*models.Product, error)
 	FindAdminByID(ctx context.Context, productID int64, locale string) (*models.Product, error)
 	CreateWithTranslation(ctx context.Context, data models.CreateProductData) (*models.Product, error)
@@ -36,6 +36,18 @@ type RepositoryInterface interface {
 	UpdateSKU(ctx context.Context, skuID int64, data models.UpdateSKUData) (*models.SKU, error)
 	DeleteSKU(ctx context.Context, skuID int64) error
 	FindSKUByID(ctx context.Context, skuID int64) (*models.SKU, error)
+
+	// --- Tags (PRD §3.2.1, TDD §3.2) ---
+	// SetProductTags replaces a product's full tag set (absolute). Unknown keys
+	// are created inline with an en-US name defaulting to the key. Empty keys =
+	// clear all. Runs in the caller's tx when passed one.
+	SetProductTags(ctx context.Context, exec pgx.Tx, productID int64, keys []string) error
+	// FindTagsByProductIDs batch-loads tags (locale-resolved name) for a set of
+	// products — returns a map[productID][]Tag for attachment without N+1.
+	FindTagsByProductIDs(ctx context.Context, productIDs []int64, locale string) (map[int64][]models.Tag, error)
+	// FindAllTagsInUse lists tags attached to ≥1 published product, with the
+	// locale-resolved name + a product count (for the public facet list).
+	FindAllTagsInUse(ctx context.Context, locale string) ([]models.TagWithCount, error)
 
 	// --- Catalog helpers ---
 	FindAllCategories(ctx context.Context) ([]string, error)
@@ -89,7 +101,7 @@ func (r *Repository) scanProduct(row pgx.Row) (*models.Product, error) {
 
 // --- Public reads ---
 
-func (r *Repository) FindAllPublished(ctx context.Context, locale, category string, artistID int64, page, limit int) ([]models.Product, int, error) {
+func (r *Repository) FindAllPublished(ctx context.Context, locale, category string, artistID int64, tags []string, page, limit int) ([]models.Product, int, error) {
 	where := "WHERE t.locale = $1 AND t.status = 'published'"
 	args := []any{locale}
 	idx := 2
@@ -101,6 +113,11 @@ func (r *Repository) FindAllPublished(ctx context.Context, locale, category stri
 	if artistID > 0 {
 		where += fmt.Sprintf(" AND p.artist_id = $%d", idx)
 		args = append(args, artistID)
+		idx++
+	}
+	if len(tags) > 0 {
+		where += fmt.Sprintf(" AND EXISTS (SELECT 1 FROM product_tags pt JOIN tags tg ON tg.id=pt.tag_id WHERE pt.product_id=p.id AND tg.key = ANY($%d))", idx)
+		args = append(args, tags)
 		idx++
 	}
 
@@ -205,7 +222,7 @@ func (r *Repository) FindLowStock(ctx context.Context, skuIDs []int64) ([]models
 
 // --- Admin / CMS (products) ---
 
-func (r *Repository) FindAllAdmin(ctx context.Context, locale, status string, page, limit int) ([]models.Product, int, error) {
+func (r *Repository) FindAllAdmin(ctx context.Context, locale, status string, tags []string, page, limit int) ([]models.Product, int, error) {
 	where := "WHERE 1=1"
 	args := []any{}
 	idx := 1
@@ -217,6 +234,11 @@ func (r *Repository) FindAllAdmin(ctx context.Context, locale, status string, pa
 	if status != "" {
 		where += fmt.Sprintf(" AND t.status = $%d", idx)
 		args = append(args, status)
+		idx++
+	}
+	if len(tags) > 0 {
+		where += fmt.Sprintf(" AND EXISTS (SELECT 1 FROM product_tags pt JOIN tags tg ON tg.id=pt.tag_id WHERE pt.product_id=p.id AND tg.key = ANY($%d))", idx)
+		args = append(args, tags)
 		idx++
 	}
 
@@ -301,6 +323,13 @@ func (r *Repository) CreateWithTranslation(ctx context.Context, data models.Crea
 		productID, data.Locale, data.Title, data.Slug,
 		nullableStr(data.Description), nullableStr(data.MetaTitle), nullableStr(data.MetaDescription)); err != nil {
 		return nil, fmt.Errorf("repository.CreateWithTranslation.Translation: %w", err)
+	}
+
+	// Tag assignment (absolute set). Unknown keys are created inline.
+	if len(data.Tags) > 0 {
+		if err := r.SetProductTags(ctx, tx, productID, data.Tags); err != nil {
+			return nil, fmt.Errorf("repository.CreateWithTranslation.Tags: %w", err)
+		}
 	}
 
 	if err := tx.Commit(ctx); err != nil {
@@ -389,6 +418,13 @@ func (r *Repository) UpdateTranslation(ctx context.Context, productID int64, loc
 		}
 		if cmd.RowsAffected() == 0 {
 			return nil, models.ErrNotFound
+		}
+	}
+
+	// Tag assignment (absolute set: nil = unchanged, empty = clear all).
+	if data.Tags != nil {
+		if err := r.SetProductTags(ctx, tx, productID, *data.Tags); err != nil {
+			return nil, fmt.Errorf("repository.UpdateTranslation.Tags: %w", err)
 		}
 	}
 
@@ -569,6 +605,146 @@ func nullableStr(s string) any {
 		return nil
 	}
 	return s
+}
+
+// --- Tags (PRD §3.2.1, TDD §3.2) ---
+
+// SetProductTags replaces a product's full tag set (absolute assignment).
+// Unknown keys are created inline with an en-US name defaulting to the key
+// itself (the operator edits the localized name later from the CMS). Empty
+// keys clears all tags. The caller's tx is used so tag assignment commits or
+// rolls back with the product write.
+func (r *Repository) SetProductTags(ctx context.Context, exec pgx.Tx, productID int64, keys []string) error {
+	// Normalize + dedupe (case-insensitive, trim). The tags.key CHECK enforces
+	// lowercase kebab-case; reject malformed keys early.
+	seen := map[string]struct{}{}
+	norm := make([]string, 0, len(keys))
+	for _, k := range keys {
+		k = strings.ToLower(strings.TrimSpace(k))
+		if k == "" {
+			continue
+		}
+		if _, dup := seen[k]; dup {
+			continue
+		}
+		seen[k] = struct{}{}
+		norm = append(norm, k)
+	}
+
+	// Clear the existing set, then (re)attach. Always run the DELETE so an empty
+	// `keys` slice clears all tags (the absolute-set contract).
+	if _, err := exec.Exec(ctx, `DELETE FROM product_tags WHERE product_id = $1`, productID); err != nil {
+		return fmt.Errorf("SetProductTags.Delete: %w", err)
+	}
+	if len(norm) == 0 {
+		return nil
+	}
+
+	// Resolve-or-create tag ids. ON CONFLICT (key) DO UPDATE is a no-op on the
+	// row but lets RETURNING id fire for both insert + conflict paths.
+	rows, err := exec.Query(ctx,
+		`INSERT INTO tags (key) SELECT UNNEST($1::text[]) ON CONFLICT (key) DO UPDATE SET key = EXCLUDED.key RETURNING id`,
+		norm)
+	if err != nil {
+		return fmt.Errorf("SetProductTags.ResolveTags: %w", err)
+	}
+	tagIDs := make([]int64, 0, len(norm))
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			rows.Close()
+			return fmt.Errorf("SetProductTags.ScanTagID: %w", err)
+		}
+		tagIDs = append(tagIDs, id)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("SetProductTags.ResolveTagsRows: %w", err)
+	}
+
+	// Seed an en-US display name for newly-created tags (name = key). Existing
+	// translations are left untouched (ON CONFLICT DO NOTHING). This makes the
+	// tag immediately displayable in any locale via the en-US → key fallback.
+	if _, err := exec.Exec(ctx, `
+		INSERT INTO tag_translations (tag_id, locale, name)
+		SELECT id, 'en-US', key FROM tags WHERE id = ANY($1)
+		ON CONFLICT (tag_id, locale) DO NOTHING`, tagIDs); err != nil {
+		return fmt.Errorf("SetProductTags.SeedEnUS: %w", err)
+	}
+
+	// Attach the tags to the product. ON CONFLICT guards a re-attach after a
+	// partial set (defensive; the DELETE above already cleared the set).
+	if _, err := exec.Exec(ctx, `
+		INSERT INTO product_tags (product_id, tag_id)
+		SELECT $1, UNNEST($2::bigint[])
+		ON CONFLICT DO NOTHING`, productID, tagIDs); err != nil {
+		return fmt.Errorf("SetProductTags.Attach: %w", err)
+	}
+	return nil
+}
+
+// FindTagsByProductIDs batch-loads tags (locale-resolved name) for a set of
+// products. Returns a map[productID][]Tag for attachment without N+1. The name
+// resolves via the requested locale, falling back to en-US, then to the raw
+// key (never blank).
+func (r *Repository) FindTagsByProductIDs(ctx context.Context, productIDs []int64, locale string) (map[int64][]models.Tag, error) {
+	out := map[int64][]models.Tag{}
+	if len(productIDs) == 0 {
+		return out, nil
+	}
+	rows, err := r.db.Query(ctx, `
+		SELECT pt.product_id, t.id, t.key,
+		       COALESCE(tt.name, tt_en.name, t.key) AS name
+		FROM product_tags pt
+		JOIN tags t ON t.id = pt.tag_id
+		LEFT JOIN tag_translations tt      ON tt.tag_id = t.id      AND tt.locale = $2
+		LEFT JOIN tag_translations tt_en   ON tt_en.tag_id = t.id   AND tt_en.locale = 'en-US'
+		WHERE pt.product_id = ANY($1)
+		ORDER BY t.key`, productIDs, locale)
+	if err != nil {
+		return nil, fmt.Errorf("repository.FindTagsByProductIDs: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var pid int64
+		var tg models.Tag
+		if err := rows.Scan(&pid, &tg.ID, &tg.Key, &tg.Name); err != nil {
+			return nil, fmt.Errorf("repository.FindTagsByProductIDs.Scan: %w", err)
+		}
+		out[pid] = append(out[pid], tg)
+	}
+	return out, rows.Err()
+}
+
+// FindAllTagsInUse lists tags attached to ≥1 published product, with the
+// locale-resolved name + a product count (for the public facet list,
+// GET /catalog/tags).
+func (r *Repository) FindAllTagsInUse(ctx context.Context, locale string) ([]models.TagWithCount, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT t.id, t.key,
+		       COALESCE(tt.name, tt_en.name, t.key) AS name,
+		       COUNT(DISTINCT pt.product_id) AS product_count
+		FROM tags t
+		JOIN product_tags pt ON pt.tag_id = t.id
+		JOIN product_translations tr ON tr.product_id = pt.product_id
+		                       AND tr.status = 'published'
+		LEFT JOIN tag_translations tt      ON tt.tag_id = t.id      AND tt.locale = $1
+		LEFT JOIN tag_translations tt_en   ON tt_en.tag_id = t.id   AND tt_en.locale = 'en-US'
+		GROUP BY t.id, t.key, tt.name, tt_en.name
+		ORDER BY name ASC`, locale)
+	if err != nil {
+		return nil, fmt.Errorf("repository.FindAllTagsInUse: %w", err)
+	}
+	defer rows.Close()
+	out := []models.TagWithCount{}
+	for rows.Next() {
+		var twc models.TagWithCount
+		if err := rows.Scan(&twc.ID, &twc.Key, &twc.Name, &twc.ProductCount); err != nil {
+			return nil, fmt.Errorf("repository.FindAllTagsInUse.Scan: %w", err)
+		}
+		out = append(out, twc)
+	}
+	return out, rows.Err()
 }
 
 // --- Catalog helpers ---

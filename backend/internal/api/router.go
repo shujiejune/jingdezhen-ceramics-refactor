@@ -164,6 +164,7 @@ func SetupRoutes(
 	app.Get("/catalog/products/:slug", productHandler.GetProductBySlug)
 	app.Get("/catalog/products/:id/media", mediaHandler.PublicListProductMedia)
 	app.Get("/catalog/categories", productHandler.GetCategories)
+	app.Get("/catalog/tags", productHandler.GetTags)
 
 	/* --- FX rates (dev-debug, public read) — TDD §7 --- */
 	app.Get("/fx/rates", fxHandler.ListRates)
