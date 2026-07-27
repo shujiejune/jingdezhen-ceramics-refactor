@@ -94,7 +94,8 @@ Tracking the transition of the existing `backend/` codebase (former "Learning & 
 
 ## Testing & CI (PRD §2.4 — build up alongside milestones)
 
-- [ ] GitHub Actions pipeline (lint → unit → integration → build → deploy → smoke)
+- [x] testcontainers-go harness — `internal/testutil`: one shared Postgres container (`postgis/postgis:16-3.5-alpine`, matches dev compose) + one shared Redis container per `go test` run (sync.Once); each test gets an isolated per-test DB (CREATE → migrate all 21 migrations via golang-migrate's Go API driven by an embedded FS (`internal/migrations/embed.go`, `//go:embed *.up.sql *.down.sql`) → DROP on cleanup) and a per-test Redis DB index (FLUSHDB on cleanup). `NewDBPool(t)` returns a ready `*pgxpool.Pool` that drops straight into any repo's `NewRepository(pool)`. `NewRedisClient(t)` returns a `*redis.Client`. Hermeticity verified (writes-in-A / sees-nothing-in-B subtests). `-short` skips integration tests (fast inner loop). `make test` (all, -race) / `make test-unit` (-short, no Docker) / `make test-integration`.
+- [x] Example integration tests — `internal/modules/order/order_service_test.go`: the TDD §11 priority (order state machine + atomic stock decrement): `TestCreateOrder_AtomicStockDecrement` (happy: exact-stock → 0; failure: oversell → ErrConflict, stock unchanged, no partial order), `TestCreateOrder_RollsBackOnAnyItemInsufficient` (multi-item: second item out of stock rolls back the FIRST item's decrement too — the whole-tx invariant), `TestSetCancelled_RestoresStock` (cancel restores stock atomically), `TestTransitionStatus_IdempotentMarkPaid` (replayed webhook → ErrConflict not a second transition; absent order → ErrNotFound). Smoke tests in `internal/testutil/testutil_test.go` prove the harness itself (all migrations applied, unseeded, isolation).
 - [ ] testify + mockery for unit tests; testcontainers-go for integration
 - [ ] Playwright E2E + smoke suite; k6 scenarios
 

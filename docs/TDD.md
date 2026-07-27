@@ -369,7 +369,7 @@ Items 1–4 are essentially free given the chosen stack; 5 is a deliberate (smal
 
 ## 12. Open Technical Decisions
 
-- [ ] PDF engine: chromedp (HTML→PDF, easy branded templates, heavier) vs gofpdf/maroto (lighter, more layout code). Leaning chromedp for quote/certificate templates.
+- [x] PDF engine: **chromedp** (HTML→PDF). Chosen over gofpdf/maroto because HTML templates give branded certificate/itinerary/quote documents cheaply, and one engine serves all three (TDD §3.4 certificates, §3.3.2 itinerary PDF, quote docs). Runs headless Chrome in a container (dev: sidecar in docker-compose; prod: the same chromedp headless-shell image). Adapter lives in `pkg/adapters/pdf/` (interface + chromedp impl + a no-op/dev impl) behind the same env-flip convention as payments/storage. Certificate `pdf:generate` job + itinerary confirmation PDF both use it.
 - [ ] Search: PG `tsvector` config for zh-CN (use `pg_jieba`? or simple + trigram) — decide in M1.
 - [ ] Reverse proxy: Caddy (auto-TLS, simpler) vs Nginx (team familiarity) — decide in M0.
 - [ ] SolidStart deploy target: node-server preset behind proxy (assumed) vs static+CSR for admin.

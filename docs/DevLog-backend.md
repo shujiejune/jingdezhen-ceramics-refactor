@@ -450,3 +450,81 @@ Video streaming needs FFmpeg -> HLS transcoding, with the result stored in `medi
 
 More joins, more code, more migration surface.
 Advantages are as above.
+
+## Testcontainers-go harness
+
+### Step 1 - Add the dependencies
+
+```sh
+go get github.com/testcontainers/testcontainers-go@latest
+go get github.com/testcontainers/testcontainers-go/modules/postgres@latest
+go get github.com/testcontainers/testcontainers-go/modules/redis@latest
+go mod tidy
+```
+
+### Step 2 - Create `internal/testutil/testdb.go`
+
+This is the core. One helper spins up Postgres, applies all migrations, and returns a ready `*pgxpool.Pool`.
+Two design choices:
+- Apply migrations via `golang-migrate` embedded in the binary, not by shelling out to the `migrate` CLI. Because tests must run anywhere (`go test` and CI) without the `migrate` binary installed.
+- Each test gets an isolated database on the same container  (create db -> migrate -> drop db on teardown), OR each test gets a fresh container. Fresh-container-per-test is slow (~3-5s each), isolated-db-per-test on a shared container is fast (~50ms each) and is the standard pattern. Here use a `sync.Once` lazy singleton container + a `WithTestDB(t)` helper that create db + migrates + returns a pool + registers `t.Cleanup` to drop the db.
+
+### Step 3 - Embed the migrations into `testutil`
+
+`go:embed` paths are relative to the embedding `.go` file.
+`internal/testutil/` is a sibling of `internal/migrations/`, so `//go:embed ../migrations/*.up.sql` won't compile, because embed can't escape the module dir upward.
+2 clean options:
+- move/copy migrations under testutil's embed root: Add a `Makefile/go:generate` step that copies `internal/migrations/*.sql` -> `internal/testutil/migrations/` before tests run, OR symlink. Simplest robust version: a tiny `gen.go` with `//go:generate cp -r ../../migrations ./migrations` and run `go generate ./internal/testutil` in CI. 
+- (cleaner, no copy) create `internal/migrations/embed.go` in the migrations package itself with the `//go:embed *.up.sql *.down.sql`, exporting `migrations.FS`. Then `testutil` imports `internal/migrations` and passes `migrations.FS` to `iofs.New`. This keeps a single source of truth and needs no generate step.
+
+### Step 4 - Add the Redis helper
+
+`internal/testutil/testredis.go`
+No migrations, just a ping.
+Use a fresh DB index per test (or flush on cleanup) so tests stay isolated.
+
+### Step 5 - Add a Makefile target + a `.env.test`
+
+```makefile
+## test-integration: run integration tests (requires Docker for testcontainers)    
+test-integration:                                                           go test -tags=integration ./...
+```
+
+Tests that hit real PG/Redis should live in `*_test.go` files that call `testutil.NewDBPool(t)` / `testutil.NewRedisClient(t)`.
+No build tag needed: testcontainers is a normal dep. The `Docker available?` check happens at `t.Fatalf` time.
+
+Add to `.env.example`:
+```
+# Integration tests auto-provision Postgres + Redis via testcontainers-go.
+# No DATABASE_URL needed for `go test`. TESTCONTAINERS_RYUK_DISABLED=true
+# disables the reaper (use only in CI where the runner is ephemeral).
+```
+
+### Step 6 - verify the harness itself with a smoke test
+
+Write `internal/testutil/testutil_test.go` to prove the harness works before any module uses it.
+
+Run:
+```sh
+go test -run TestNew ./internal/testutil/... -v
+```
+
+First run pulls the imgaes (~30s). Subsequent runs reuse the container via Ryuk and finish in < 1s.
+
+### Step 7 - First real integration test
+
+Create test files for every service, e.g. `internal/modules/order/order_service_test.go`.
+After the failing checkout, query `SELECT COUNT(*) FROM orders` and `SELECT stock FROM skus`, both must be unchanged.
+
+### Step 8 - CI integration
+
+```yaml
+# .github/workflows/ci.yml (test job)
+- uses: actions/setup-go@v5
+  with: { go-version: '1.24' }
+- run: cd backend && go mod download
+- run: cd backend && go vet ./...
+- run: cd backend && go test -race -cover ./...
+  env:
+    TESTCONTAINERS_RYUK_DISABLED: "true" # GH runner is ephemeral; ryuk unnecessary
+```

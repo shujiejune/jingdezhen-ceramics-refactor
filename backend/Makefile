@@ -11,6 +11,7 @@ endif
 
 .PHONY: help build up up-db down down-v stop logs logs-api logs-worker \
         migrate-up migrate-down migrate-force db-shell db-reset db-seed
+        test test-unit test-integration
 
 help:
 	@echo "Usage: make [target]"
@@ -35,6 +36,9 @@ help:
 	@echo "  db-shell        - Open a psql shell in the db container"
 	@echo "  db-reset        - Truncate commerce tables (dev clean slate; preserves users)"
 	@echo "  db-seed        - Seed dev data from scripts/seed/[0-9][0-9]_*.sql (reset + all seeds)"
+	@echo "  test           - Run all tests (unit + integration via testcontainers)"
+	@echo "  test-unit      - Run only unit tests (-short, no Docker needed)"
+	@echo "  test-integration - Run only integration tests (needs Docker for testcontainers)"
 
 build:
 	@echo "Building Docker images..."
@@ -91,6 +95,20 @@ db-shell:
 db-reset:
 	@echo "Resetting commerce tables (dev clean slate)..."
 	$(COMPOSE) exec -T db psql -U "$(DB_USER)" -d "$(DB_NAME)" < scripts/seed/00_reset.sql
+
+## test: run all tests. Integration tests spin up real PG + Redis via
+## testcontainers-go (needs Docker on the host). Set TESTCONTAINERS_RYUK_DISABLED=true
+## in CI where the runner is ephemeral.
+test:
+	go test -race ./...
+
+## test-unit: unit tests only (no Docker). Use this for the fast inner loop.
+test-unit:
+	go test -race -short ./...
+
+## test-integration: integration tests only (needs Docker for testcontainers).
+test-integration:
+	go test -race -run Integration ./...
 
 db-seed:
 	@echo "Seeding database with dev test data..."
