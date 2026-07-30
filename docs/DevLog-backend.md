@@ -528,3 +528,57 @@ After the failing checkout, query `SELECT COUNT(*) FROM orders` and `SELECT stoc
   env:
     TESTCONTAINERS_RYUK_DISABLED: "true" # GH runner is ephemeral; ryuk unnecessary
 ```
+
+### What is a `*pgxpool.Pool`?
+
+It's a connection pool - a small, long-lived bag of TCP connections to PostgreSQL that many goroutines share.
+Without a pool, every time a repository wants to run a query it would open a fresh TCP connection (dial -> TLS handshake -> auth -> query -> close). That's ~5-20ms of overhead per query and it hammers Postgres' connection limit. A pool keeps N connections warn (default ~4, tunable) and hands them out on demand.
+
+```
+repository.QueryRow() -> pool.Get() -> [reuses a warm conn] -> pool.Put()
+```
+
+`pgxpool.Pool` is the single thing every repository takes as a constructor argument.
+
+```go
+func NewRepository(db *pgxpool.Pool) RepositoryInterface {
+	return &Repository{db: db}
+}
+```
+
+A `*pgxpool.Pool` is not a transaction. A transaction is `pool.BeginTx()` which returns a `pgx.Tx` that's a single connection held for the duration of the tx, then returned to the pool on Commit/Rollback.
+The order repo's `CreateOrder` does exactly that: it borrows one connection from the pool for the whole insert + decrement + commit, returns it, and the next query can reuse it.
+
+### Why is each test isolated?
+
+Because shared state between tests is how test suites rot.
+3 concrete failure modes isolation prevents:
+- order dependence. Test A inserts a user with id=1 and asserts `COUNT(*) = 1`. Test B inserts another and seerts `COUNT(*)=2`. Run B before A and both break for reasons unrelated to what either is testing. With per-test DBs, both see `COUNT(*)=1` regardless of run order.
+- leftover data from a previous test's failure. Test A inserts an order, crashes mid-assert.Test N queries "all orders" and finds A's orphan row. Now B is debugging A's bug. With isolation, A's DB is dropped on cleanup and B starts clean.
+- cross-contamination of invariants. The order/stock test asserts `stock=0` after buying 2. If it ran against a DB where another test already decremented that SKU, the assertion is meaningless. Each test seeds its own SKU, so "stock 2" is a fact the test owns, not an assumption about prior state.
+
+Here, "each test" = each `t` that calls `NewDBPool(t)`.
+A service test file with 8 test functions creates + destroys 8 ephemeral DBs over its run, all sharing one container.
+
+`NewDBPool(t)` hands a fresh, fully-migrated, throwaway database, scoped to exactly one test, that goes away when the test ends.
+
+## What's the difference between `order_service_test.go` and `payment_service_test.go`?
+
+`payment_service_test.go` uses a `fakeRepo`.
+
+| | `order_service_test.go` | `payment_service_test.go` |
+| --- | --- | --- |
+| Layer | Integration (real PG via testcontainers) | Unit (mocked repo) |
+| What's under test | `order.Repository.CreateOrder`: the SQL tx + atomic stock decrement | `payment.Service.HandleWebhook`: the orchestration logic |
+| Repo used | `order.NewRepository(pool)`: the real repo, againist a real DB | `fakeRepo`: an in-memory stand-in |
+| Docker needed | Yes | No |
+| What a bug looks like | Wrong SQL, schema drift, tx not rolling back | Wrong control flow: double-enqueue, accepting an unsigned webhook |
+
+The payment service's job in `HandleWebhook` is orchestration: verify the signature -> upsert the event -> if new, enqueue a finalize job.
+The interesting bugs are:
+- a replayed webhook enqueues the finalize job twice (double-charge risk)
+- an unsigned webhook gets accepted (security boundary)
+- an unknown gateway name is rejected
+None of those depend on real SQL. The idempotency is the control flow - if `UpsertWebhook` says 'already existed', don't enqueue again - and that control flow is the same whether the upsert hits real Postgres or an in-memory map.
+
+repository_test: user, address, product
