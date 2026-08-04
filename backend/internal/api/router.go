@@ -216,10 +216,26 @@ func SetupRoutes(
 		cartGroup.Post("/merge", cartHandler.MergeCart)
 	}
 
+	/* --- Engage (Destinations & Local Lifestyle, public) --- */
+	/* Registered BEFORE the empty-prefix checkoutGroup below: Fiber v2 attaches
+	   `Group("").Use(...)` middleware at the radix root, so it leaks to every
+	   route registered AFTER it. Public mounts (engage, /media static) must
+	   precede the authed empty-prefix group. See TDD §4.3 / main.go. */
+	engageGroup := app.Group("/engage")
+	{
+		engageGroup.Get("", engageHandler.GetActivities)           // ?locale=&type=&page=&limit=
+		engageGroup.Get("/:slug", engageHandler.GetActivityArticle) // ?locale=
+	}
+
 	/* --- Checkout + Orders (signed-in customers) — PRD §3.2.3, TDD §8 --- */
 	/* Checkout is signed-in-only (PRD §3.2.3). Customer cancels only an unpaid
 	   (created) order. Lifecycle: created→paid→shipped→completed; cancelled;
 	   refunded (full refunds only). */
+	/* WARNING: this is an EMPTY-PREFIX group. Fiber v2 attaches `Group("").Use()`
+	   middleware at the radix root, so JWTMAuth leaks to every route registered
+	   AFTER this point. All public mounts (engage above, /media static in
+	   main.go) MUST be registered before this group. Do not add public routes
+	   below here. See TDD §4.3. */
 	checkoutGroup := app.Group("")
 	checkoutGroup.Use(middleware.JWTMAuth(jwtSecretKey))
 	{
@@ -241,13 +257,6 @@ func SetupRoutes(
 		checkoutGroup.Get("/itineraries/:id/quote/pdf", itineraryHandler.QuotePDFDownload)
 		checkoutGroup.Post("/itineraries/:id/cancel", itineraryHandler.CancelMine)
 		checkoutGroup.Post("/itineraries/:id/pay-deposit", itineraryHandler.PayDeposit)
-	}
-
-	/* --- Engage (Destinations & Local Lifestyle, public) --- */
-	engageGroup := app.Group("/engage")
-	{
-		engageGroup.Get("", engageHandler.GetActivities)           // ?locale=&type=&page=&limit=
-		engageGroup.Get("/:slug", engageHandler.GetActivityArticle) // ?locale=
 	}
 
 	/* --- Admin Routes (PRD §3.4.1 RBAC) --- */

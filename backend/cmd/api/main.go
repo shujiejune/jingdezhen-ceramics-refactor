@@ -440,6 +440,17 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 	itineraryService.SetDepositFinalizeEnqueuer(paymentEnqueuer{jobClient}) // mock-mode auto-finalize seam
 	itineraryService.SetPDFEnqueuer(pdfEnqueuer{jobClient})                // quote-send PDF render
 
+	// --- Static mount for local-dev media (STORAGE_MODE=local) ---
+	// Registered BEFORE SetupRoutes: Fiber v2 attaches `Group("").Use()` (the
+	// authed checkout group) at the radix root, so it leaks JWTMAuth to every
+	// route registered AFTER it. /media is public (product gallery, cert +
+	// itinerary PDFs) → must precede the authed empty-prefix group. In OSS mode
+	// this is a no-op — the CDN serves media directly.
+	if cfg.StorageMode != "oss" && cfg.StorageLocalDir != "" && cfg.StoragePublicBaseURL != "" {
+		app.Static(cfg.StoragePublicBaseURL, cfg.StorageLocalDir)
+		log.Printf("media: local store at %s -> %s", cfg.StorageLocalDir, cfg.StoragePublicBaseURL)
+	}
+
 	api.SetupRoutes(app, cfg.JWTSecret,
 		wsHandler, userHandler, notifHandler,
 		ceramicStoryHandler, engageHandler, addressHandler,
@@ -447,14 +458,6 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 		shippingHandler, orderHandler, paymentHandler, certificateHandler, mediaHandler, twoFAHandler, privacyHandler,
 		itineraryHandler,
 	)
-
-	// --- Static mount for local-dev media (STORAGE_MODE=local) ---
-	// Serves uploaded files from STORAGE_LOCAL_DIR at STORAGE_PUBLIC_BASE_URL.
-	// In OSS mode this is a no-op — the CDN serves media directly.
-	if cfg.StorageMode != "oss" && cfg.StorageLocalDir != "" && cfg.StoragePublicBaseURL != "" {
-		app.Static(cfg.StoragePublicBaseURL, cfg.StorageLocalDir)
-		log.Printf("media: local store at %s -> %s", cfg.StorageLocalDir, cfg.StoragePublicBaseURL)
-	}
 
 	// --- Start server (graceful shutdown) ---
 	quit := make(chan os.Signal, 1)
