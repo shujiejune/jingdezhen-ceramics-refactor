@@ -130,3 +130,85 @@ type ItinerarySubmitRequest struct {
 type ItineraryCancelRequest struct {
 	Reason string `json:"reason,omitempty" validate:"omitempty,max=500"`
 }
+
+// =============================================================================
+// Planner CRM (PRD §3.3.2 "Backend/CRM (Travel Planner role)", TDD §3.4 M3 #2)
+//
+// The planner-facing counterpart to the customer wizard. Planners work a
+// request through the lifecycle: pending → processing → (quoted/deposit/…
+// are a later sub-track) → confirmed | cancelled | closed. This sub-track adds
+// inbox + SLA flagging, assignment, internal notes (contact history), and CSV
+// export. The quote builder + deposit + confirm transitions land with the
+// quote object (next sub-track).
+// =============================================================================
+
+// CRMNote is an internal planner note attached to a request (contact history).
+// author_id FK = NO ACTION (notes survive the author's GDPR erasure).
+type CRMNote struct {
+	ID         int64     `json:"id" db:"id"`
+	RequestID  int64     `json:"request_id" db:"request_id"`
+	AuthorID   string    `json:"author_id" db:"author_id"`
+	AuthorName string    `json:"author_name" db:"author_name"` // joined from users (nickname, fall back to email)
+	Body       string    `json:"body" db:"body"`
+	CreatedAt  time.Time `json:"created_at" db:"created_at"`
+}
+
+// ItineraryAdminRow is an itinerary request enriched for the planner inbox:
+// the customer's email/nickname (planners need to contact them, PRD §3.3.2)
+// plus a derived SLA status. Embeds ItineraryRequest so the admin handlers
+// share the customer scan + add the joined columns.
+type ItineraryAdminRow struct {
+	ItineraryRequest `json:",inline"`            // flattened into the JSON object
+	CustomerEmail     string `json:"customer_email" db:"customer_email"`
+	CustomerNickname  string `json:"customer_nickname" db:"customer_nickname"`
+	SLAStatus         string `json:"sla_status" db:"sla_status"` // sla_on_time|sla_approaching|sla_breached|sla_met
+}
+
+// SLA status values (derived, not stored) for the planner inbox badge.
+const (
+	SLAOnTime     = "sla_on_time"      // deadline > now + approaching window
+	SLAApproaching = "sla_approaching" // deadline within the approaching window
+	SLABreached   = "sla_breached"     // deadline < now and not yet confirmed/closed
+	SLAMet        = "sla_met"          // status is past the SLA scope (confirmed/cancelled/closed)
+)
+
+// slaApproachingWindow is how far before the deadline a request is flagged
+// "approaching" (PRD §3.3.2: the inbox flags requests approaching/past SLA).
+// 4 hours — a single planner's notice window at MVP scale.
+const SLAApproachingWindow = 4 * time.Hour
+
+// ComputeSLAStatus derives the inbox SLA badge from status + deadline. A
+// request past the SLA scope (confirmed/cancelled/closed) is "met" regardless
+// of the deadline clock — the SLA only governs the pending→confirmed path.
+func ComputeSLAStatus(status ItineraryStatus, slaDeadline, now time.Time) string {
+	switch status {
+	case StatusItineraryConfirmed, StatusItineraryCancelled, StatusItineraryClosed:
+		return SLAMet
+	}
+	if now.After(slaDeadline) {
+		return SLABreached
+	}
+	if slaDeadline.Sub(now) <= SLAApproachingWindow {
+		return SLAApproaching
+	}
+	return SLAOnTime
+}
+
+// --- Planner CRM request DTOs ---
+
+// AssignItineraryRequest is the body for POST /admin/itineraries/:id/assign.
+// A nil/empty AssigneeID unassigns (PRD §3.3.2 "assignment of requests").
+type AssignItineraryRequest struct {
+	AssigneeID *string `json:"assignee_id" validate:"omitempty,uuid4"`
+}
+
+// ItineraryNoteRequest is the body for POST /admin/itineraries/:id/notes.
+type ItineraryNoteRequest struct {
+	Body string `json:"body" validate:"required,max=5000"`
+}
+
+// ItineraryReasonRequest is the optional body for the planner close/cancel
+// transitions (carries the reason that becomes the cancel_reason on cancel).
+type ItineraryReasonRequest struct {
+	Reason string `json:"reason,omitempty" validate:"omitempty,max=500"`
+}

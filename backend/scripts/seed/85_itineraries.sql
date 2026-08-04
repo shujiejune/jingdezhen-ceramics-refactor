@@ -44,6 +44,17 @@ ON CONFLICT (id) DO UPDATE SET
 UPDATE itinerary_requests SET cancel_reason = 'Plans changed', cancelled_at = NOW() - INTERVAL '4 days'
 WHERE id = 2;
 
+-- Assign seeded request #1 to the planner (exercises the planner-CRM inbox +
+-- assignment). id ...003 is seeded in 15_staff.sql.
+UPDATE itinerary_requests SET assigned_to = '00000000-0000-0000-0000-000000000003'
+WHERE id = 1;
+
+-- One internal planner note on request #1 (contact history, PRD §3.3.2).
+INSERT INTO crm_notes (request_id, author_id, body)
+SELECT 1, '00000000-0000-0000-0000-000000000003',
+       'Customer is interested in a celadon studio visit — reached out to Artist Li to check availability for Sep 15.'
+WHERE NOT EXISTS (SELECT 1 FROM crm_notes WHERE request_id = 1);
+
 SELECT setval(pg_get_serial_sequence('itinerary_requests', 'id'),
               COALESCE((SELECT MAX(id) FROM itinerary_requests), 0) + 1, false);
 

@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -545,6 +546,56 @@ func runWorker(rootCtx context.Context, cfg config.Config) {
 					To: op.Email, Subject: "Low stock: " + sku.SKUCode, PlainText: msg,
 				}); err != nil {
 					log.Printf("worker.StockCheck.Email(user=%s sku=%s): %v", op.ID, sku.SKUCode, err)
+				}
+			}
+		}
+		return nil
+	}
+
+	// sla:check (TDD line 235) — flags itinerary requests approaching/past the
+	// 24h SLA. Runs every 15min (jobs scheduler). For each breached pending/
+	// processing request not yet notified, CAS-set sla_notified_at (exactly-once:
+	// only the winner notifies), then push a dashboard notification + email to
+	// every travel_planner. Best-effort: a single failure is logged + skipped.
+	wItinRepo := itinerary.NewRepository(dbPool)
+	jobServer.SLACheck = func(ctx context.Context) error {
+		breached, err := wItinRepo.ListBreached(ctx)
+		if err != nil {
+			return fmt.Errorf("worker.SLACheck.ListBreached: %w", err)
+		}
+		if len(breached) == 0 {
+			return nil
+		}
+		planners, err := wUserRepo.ListByRole(ctx, models.RoleTravelPlanner)
+		if err != nil {
+			return fmt.Errorf("worker.SLACheck.ListByRole: %w", err)
+		}
+		for _, req := range breached {
+			won, err := wItinRepo.SetSLANotified(ctx, req.ID)
+			if err != nil {
+				log.Printf("worker.SLACheck.SetSLANotified(req=%d): %v", req.ID, err)
+				continue
+			}
+			if !won {
+				continue // a concurrent tick already flagged it
+			}
+			msg := fmt.Sprintf("Itinerary request #%d has passed its 24-hour response SLA (submitted %s)",
+				req.ID, req.SubmittedAt.Format("2006-01-02 15:04"))
+			for _, p := range planners {
+				if _, err := wNotifService.CreateNotification(ctx, models.CreateNotificationParams{
+					RecipientUserID: p.ID,
+					Type:            models.NotificationTypeSystem,
+					EntityType:      "itinerary_request",
+					EntityID:        req.ID,
+					ExtraData:       map[string]string{"message": msg},
+				}); err != nil {
+					log.Printf("worker.SLACheck.Notify(planner=%s req=%d): %v", p.ID, req.ID, err)
+				}
+				if err := wJobClient.EnqueueEmailSend(ctx, jobs.EmailSendPayload{
+					To: p.Email, Subject: "SLA breach: itinerary request #" + strconv.FormatInt(req.ID, 10),
+					PlainText: msg,
+				}); err != nil {
+					log.Printf("worker.SLACheck.Email(planner=%s req=%d): %v", p.ID, req.ID, err)
 				}
 			}
 		}

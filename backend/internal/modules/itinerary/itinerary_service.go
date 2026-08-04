@@ -23,8 +23,12 @@ type EmailEnqueuer interface {
 
 // UserFetcher loads the user profile (email + nickname for the ack email +
 // auto-attached username). Implemented by user.Service.GetUserProfile.
-type UserFetcher interface {
+//
+// Widened for the Planner CRM sub-track: ListStaffByRole powers the
+// planner-assignment dropdown (PRD §3.3.2). user.Service satisfies both.
+type UserDirectory interface {
 	GetUserProfile(ctx context.Context, userID string) (*models.User, error)
+	ListStaffByRole(ctx context.Context, roleKey string) ([]models.User, error)
 }
 
 // ConsentRecorder records the GDPR Privacy Policy consent at submit (PRD §3.3.2
@@ -41,21 +45,32 @@ type ServiceInterface interface {
 	SaveDraft(ctx context.Context, userID string, data models.ItineraryDraftData) (*models.ItineraryDraft, error)
 	DeleteDraft(ctx context.Context, userID string) error
 
-	// --- Requests ---
+	// --- Requests (customer-facing) ---
 	Submit(ctx context.Context, userID string, req models.ItinerarySubmitRequest, locale string) (*models.ItineraryRequest, error)
 	ListMine(ctx context.Context, userID string, page, limit int) ([]models.ItineraryRequest, int, error)
 	GetMine(ctx context.Context, userID string, id int64) (*models.ItineraryRequest, error)
 	Cancel(ctx context.Context, userID string, id int64, req models.ItineraryCancelRequest) error
+
+	// --- Planner CRM (PRD §3.3.2 "Backend/CRM") ---
+	ListAdmin(ctx context.Context, status, assignedTo, sla string, page, limit int) ([]models.ItineraryAdminRow, int, error)
+	GetAdmin(ctx context.Context, id int64) (*models.ItineraryAdminRow, error)
+	ListPlanners(ctx context.Context) ([]models.User, error)
+	Open(ctx context.Context, id int64) error                  // pending → processing
+	Close(ctx context.Context, id int64, req models.ItineraryReasonRequest) error // {pending,processing} → closed
+	CancelByStaff(ctx context.Context, id int64, req models.ItineraryReasonRequest) error // {pending,processing} → cancelled
+	Assign(ctx context.Context, id int64, req models.AssignItineraryRequest) error
+	AddNote(ctx context.Context, requestID int64, authorID string, req models.ItineraryNoteRequest) (*models.CRMNote, error)
+	ListNotes(ctx context.Context, requestID int64) ([]models.CRMNote, error)
 }
 
 type Service struct {
 	repo      RepositoryInterface
 	email     EmailEnqueuer
-	user      UserFetcher
+	user      UserDirectory
 	consent   ConsentRecorder
 }
 
-func NewService(repo RepositoryInterface, email EmailEnqueuer, user UserFetcher, consent ConsentRecorder) *Service {
+func NewService(repo RepositoryInterface, email EmailEnqueuer, user UserDirectory, consent ConsentRecorder) *Service {
 	return &Service{repo: repo, email: email, user: user, consent: consent}
 }
 
@@ -193,3 +208,79 @@ func (s *Service) Cancel(ctx context.Context, userID string, id int64, req model
 // compile-time: keep errors imported (used via models.Err* but errors.Is in
 // future cancel-state expansion).
 var _ = errors.Is
+
+// =============================================================================
+// Planner CRM service methods (PRD §3.3.2 "Backend/CRM")
+// =============================================================================
+
+func (s *Service) ListAdmin(ctx context.Context, status, assignedTo, sla string, page, limit int) ([]models.ItineraryAdminRow, int, error) {
+	return s.repo.ListAdmin(ctx, status, assignedTo, sla, page, limit)
+}
+
+func (s *Service) GetAdmin(ctx context.Context, id int64) (*models.ItineraryAdminRow, error) {
+	return s.repo.GetByIDAdmin(ctx, id)
+}
+
+// ListPlanners returns active travel_planner users for the assignment dropdown
+// (PRD §3.3.2 "assignment of requests to planners").
+func (s *Service) ListPlanners(ctx context.Context) ([]models.User, error) {
+	if s.user == nil {
+		return []models.User{}, nil
+	}
+	return s.user.ListStaffByRole(ctx, models.RoleTravelPlanner)
+}
+
+// Open moves a request pending→processing (a planner is now working it).
+func (s *Service) Open(ctx context.Context, id int64) error {
+	return s.repo.TransitionStatus(ctx, id, models.StatusItineraryPending, models.StatusItineraryProcessing)
+}
+
+// Close moves {pending,processing}→closed. Closed is terminal for the planner
+// inbox (the request leaves the active queue).
+func (s *Service) Close(ctx context.Context, id int64, req models.ItineraryReasonRequest) error {
+	// Try pending→closed first; on conflict (not pending) try processing→closed.
+	if err := s.repo.TransitionStatus(ctx, id, models.StatusItineraryPending, models.StatusItineraryClosed); err != nil {
+		if errors.Is(err, models.ErrConflict) {
+			return s.repo.TransitionStatus(ctx, id, models.StatusItineraryProcessing, models.StatusItineraryClosed)
+		}
+		return err
+	}
+	return nil
+}
+
+// CancelByStaff moves {pending,processing}→cancelled (planner-initiated). The
+// customer's cancel path only allows pending; staff may cancel an in-flight
+// (processing) request too, recording the reason for the audit trail.
+func (s *Service) CancelByStaff(ctx context.Context, id int64, req models.ItineraryReasonRequest) error {
+	return s.repo.CancelByStaff(ctx, id, req.Reason)
+}
+
+// Assign sets assigned_to. A non-nil assignee must be an active travel_planner
+// (validated against ListPlanners) — guards against stale/invalid UUIDs.
+func (s *Service) Assign(ctx context.Context, id int64, req models.AssignItineraryRequest) error {
+	if req.AssigneeID != nil && *req.AssigneeID != "" {
+		planners, err := s.ListPlanners(ctx)
+		if err != nil {
+			return fmt.Errorf("itinerary.Assign.ListPlanners: %w", err)
+		}
+		ok := false
+		for _, p := range planners {
+			if p.ID == *req.AssigneeID {
+				ok = true
+				break
+			}
+		}
+		if !ok {
+			return fmt.Errorf("%w: assignee is not an active travel planner", models.ErrInvalidOperation)
+		}
+	}
+	return s.repo.Assign(ctx, id, req.AssigneeID)
+}
+
+func (s *Service) AddNote(ctx context.Context, requestID int64, authorID string, req models.ItineraryNoteRequest) (*models.CRMNote, error) {
+	return s.repo.AddNote(ctx, requestID, authorID, req.Body)
+}
+
+func (s *Service) ListNotes(ctx context.Context, requestID int64) ([]models.CRMNote, error) {
+	return s.repo.ListNotes(ctx, requestID)
+}

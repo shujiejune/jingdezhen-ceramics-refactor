@@ -19,4 +19,7 @@ UNION ALL SELECT 'payments',              count(*) FROM payments
 UNION ALL SELECT 'certificates',          count(*) FROM certificates
 UNION ALL SELECT 'provenance_records',    count(*) FROM provenance_records
 UNION ALL SELECT 'media_assets',          count(*) FROM media_assets
-UNION ALL SELECT 'product_media',          count(*) FROM product_media;
+UNION ALL SELECT 'product_media',          count(*) FROM product_media
+UNION ALL SELECT 'itinerary_requests',      count(*) FROM itinerary_requests
+UNION ALL SELECT 'itinerary_drafts',        count(*) FROM itinerary_drafts
+UNION ALL SELECT 'crm_notes',               count(*) FROM crm_notes;

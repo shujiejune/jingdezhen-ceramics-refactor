@@ -168,3 +168,234 @@ func TestSLADeadline_SetOnCreate(t *testing.T) {
 	require.WithinDuration(t, req.SubmittedAt.Add(24*time.Hour), req.SLADeadline, 2*time.Second,
 		"sla_deadline must be ~24h after submitted_at")
 }
+
+// seedStaffUser inserts a user AND assigns them a staff role (the planner CRM
+// assignment validation checks the assignee is an active travel_planner).
+func seedStaffUser(t *testing.T, pool *pgxpool.Pool, email, roleKey string) string {
+	t.Helper()
+	uid := seedUser(t, pool, email)
+	_, err := pool.Exec(context.Background(), `
+		INSERT INTO user_roles (user_id, role_id) SELECT $1, id FROM roles WHERE key = $2
+		ON CONFLICT DO NOTHING`, uid, roleKey)
+	require.NoError(t, err)
+	return uid
+}
+
+// seedRequest inserts a request in a given status with a given sla_deadline
+// and returns its id. A direct INSERT avoids the service's 24h computation so
+// tests can plant a breached/approaching deadline.
+func seedRequest(t *testing.T, pool *pgxpool.Pool, uid string, sla time.Time) int64 {
+	t.Helper()
+	var id int64
+	err := pool.QueryRow(context.Background(), `
+		INSERT INTO itinerary_requests (user_id, status, duration_days, adults, pace,
+			interests, services, contact, locale, sla_deadline, submitted_at)
+		VALUES ($1, 'pending', 5, 2, 'balanced', '[]', '{}', '{}', 'en-US', $2, NOW())
+		RETURNING id`, uid, sla).Scan(&id)
+	require.NoError(t, err)
+	return id
+}
+
+// TestTransitionStatus_CAS verifies the planner open/close state machine:
+//   - open (pending→processing) succeeds; re-open → ErrConflict (not pending).
+//   - close (processing→closed) succeeds.
+//   - transition on an absent request → ErrNotFound.
+func TestTransitionStatus_CAS(t *testing.T) {
+	pool := testutil.NewDBPool(t)
+	ctx := context.Background()
+	repo := itinerary.NewRepository(pool)
+	uid := seedUser(t, pool, "t-cas@t.test")
+
+	id := seedRequest(t, pool, uid, time.Now().Add(24*time.Hour))
+
+	require.NoError(t, repo.TransitionStatus(ctx, id, models.StatusItineraryPending, models.StatusItineraryProcessing))
+	// Re-open: not pending → ErrConflict.
+	err := repo.TransitionStatus(ctx, id, models.StatusItineraryPending, models.StatusItineraryProcessing)
+	require.ErrorIs(t, err, models.ErrConflict)
+
+	// Close: processing→closed.
+	require.NoError(t, repo.TransitionStatus(ctx, id, models.StatusItineraryProcessing, models.StatusItineraryClosed))
+
+	// Absent → ErrNotFound.
+	err = repo.TransitionStatus(ctx, 999999, models.StatusItineraryPending, models.StatusItineraryProcessing)
+	require.ErrorIs(t, err, models.ErrNotFound)
+}
+
+// TestCancelByStaff_AcceptsProcessing verifies the planner cancel path accepts
+// both pending AND processing (the customer path only allows pending) and
+// records the cancel_reason + cancelled_at.
+func TestCancelByStaff_AcceptsProcessing(t *testing.T) {
+	pool := testutil.NewDBPool(t)
+	ctx := context.Background()
+	repo := itinerary.NewRepository(pool)
+	uid := seedUser(t, pool, "t-staffcancel@t.test")
+
+	id := seedRequest(t, pool, uid, time.Now().Add(24*time.Hour))
+	// Move to processing first.
+	require.NoError(t, repo.TransitionStatus(ctx, id, models.StatusItineraryPending, models.StatusItineraryProcessing))
+	// Staff cancel from processing → ok.
+	require.NoError(t, repo.CancelByStaff(ctx, id, "no longer needed"))
+
+	got, err := repo.GetByIDAdmin(ctx, id)
+	require.NoError(t, err)
+	require.Equal(t, models.StatusItineraryCancelled, got.Status)
+	require.NotNil(t, got.CancelReason)
+	require.Equal(t, "no longer needed", *got.CancelReason)
+	require.NotNil(t, got.CancelledAt)
+
+	// Re-cancel a confirmed request → ErrItineraryNotCancellable (not cancellable).
+	id2 := seedRequest(t, pool, uid, time.Now().Add(24*time.Hour))
+	require.NoError(t, repo.TransitionStatus(ctx, id2, models.StatusItineraryPending, models.StatusItineraryConfirmed))
+	err = repo.CancelByStaff(ctx, id2, "x")
+	require.ErrorIs(t, err, models.ErrItineraryNotCancellable)
+}
+
+// TestAssign_PersistsAndUnassigns verifies assign + unassign (nil).
+func TestAssign_PersistsAndUnassigns(t *testing.T) {
+	pool := testutil.NewDBPool(t)
+	ctx := context.Background()
+	repo := itinerary.NewRepository(pool)
+	uid := seedUser(t, pool, "t-assign@t.test")
+	planner := seedStaffUser(t, pool, "planner-assign@t.test", models.RoleTravelPlanner)
+
+	id := seedRequest(t, pool, uid, time.Now().Add(24*time.Hour))
+
+	require.NoError(t, repo.Assign(ctx, id, &planner))
+	got, err := repo.GetByIDAdmin(ctx, id)
+	require.NoError(t, err)
+	require.NotNil(t, got.AssignedTo)
+	require.Equal(t, planner, *got.AssignedTo)
+
+	// Unassign (nil).
+	require.NoError(t, repo.Assign(ctx, id, nil))
+	got, err = repo.GetByIDAdmin(ctx, id)
+	require.NoError(t, err)
+	require.Nil(t, got.AssignedTo)
+
+	// Absent → ErrNotFound.
+	err = repo.Assign(ctx, 999999, nil)
+	require.ErrorIs(t, err, models.ErrNotFound)
+}
+
+// TestAddNote_ListNotes verifies a note is saved with the author's display
+// name joined, and ListNotes returns newest-first.
+func TestAddNote_ListNotes(t *testing.T) {
+	pool := testutil.NewDBPool(t)
+	ctx := context.Background()
+	repo := itinerary.NewRepository(pool)
+	uid := seedUser(t, pool, "t-notes@t.test")
+	author := seedStaffUser(t, pool, "note-author@t.test", models.RoleTravelPlanner)
+
+	id := seedRequest(t, pool, uid, time.Now().Add(24*time.Hour))
+
+	n1, err := repo.AddNote(ctx, id, author, "First follow-up: emailed customer.")
+	require.NoError(t, err)
+	require.Equal(t, "First follow-up: emailed customer.", n1.Body)
+	require.Equal(t, "note-author@t.test", n1.AuthorName, "author name falls back to email when nickname unset")
+
+	n2, err := repo.AddNote(ctx, id, author, "Second: confirmed dates.")
+	require.NoError(t, err)
+
+	notes, err := repo.ListNotes(ctx, id)
+	require.NoError(t, err)
+	require.Len(t, notes, 2)
+	require.Equal(t, n2.ID, notes[0].ID, "newest first")
+	require.Equal(t, n1.ID, notes[1].ID)
+}
+
+// TestListAdmin_FiltersAndJoinsCustomer verifies the inbox JOINs the customer's
+// email/nickname + filters by status and assigned_to (incl. "unassigned").
+func TestListAdmin_FiltersAndJoinsCustomer(t *testing.T) {
+	pool := testutil.NewDBPool(t)
+	ctx := context.Background()
+	repo := itinerary.NewRepository(pool)
+	cust := seedUser(t, pool, "inbox-customer@t.test")
+	planner := seedStaffUser(t, pool, "inbox-planner@t.test", models.RoleTravelPlanner)
+
+	// Two requests: one pending+assigned, one processing+unassigned.
+	sla := time.Now().Add(24 * time.Hour)
+	id1 := seedRequest(t, pool, cust, sla)
+	require.NoError(t, repo.Assign(ctx, id1, &planner))
+	id2 := seedRequest(t, pool, cust, sla)
+	require.NoError(t, repo.TransitionStatus(ctx, id2, models.StatusItineraryPending, models.StatusItineraryProcessing))
+
+	// All requests → 2 rows, customer email joined.
+	rows, total, err := repo.ListAdmin(ctx, "", "", "", 1, 50)
+	require.NoError(t, err)
+	require.Equal(t, 2, total)
+	require.Len(t, rows, 2)
+	require.Equal(t, "inbox-customer@t.test", rows[0].CustomerEmail)
+
+	// Filter by status=processing → 1 row (id2).
+	rows, total, err = repo.ListAdmin(ctx, "processing", "", "", 1, 50)
+	require.NoError(t, err)
+	require.Equal(t, 1, total)
+	require.Equal(t, id2, rows[0].ID)
+
+	// Filter by assigned_to=unassigned → 1 row (id2).
+	rows, total, err = repo.ListAdmin(ctx, "", "unassigned", "", 1, 50)
+	require.NoError(t, err)
+	require.Equal(t, 1, total)
+	require.Equal(t, id2, rows[0].ID)
+
+	// Filter by assigned_to=<planner> → 1 row (id1).
+	rows, total, err = repo.ListAdmin(ctx, "", planner, "", 1, 50)
+	require.NoError(t, err)
+	require.Equal(t, 1, total)
+	require.Equal(t, id1, rows[0].ID)
+}
+
+// TestGetByIDAdmin_JoinsCustomer verifies the admin detail view includes the
+// customer's email + nickname.
+func TestGetByIDAdmin_JoinsCustomer(t *testing.T) {
+	pool := testutil.NewDBPool(t)
+	ctx := context.Background()
+	repo := itinerary.NewRepository(pool)
+	cust := seedUser(t, pool, "detail-customer@t.test")
+	id := seedRequest(t, pool, cust, time.Now().Add(24*time.Hour))
+
+	got, err := repo.GetByIDAdmin(ctx, id)
+	require.NoError(t, err)
+	require.Equal(t, id, got.ID)
+	require.Equal(t, "detail-customer@t.test", got.CustomerEmail)
+	require.Contains(t, []string{got.CustomerNickname, ""}, got.CustomerNickname)
+	require.NotEmpty(t, got.SLAStatus, "SLA status is derived in SQL")
+}
+
+// TestSLA_ListBreached_AndNotifiedCAS verifies the SLA cron path:
+//   - ListBreached returns pending/processing requests past their deadline +
+//     not yet notified.
+//   - SetSLANotified wins exactly once (the CAS); a second call returns false
+//     (a concurrent tick already flagged it → skip notification).
+//   - After the CAS, ListBreached excludes the request.
+func TestSLA_ListBreached_AndNotifiedCAS(t *testing.T) {
+	pool := testutil.NewDBPool(t)
+	ctx := context.Background()
+	repo := itinerary.NewRepository(pool)
+	uid := seedUser(t, pool, "t-sla@t.test")
+
+	// A breached request (deadline in the past) + a healthy one (future).
+	breachedID := seedRequest(t, pool, uid, time.Now().Add(-2*time.Hour))
+	healthyID := seedRequest(t, pool, uid, time.Now().Add(24*time.Hour))
+
+	breached, err := repo.ListBreached(ctx)
+	require.NoError(t, err)
+	require.Len(t, breached, 1)
+	require.Equal(t, breachedID, breached[0].ID, "only the past-deadline request is breached")
+	_ = healthyID
+
+	// First CAS wins.
+	won, err := repo.SetSLANotified(ctx, breachedID)
+	require.NoError(t, err)
+	require.True(t, won, "first SetSLANotified wins the race")
+
+	// Second CAS loses (already notified).
+	won, err = repo.SetSLANotified(ctx, breachedID)
+	require.NoError(t, err)
+	require.False(t, won, "second SetSLANotified must lose (exactly-once)")
+
+	// ListBreached now excludes the flagged request.
+	breached, err = repo.ListBreached(ctx)
+	require.NoError(t, err)
+	require.Empty(t, breached, "flagged request is excluded from future breach scans")
+}

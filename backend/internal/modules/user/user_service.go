@@ -44,6 +44,13 @@ type ServiceInterface interface {
 	AdminListUsers(ctx context.Context, page, limit int) ([]models.User, int, error)
 	AdminAssignRole(ctx context.Context, targetUserID string, roleKey string) error
 
+	// ListStaffByRole returns active users holding a staff role (e.g. all
+	// travel_planner users for the planner-assignment dropdown, PRD §3.4.1).
+	// Thin wrapper over the repo's ListByRole (already used by the low-stock
+	// alert worker). Exposed on the service so modules import the interface,
+	// not the repo.
+	ListStaffByRole(ctx context.Context, roleKey string) ([]models.User, error)
+
 	// 2FA login completion (TDD §5.3): validate the pending token + TOTP code,
 	// then issue the real access token + full profile. The pending-token
 	// resolution is delegated to the 2FA service; this method owns the JWT.
@@ -714,4 +721,11 @@ func (s *Service) AdminAssignRole(ctx context.Context, targetUserID string, role
 		return fmt.Errorf("service.AdminAssignRole: empty role key not supported yet")
 	}
 	return s.userRepo.AssignRole(ctx, targetUserID, roleKey)
+}
+
+// ListStaffByRole returns active users holding a given staff role (e.g. all
+// travel_planner users for the planner-assignment dropdown, PRD §3.4.1).
+// Thin pass-through to the repo's ListByRole.
+func (s *Service) ListStaffByRole(ctx context.Context, roleKey string) ([]models.User, error) {
+	return s.userRepo.ListByRole(ctx, roleKey)
 }

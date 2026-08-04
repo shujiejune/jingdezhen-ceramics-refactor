@@ -301,6 +301,29 @@ func SetupRoutes(
 		adminCerts.Get("", certificateHandler.ListCertificates)
 		adminCerts.Get("/:id", certificateHandler.GetCertificate)
 		adminCerts.Post("/:id/regenerate", certificateHandler.Regenerate)
+
+		// --- Custom Itinerary Planner CRM (PRD §3.3.2 "Backend/CRM") ---
+		// itinerary.read  (travel_planner + customer_service): inbox, detail,
+		//   notes read, planner dropdown, CSV export.
+		// itinerary.write (travel_planner): open/close/cancel transitions,
+		//   assign, add note (the contact-history author).
+		adminItinRead := adminGroup.Group("/itineraries")
+		adminItinRead.Use(middleware.RequirePermission(models.PermItineraryRead))
+		// Static routes first so they win over :id (Fiber prioritizes static over
+		// param, but explicit order avoids ambiguity in the route table).
+		adminItinRead.Get("/export", itineraryHandler.AdminExport)
+		adminItinRead.Get("/planners", itineraryHandler.AdminListPlanners)
+		adminItinRead.Get("", itineraryHandler.AdminList)
+		adminItinRead.Get("/:id", itineraryHandler.AdminGet)
+		adminItinRead.Get("/:id/notes", itineraryHandler.AdminListNotes)
+
+		adminItinWrite := adminGroup.Group("/itineraries")
+		adminItinWrite.Use(middleware.RequirePermission(models.PermItineraryWrite))
+		adminItinWrite.Post("/:id/open", itineraryHandler.AdminOpen)
+		adminItinWrite.Post("/:id/close", itineraryHandler.AdminClose)
+		adminItinWrite.Post("/:id/cancel", itineraryHandler.AdminCancel)
+		adminItinWrite.Post("/:id/assign", itineraryHandler.AdminAssign)
+		adminItinWrite.Post("/:id/notes", itineraryHandler.AdminAddNote)
 		// Staff account & role management (Super Admin only in v1).
 		adminUsers := adminGroup.Group("/users")
 		adminUsers.Use(middleware.RequirePermission(models.PermUsersManage))
