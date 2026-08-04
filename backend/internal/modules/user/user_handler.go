@@ -3,10 +3,11 @@ package user
 import (
 	"errors"
 	"fmt"
-	"jingdezhen-ceramics-backend/internal/models"
-	"jingdezhen-ceramics-backend/pkg/utils"
 	"log"
 	"time"
+
+	"jingdezhen-ceramics-backend/internal/models"
+	"jingdezhen-ceramics-backend/pkg/utils"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"

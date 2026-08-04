@@ -41,7 +41,7 @@ type Generator interface {
 // (<!DOCTYPE html>…); the print options map to chromedp's page.PrintToPDF.
 type RenderRequest struct {
 	HTML         string
-	PaperFormat  string  // "A4" (default) | "Letter"
+	PaperFormat  string // "A4" (default) | "Letter"
 	Landscape    bool
 	MarginTop    float64 // inches; 0 = use the chromedp default (~0.4)
 	MarginBottom float64

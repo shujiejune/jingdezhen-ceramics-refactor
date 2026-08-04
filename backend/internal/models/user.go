@@ -56,7 +56,7 @@ type UserUpdateData struct {
 	Nickname          *string `json:"nickname,omitempty" validate:"omitempty,min=1,max=100"`
 	AvatarURL         *string `json:"avatar_url,omitempty" validate:"omitempty,url"`
 	OtherContact      *string `json:"other_contact,omitempty" validate:"omitempty,max=255"`
-	PreferredLocale   *string `json:"preferred_locale,omitempty" validate:"omitempty,len=5"`   // BCP 47, e.g. en-US
+	PreferredLocale   *string `json:"preferred_locale,omitempty" validate:"omitempty,len=5"`                     // BCP 47, e.g. en-US
 	PreferredCurrency *string `json:"preferred_currency,omitempty" validate:"omitempty,len=3,oneof=USD EUR GBP"` // ISO 4217: USD|EUR|GBP
 }
 

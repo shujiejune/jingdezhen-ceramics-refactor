@@ -125,7 +125,9 @@ func (g *PayPalGateway) Refund(ctx context.Context, req RefundRequest) (RefundRe
 	if resp.StatusCode >= 300 {
 		return RefundResponse{}, fmt.Errorf("paypal.Refund.status: %d: %s", resp.StatusCode, string(respBody))
 	}
-	var out struct{ ID string `json:"id"` }
+	var out struct {
+		ID string `json:"id"`
+	}
 	_ = json.Unmarshal(respBody, &out)
 	return RefundResponse{RefundRef: out.ID}, nil
 }
@@ -159,7 +161,9 @@ func (g *PayPalGateway) VerifyWebhook(ctx context.Context, rawBody []byte, heade
 	if resp.StatusCode >= 300 {
 		return WebhookEvent{}, fmt.Errorf("paypal.VerifyWebhook.status: %d: %s", resp.StatusCode, string(respBody))
 	}
-	var vr struct{ VerificationStatus string `json:"verification_status"` }
+	var vr struct {
+		VerificationStatus string `json:"verification_status"`
+	}
 	if err := json.Unmarshal(respBody, &vr); err != nil {
 		return WebhookEvent{}, fmt.Errorf("paypal.VerifyWebhook.parse: %w", err)
 	}

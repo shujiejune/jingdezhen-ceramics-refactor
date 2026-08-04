@@ -21,10 +21,10 @@ import (
 type PaymentStatus string
 
 const (
-	PaymentPending  PaymentStatus = "pending"
+	PaymentPending   PaymentStatus = "pending"
 	PaymentSucceeded PaymentStatus = "succeeded"
-	PaymentFailed   PaymentStatus = "failed"
-	PaymentRefunded PaymentStatus = "refunded"
+	PaymentFailed    PaymentStatus = "failed"
+	PaymentRefunded  PaymentStatus = "refunded"
 )
 
 // Payment is a payment record (one per gateway intent). Exactly one of
@@ -33,7 +33,7 @@ const (
 // the NULL representation on read (the scan coalesces NULL → 0).
 type Payment struct {
 	ID               int64           `json:"id" db:"id"`
-	OrderID          int64           `json:"order_id" db:"order_id"`              // 0 when ItineraryQuoteID set (deposit)
+	OrderID          int64           `json:"order_id" db:"order_id"`                     // 0 when ItineraryQuoteID set (deposit)
 	ItineraryQuoteID int64           `json:"itinerary_quote_id" db:"itinerary_quote_id"` // 0 when OrderID set (order payment)
 	Gateway          string          `json:"gateway" db:"gateway"`
 	GatewayRef       string          `json:"gateway_ref" db:"gateway_ref"`

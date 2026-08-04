@@ -2,11 +2,12 @@ package ceramicstory
 
 import (
 	"errors"
+	"log"
+	"strconv"
+
 	"jingdezhen-ceramics-backend/internal/models"
 	"jingdezhen-ceramics-backend/internal/platform/i18ncontent"
 	"jingdezhen-ceramics-backend/pkg/utils"
-	"log"
-	"strconv"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
@@ -99,8 +100,8 @@ type localeBody struct {
 // AdminListStories: GET /admin/ceramicstory?locale=&status=&page=&limit=
 func (h *Handler) AdminListStories(c *fiber.Ctx) error {
 	page, limit := utils.GetPageLimit(c)
-	locale := c.Query("locale")   // optional filter
-	status := c.Query("status")   // optional filter: draft|in_review|published|rejected
+	locale := c.Query("locale") // optional filter
+	status := c.Query("status") // optional filter: draft|in_review|published|rejected
 	stories, total, err := h.service.AdminListStories(c.Context(), locale, status, page, limit)
 	if err != nil {
 		if errors.Is(err, models.ErrInvalidLocale) {

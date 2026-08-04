@@ -18,8 +18,8 @@ import (
 // presign — the dev upload handler calls Put server-side. PublicURL returns a
 // path under PublicBaseURL (e.g. /media/...) which the Fiber static mount serves.
 type LocalStore struct {
-	RootDir        string // on-disk directory (e.g. ./_media)
-	PublicBaseURL  string // URL prefix (e.g. /media)
+	RootDir       string // on-disk directory (e.g. ./_media)
+	PublicBaseURL string // URL prefix (e.g. /media)
 }
 
 // NewLocalStore constructs a LocalStore, creating RootDir if missing.
@@ -86,14 +86,14 @@ func (s *LocalStore) Delete(ctx context.Context, key string) error {
 // over mime.ExtensionsByType's alphabetically-first result (which yields
 // .jfif for image/jpeg, an oddity). Falls back to the mime registry.
 var preferredExt = map[string]string{
-	"image/jpeg": ".jpg",
-	"image/png":  ".png",
-	"image/gif":  ".gif",
-	"image/webp": ".webp",
-	"image/bmp":  ".bmp",
-	"video/mp4":        ".mp4",
-	"video/quicktime":  ".mov",
-	"video/webm":       ".webm",
+	"image/jpeg":      ".jpg",
+	"image/png":       ".png",
+	"image/gif":       ".gif",
+	"image/webp":      ".webp",
+	"image/bmp":       ".bmp",
+	"video/mp4":       ".mp4",
+	"video/quicktime": ".mov",
+	"video/webm":      ".webm",
 }
 
 // Key derives media/<yyyy>/<mm>/<uuid>.<ext> from the kind + mime. The uuid is

@@ -5,10 +5,11 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"jingdezhen-ceramics-backend/internal/models"
 	"log"
 	"strings"
 	"time"
+
+	"jingdezhen-ceramics-backend/internal/models"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -33,9 +34,9 @@ type RepositoryInterface interface {
 	Update(ctx context.Context, userID string, updateData models.UserUpdateData) (*models.User, error)
 
 	ListAll(ctx context.Context, page, limit int) ([]models.User, int, error) // Admin: list users
-	ListByRole(ctx context.Context, roleKey string) ([]models.User, error)        // staff users with a role (low-stock alert recipients)
+	ListByRole(ctx context.Context, roleKey string) ([]models.User, error)    // staff users with a role (low-stock alert recipients)
 	GetUserRoles(ctx context.Context, userID string) ([]string, error)        // RBAC: load role keys
-	AssignRole(ctx context.Context, userID string, roleKey string) error     // Admin: set single staff role
+	AssignRole(ctx context.Context, userID string, roleKey string) error      // Admin: set single staff role
 }
 
 // DBExecutor represents anything that can execute a SQL query
@@ -301,7 +302,6 @@ func (r *Repository) CreateInactiveUser(ctx context.Context, user *models.User, 
 }
 
 func (r *Repository) ActivateUser(ctx context.Context, token string) (*models.User, error) {
-	user := &models.User{}
 	query := `
         UPDATE users
         SET is_active = TRUE, activation_token = NULL, activation_token_expires_at = NULL, updated_at = NOW()

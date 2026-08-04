@@ -13,7 +13,7 @@ import (
 // the gitignored .env (see .env.example for the full key list).
 type Config struct {
 	// --- Server ---
-	ServerPort string `mapstructure:"SERVER_PORT"`
+	ServerPort   string `mapstructure:"SERVER_PORT"`
 	ClientOrigin string `mapstructure:"CLIENT_ORIGIN"`
 	JWTSecret    string `mapstructure:"JWT_SECRET"`
 	AdminEmail   string `mapstructure:"ADMIN_EMAIL"` // inbox for admin notifications
@@ -44,9 +44,9 @@ type Config struct {
 	BrevoSenderName  string `mapstructure:"BREVO_SENDER_NAME"`
 
 	// --- Airwallex (card payments; settles to CNY) — sandbox until onboarding (PRD §7) ---
-	AirwallexClientID     string `mapstructure:"AIRWALLEX_CLIENT_ID"`
-	AirwallexAPIKey       string `mapstructure:"AIRWALLEX_API_KEY"`
-	AirwallexEnv          string `mapstructure:"AIRWALLEX_ENV"` // "sandbox" | "live"
+	AirwallexClientID      string `mapstructure:"AIRWALLEX_CLIENT_ID"`
+	AirwallexAPIKey        string `mapstructure:"AIRWALLEX_API_KEY"`
+	AirwallexEnv           string `mapstructure:"AIRWALLEX_ENV"` // "sandbox" | "live"
 	AirwallexWebhookSecret string `mapstructure:"AIRWALLEX_WEBHOOK_SECRET"`
 
 	// --- PayPal (alternative payment) — sandbox until onboarding (PRD §7) ---
@@ -61,7 +61,7 @@ type Config struct {
 	QwenModel   string `mapstructure:"QWEN_MODEL"`    // e.g. qwen-plus
 
 	// --- Alibaba Cloud OSS (HK) — object storage + on-the-fly image processing (TDD §2.1) ---
-	OSSEndpoint        string `mapstructure:"OSS_ENDPOINT"`        // e.g. oss-cn-hongkong.aliyuncs.com
+	OSSEndpoint        string `mapstructure:"OSS_ENDPOINT"` // e.g. oss-cn-hongkong.aliyuncs.com
 	OSSAccessKeyID     string `mapstructure:"OSS_ACCESS_KEY_ID"`
 	OSSAccessKeySecret string `mapstructure:"OSS_ACCESS_KEY_SECRET"`
 	OSSBucket          string `mapstructure:"OSS_BUCKET"`
@@ -72,10 +72,10 @@ type Config struct {
 	// served via a Fiber static mount at STORAGE_PUBLIC_BASE_URL. "oss": live
 	// Alibaba Cloud OSS presign + CDN (NOT live-tested until creds land). The
 	// media module depends on the Store interface, so swapping is an env flip.
-	StorageMode        string `mapstructure:"STORAGE_MODE"`         // local | oss
-	StorageLocalDir    string `mapstructure:"STORAGE_LOCAL_DIR"`    // e.g. ./_media
+	StorageMode          string `mapstructure:"STORAGE_MODE"`            // local | oss
+	StorageLocalDir      string `mapstructure:"STORAGE_LOCAL_DIR"`       // e.g. ./_media
 	StoragePublicBaseURL string `mapstructure:"STORAGE_PUBLIC_BASE_URL"` // e.g. /media or https://cdn...com
-	OSSPublicBaseURL   string `mapstructure:"OSS_PUBLIC_BASE_URL"`   // CDN domain override (empty = bucket URL)
+	OSSPublicBaseURL     string `mapstructure:"OSS_PUBLIC_BASE_URL"`     // CDN domain override (empty = bucket URL)
 
 	// --- PDF adapter (TDD §12: chromedp HTML→PDF) ---
 	// PDF_MODE=local (dev default): NoopGenerator returns ErrPDFUnavailable so the
@@ -85,15 +85,15 @@ type Config struct {
 	//   DevTools remote protocol. PDF_BASE_URL is the origin the sidecar fetches
 	//   <img> assets from (e.g. the QR at GET /certificates/:code/qr), reachable
 	//   over the compose network — http://api:<port> inside compose.
-	PDFMode     string `mapstructure:"PDF_MODE"`      // local | chromedp
-	ChromedpURL string `mapstructure:"CHROMEDP_URL"`  // ws://chromedp:9222
+	PDFMode     string `mapstructure:"PDF_MODE"`     // local | chromedp
+	ChromedpURL string `mapstructure:"CHROMEDP_URL"` // ws://chromedp:9222
 	PDFBaseURL  string `mapstructure:"PDF_BASE_URL"` // http://api:1323 (asset origin)
 
 	// --- FX pipeline (TDD §7, PRD §3.2.3) ---
 	// ECB_API_URL empty => fixture rates in dev (TDD §4.1). FX_MARKUP_BPS is
 	// basis points (200 = 2%); will move to a CMS settings table post-MVP.
-	ECB_API_URL  string `mapstructure:"ECB_API_URL"`
-	FXMarkupBPS  int    `mapstructure:"FX_MARKUP_BPS"`
+	ECB_API_URL string `mapstructure:"ECB_API_URL"`
+	FXMarkupBPS int    `mapstructure:"FX_MARKUP_BPS"`
 
 	// --- Payments (TDD §4.1) ---
 	// PAYMENTS_MODE=mock (dev default): checkout enqueues payment:finalize
@@ -106,7 +106,7 @@ type Config struct {
 func LoadConfig(path string) (config Config, err error) {
 	viper.AddConfigPath(path)
 	viper.SetConfigName(".env") // Name of config file (without extension)
-	viper.SetConfigType("env") // Or "dotenv" or "json", "yaml" etc.
+	viper.SetConfigType("env")  // Or "dotenv" or "json", "yaml" etc.
 
 	viper.AutomaticEnv() // Read in environment variables that match
 
@@ -127,8 +127,8 @@ func LoadConfig(path string) (config Config, err error) {
 // initDefaults sets env-var defaults that are not secrets. Called from init()
 // so they apply before Unmarshal (env vars / .env still override).
 func init() {
-	viper.SetDefault("ECB_API_URL", "")   // empty => fixture rates in dev
-	viper.SetDefault("FX_MARKUP_BPS", 200) // 200 bps = 2% (PRD §3.2.3 default)
+	viper.SetDefault("ECB_API_URL", "")       // empty => fixture rates in dev
+	viper.SetDefault("FX_MARKUP_BPS", 200)    // 200 bps = 2% (PRD §3.2.3 default)
 	viper.SetDefault("PAYMENTS_MODE", "mock") // dev: mock payment finalize seam
 
 	// Storage adapter defaults (TDD §4.1). Local dev = local-dir store;

@@ -27,9 +27,9 @@ import (
 // rbacCase is one row of the RBAC matrix: given these roles, does this
 // permission gate let the request through?
 type rbacCase struct {
-	name string
-	perm string
-	roles []string
+	name       string
+	perm       string
+	roles      []string
 	wantStatus int // 200 = allowed, 403 = denied
 }
 

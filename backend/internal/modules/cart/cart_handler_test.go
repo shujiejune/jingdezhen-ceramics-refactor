@@ -44,10 +44,10 @@ func TestApplyPresentmentReconciliation(t *testing.T) {
 
 	applyPresentmentConv(context.Background(), "USD", conv, cart)
 
-	wantUnit1 := int64(18100) // $181.00
-	wantLine1 := wantUnit1 * 5 // $905.00
-	wantUnit2 := int64(12400)  // $124.00
-	wantLine2 := wantUnit2 * 1 // $124.00
+	wantUnit1 := int64(18100)          // $181.00
+	wantLine1 := wantUnit1 * 5         // $905.00
+	wantUnit2 := int64(12400)          // $124.00
+	wantLine2 := wantUnit2 * 1         // $124.00
 	wantTotal := wantLine1 + wantLine2 // $1029.00
 
 	// Per-line: unit × qty == line.

@@ -6,13 +6,14 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"jingdezhen-ceramics-backend/internal/models"
-	emailSvc "jingdezhen-ceramics-backend/pkg/email"
-	"jingdezhen-ceramics-backend/internal/platform/jobs"
-	"jingdezhen-ceramics-backend/pkg/utils"
 	"log"
 	"net/http"
 	"time"
+
+	"jingdezhen-ceramics-backend/internal/models"
+	"jingdezhen-ceramics-backend/internal/platform/jobs"
+	emailSvc "jingdezhen-ceramics-backend/pkg/email"
+	"jingdezhen-ceramics-backend/pkg/utils"
 
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
@@ -90,7 +91,7 @@ type TwoFAChecker interface {
 
 type Service struct {
 	userRepo          RepositoryInterface
-	emailEnqueuer     EmailEnqueuer       // enqueue email:send jobs (TDD §4.2)
+	emailEnqueuer     EmailEnqueuer // enqueue email:send jobs (TDD §4.2)
 	templateManager   *emailSvc.TemplateManager
 	jwtSecret         string
 	clientOrigin      string // For sending activation and password reset emails (domain name)

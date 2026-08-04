@@ -4,9 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"jingdezhen-ceramics-backend/internal/models"
 	"strconv"
 	"time"
+
+	"jingdezhen-ceramics-backend/internal/models"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -312,10 +313,10 @@ func (r *Repository) scanAdminRow(row pgx.Row) (*models.ItineraryAdminRow, error
 // are optional (empty = ignore). assignedTo="unassigned" selects NULL assignees.
 func (r *Repository) ListAdmin(ctx context.Context, status, assignedTo, sla string, page, limit int) ([]models.ItineraryAdminRow, int, error) {
 	// Build filter fragments. The adminCols CASE references $1 (approachHours)
-// so the ROWS query always binds approachHours as $1 + filters from $2.
-// The COUNT query does NOT include adminCols, so it only binds the params its
-// WHERE actually references — built separately to avoid a placeholder/arg
-// count mismatch (pgx errors when args exceed referenced $N).
+	// so the ROWS query always binds approachHours as $1 + filters from $2.
+	// The COUNT query does NOT include adminCols, so it only binds the params its
+	// WHERE actually references — built separately to avoid a placeholder/arg
+	// count mismatch (pgx errors when args exceed referenced $N).
 	filterFragments := []string{}
 	filterArgs := []interface{}{} // bound AFTER approachHours in the rows query
 	if status != "" {
@@ -401,7 +402,7 @@ func buildCountWhere(status, assignedTo, sla string) (string, []interface{}) {
 	needsApproach := sla == models.SLAApproaching || sla == models.SLAOnTime
 	if needsApproach {
 		args = append(args, slaApproachingHours) // $1
-		n = 2 // status/assignee start at $2
+		n = 2                                    // status/assignee start at $2
 	}
 	if status != "" {
 		frags = append(frags, fmt.Sprintf("r.status = $%d", n))
@@ -411,7 +412,8 @@ func buildCountWhere(status, assignedTo, sla string) (string, []interface{}) {
 	if assignedTo != "" && assignedTo != "unassigned" {
 		frags = append(frags, fmt.Sprintf("r.assigned_to = $%d::uuid", n))
 		args = append(args, assignedTo)
-		n++
+		// No n++ here: the SLA clauses below use a literal $1 (the approaching-hours
+		// bound), not a positional placeholder, so n has no further consumer.
 	}
 	if assignedTo == "unassigned" {
 		frags = append(frags, "r.assigned_to IS NULL")

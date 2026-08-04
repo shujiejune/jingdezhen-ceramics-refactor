@@ -18,25 +18,25 @@ import "time"
 // locale's translation. Scanned from a JOIN of ceramic_stories +
 // ceramic_story_translations.
 type CeramicStory struct {
-	ID                   int64          `json:"id" db:"id"`
-	DynastyName          string         `json:"dynasty_name" db:"dynasty_name"`          // translation
-	Slug                 string         `json:"slug" db:"slug"`                          // translation (per-locale unique)
-	Period               *string        `json:"period,omitempty" db:"period"`            // translation
-	StartYear            *int           `json:"start_year,omitempty" db:"start_year"`     // parent
-	EndYear              *int           `json:"end_year,omitempty" db:"end_year"`         // parent
-	Description          string         `json:"description" db:"description"`            // translation
-	CharacteristicsCraft *string        `json:"characteristics_craft,omitempty" db:"characteristics_craft"`
-	CharacteristicsArt   *string        `json:"characteristics_art,omitempty" db:"characteristics_art"`
-	ImageURL             *string        `json:"image_url,omitempty" db:"image_url"`        // parent (non-localized media)
-	Takeaways            *string        `json:"takeaways,omitempty" db:"takeaways"`
-	DisplayOrder         int            `json:"display_order" db:"display_order"`         // parent
-	MetaTitle            *string        `json:"meta_title,omitempty" db:"meta_title"`
-	MetaDescription      *string        `json:"meta_description,omitempty" db:"meta_description"`
-	Locale               string         `json:"locale" db:"locale"`                        // translation
-	Status               ContentStatus  `json:"status" db:"status"`                         // translation
-	PublishedAt          *time.Time     `json:"published_at,omitempty" db:"published_at"`
-	CreatedAt            time.Time      `json:"created_at" db:"created_at"`                 // parent
-	UpdatedAt           time.Time      `json:"updated_at" db:"updated_at"`                 // parent
+	ID                   int64         `json:"id" db:"id"`
+	DynastyName          string        `json:"dynasty_name" db:"dynasty_name"`       // translation
+	Slug                 string        `json:"slug" db:"slug"`                       // translation (per-locale unique)
+	Period               *string       `json:"period,omitempty" db:"period"`         // translation
+	StartYear            *int          `json:"start_year,omitempty" db:"start_year"` // parent
+	EndYear              *int          `json:"end_year,omitempty" db:"end_year"`     // parent
+	Description          string        `json:"description" db:"description"`         // translation
+	CharacteristicsCraft *string       `json:"characteristics_craft,omitempty" db:"characteristics_craft"`
+	CharacteristicsArt   *string       `json:"characteristics_art,omitempty" db:"characteristics_art"`
+	ImageURL             *string       `json:"image_url,omitempty" db:"image_url"` // parent (non-localized media)
+	Takeaways            *string       `json:"takeaways,omitempty" db:"takeaways"`
+	DisplayOrder         int           `json:"display_order" db:"display_order"` // parent
+	MetaTitle            *string       `json:"meta_title,omitempty" db:"meta_title"`
+	MetaDescription      *string       `json:"meta_description,omitempty" db:"meta_description"`
+	Locale               string        `json:"locale" db:"locale"` // translation
+	Status               ContentStatus `json:"status" db:"status"` // translation
+	PublishedAt          *time.Time    `json:"published_at,omitempty" db:"published_at"`
+	CreatedAt            time.Time     `json:"created_at" db:"created_at"` // parent
+	UpdatedAt            time.Time     `json:"updated_at" db:"updated_at"` // parent
 }
 
 // --- Admin / CMS DTOs (for future admin endpoints) ---------------------------

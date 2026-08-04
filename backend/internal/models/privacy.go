@@ -11,9 +11,9 @@ import "time"
 // add their sections here as they land (M2/M3).
 type UserDataExport struct {
 	// Request metadata.
-	ExportedAt   time.Time `json:"exported_at"`
-	UserID       string    `json:"user_id"`
-	Locale       string    `json:"locale,omitempty"`
+	ExportedAt time.Time `json:"exported_at"`
+	UserID     string    `json:"user_id"`
+	Locale     string    `json:"locale,omitempty"`
 
 	// Profile (the users row minus secrets).
 	Profile *User `json:"profile"`
@@ -37,11 +37,11 @@ type UserDataExport struct {
 
 // TwoFAExport is the non-secret 2FA summary included in a data export.
 type TwoFAExport struct {
-	Enabled      bool       `json:"enabled"`
-	ConfirmedAt  *time.Time `json:"confirmed_at,omitempty"`
-	CreatedAt     time.Time  `json:"created_at"`
-	UpdatedAt    time.Time  `json:"updated_at"`
-	BackupCodesRemaining int `json:"backup_codes_remaining"`
+	Enabled              bool       `json:"enabled"`
+	ConfirmedAt          *time.Time `json:"confirmed_at,omitempty"`
+	CreatedAt            time.Time  `json:"created_at"`
+	UpdatedAt            time.Time  `json:"updated_at"`
+	BackupCodesRemaining int        `json:"backup_codes_remaining"`
 }
 
 // FavoriteExport is one row of user_favorite_artworks (the artwork detail is

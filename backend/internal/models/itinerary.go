@@ -34,33 +34,33 @@ const (
 
 // ItineraryRequest is a submitted itinerary request (the immutable snapshot).
 type ItineraryRequest struct {
-	ID            int64           `json:"id" db:"id"`
-	UserID        string          `json:"user_id" db:"user_id"`
-	Status        ItineraryStatus `json:"status" db:"status"`
+	ID     int64           `json:"id" db:"id"`
+	UserID string          `json:"user_id" db:"user_id"`
+	Status ItineraryStatus `json:"status" db:"status"`
 	// Step 1 — Trip basics
-	ArrivalDate   *time.Time      `json:"arrival_date,omitempty" db:"arrival_date"`
-	DurationDays  int             `json:"duration_days" db:"duration_days"`
-	Flexible      bool            `json:"flexible" db:"flexible"`
-	Adults        int             `json:"adults" db:"adults"`
-	Children      int             `json:"children" db:"children"`
+	ArrivalDate  *time.Time `json:"arrival_date,omitempty" db:"arrival_date"`
+	DurationDays int        `json:"duration_days" db:"duration_days"`
+	Flexible     bool       `json:"flexible" db:"flexible"`
+	Adults       int        `json:"adults" db:"adults"`
+	Children     int        `json:"children" db:"children"`
 	// Step 2 — Preferences
-	Interests     json.RawMessage `json:"interests" db:"interests"` // []string
-	Budget        json.RawMessage `json:"budget,omitempty" db:"budget"`
-	Pace          string          `json:"pace" db:"pace"`
+	Interests json.RawMessage `json:"interests" db:"interests"` // []string
+	Budget    json.RawMessage `json:"budget,omitempty" db:"budget"`
+	Pace      string          `json:"pace" db:"pace"`
 	// Step 3 — Services
-	Services      json.RawMessage `json:"services" db:"services"`
+	Services json.RawMessage `json:"services" db:"services"`
 	// Step 4 — Contact & notes
-	Contact       json.RawMessage `json:"contact" db:"contact"`
-	Notes         *string         `json:"notes,omitempty" db:"notes"`
+	Contact json.RawMessage `json:"contact" db:"contact"`
+	Notes   *string         `json:"notes,omitempty" db:"notes"`
 	// Auto-attached
-	Locale        string          `json:"locale" db:"locale"`
-	SLADeadline   time.Time       `json:"sla_deadline" db:"sla_deadline"`
-	AssignedTo    *string         `json:"assigned_to,omitempty" db:"assigned_to"`
-	SubmittedAt   time.Time       `json:"submitted_at" db:"submitted_at"`
-	CancelReason  *string         `json:"cancel_reason,omitempty" db:"cancel_reason"`
-	CancelledAt   *time.Time      `json:"cancelled_at,omitempty" db:"cancelled_at"`
-	CreatedAt     time.Time       `json:"created_at" db:"created_at"`
-	UpdatedAt     time.Time       `json:"updated_at" db:"updated_at"`
+	Locale       string     `json:"locale" db:"locale"`
+	SLADeadline  time.Time  `json:"sla_deadline" db:"sla_deadline"`
+	AssignedTo   *string    `json:"assigned_to,omitempty" db:"assigned_to"`
+	SubmittedAt  time.Time  `json:"submitted_at" db:"submitted_at"`
+	CancelReason *string    `json:"cancel_reason,omitempty" db:"cancel_reason"`
+	CancelledAt  *time.Time `json:"cancelled_at,omitempty" db:"cancelled_at"`
+	CreatedAt    time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt    time.Time  `json:"updated_at" db:"updated_at"`
 }
 
 // ItineraryDraft is the save-resume state for a signed-in user (one per user).
@@ -82,19 +82,19 @@ type ItineraryDraftData struct {
 
 // BudgetInput is the per-person budget range (presentment currency, minor units).
 type BudgetInput struct {
-	Currency  string `json:"currency" validate:"required,oneof=USD EUR GBP"`
-	MinMinor  int64  `json:"min_minor" validate:"gte=0"`
-	MaxMinor  int64  `json:"max_minor" validate:"gte=0"`
+	Currency string `json:"currency" validate:"required,oneof=USD EUR GBP"`
+	MinMinor int64  `json:"min_minor" validate:"gte=0"`
+	MaxMinor int64  `json:"max_minor" validate:"gte=0"`
 }
 
 // ServicesInput captures step 3 (tour guide, hotel, pickup, experience, dietary).
 type ServicesInput struct {
-	Guide                 string `json:"guide" validate:"required,oneof=none english other"`
-	Hotel                 bool   `json:"hotel"`
-	HotelLevel            string `json:"hotel_level,omitempty" validate:"omitempty,oneof=budget comfort luxury"`
-	Pickup                bool   `json:"pickup"`
-	Experience            bool   `json:"experience"`
-	DietaryAccessibility  string `json:"dietary_accessibility,omitempty"`
+	Guide                string `json:"guide" validate:"required,oneof=none english other"`
+	Hotel                bool   `json:"hotel"`
+	HotelLevel           string `json:"hotel_level,omitempty" validate:"omitempty,oneof=budget comfort luxury"`
+	Pickup               bool   `json:"pickup"`
+	Experience           bool   `json:"experience"`
+	DietaryAccessibility string `json:"dietary_accessibility,omitempty"`
 }
 
 // ContactInput captures step 4 (preferred channel + free-text notes).
@@ -122,7 +122,7 @@ type ItinerarySubmitRequest struct {
 	Services *ServicesInput `json:"services" validate:"required"`
 	// Step 4 — Contact & consent
 	Contact *ContactInput `json:"contact" validate:"required"`
-	Notes   string        `json:"notes,omitempty"` // top-level free-text (PRD step 4 "anything else")
+	Notes   string        `json:"notes,omitempty"`                     // top-level free-text (PRD step 4 "anything else")
 	Consent bool          `json:"consent" validate:"required,eq=true"` // GDPR Privacy Policy checkbox
 }
 
@@ -158,18 +158,18 @@ type CRMNote struct {
 // plus a derived SLA status. Embeds ItineraryRequest so the admin handlers
 // share the customer scan + add the joined columns.
 type ItineraryAdminRow struct {
-	ItineraryRequest `json:",inline"`            // flattened into the JSON object
-	CustomerEmail     string `json:"customer_email" db:"customer_email"`
-	CustomerNickname  string `json:"customer_nickname" db:"customer_nickname"`
-	SLAStatus         string `json:"sla_status" db:"sla_status"` // sla_on_time|sla_approaching|sla_breached|sla_met
+	ItineraryRequest `json:",inline"` // flattened into the JSON object
+	CustomerEmail    string           `json:"customer_email" db:"customer_email"`
+	CustomerNickname string           `json:"customer_nickname" db:"customer_nickname"`
+	SLAStatus        string           `json:"sla_status" db:"sla_status"` // sla_on_time|sla_approaching|sla_breached|sla_met
 }
 
 // SLA status values (derived, not stored) for the planner inbox badge.
 const (
-	SLAOnTime     = "sla_on_time"      // deadline > now + approaching window
+	SLAOnTime      = "sla_on_time"     // deadline > now + approaching window
 	SLAApproaching = "sla_approaching" // deadline within the approaching window
-	SLABreached   = "sla_breached"     // deadline < now and not yet confirmed/closed
-	SLAMet        = "sla_met"          // status is past the SLA scope (confirmed/cancelled/closed)
+	SLABreached    = "sla_breached"    // deadline < now and not yet confirmed/closed
+	SLAMet         = "sla_met"         // status is past the SLA scope (confirmed/cancelled/closed)
 )
 
 // slaApproachingWindow is how far before the deadline a request is flagged
@@ -236,8 +236,8 @@ type OptionRate struct {
 	RateCNY      int64     `json:"rate_cny" db:"rate_cny"` // fen
 	Unit         string    `json:"unit" db:"unit"`         // per_person|per_day|flat
 	DisplayLabel string    `json:"display_label" db:"display_label"`
-	CreatedAt    time.Time `json:"-" db:"created_at"`  // internal; not in the API response
-	UpdatedAt    time.Time `json:"-" db:"updated_at"`  // internal; not in the API response
+	CreatedAt    time.Time `json:"-" db:"created_at"` // internal; not in the API response
+	UpdatedAt    time.Time `json:"-" db:"updated_at"` // internal; not in the API response
 }
 
 // --- Option-rate CMS DTOs (PRD §3.3.2: operator-configured rate table) ---
@@ -266,10 +266,10 @@ type UpdateOptionRateRequest struct {
 type QuoteStatus string
 
 const (
-	QuoteSent         QuoteStatus = "sent"
-	QuoteDepositPaid  QuoteStatus = "deposit_paid"
-	QuoteFullyPaid    QuoteStatus = "fully_paid"
-	QuoteCancelled    QuoteStatus = "cancelled"
+	QuoteSent        QuoteStatus = "sent"
+	QuoteDepositPaid QuoteStatus = "deposit_paid"
+	QuoteFullyPaid   QuoteStatus = "fully_paid"
+	QuoteCancelled   QuoteStatus = "cancelled"
 )
 
 // ItineraryQuote is one active quote for a request (UNIQUE request_id; a

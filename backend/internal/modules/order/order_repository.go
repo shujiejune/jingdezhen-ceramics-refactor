@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+
 	"jingdezhen-ceramics-backend/internal/models"
 
 	"github.com/jackc/pgx/v5"
@@ -45,7 +46,9 @@ func NewRepository(db *pgxpool.Pool) RepositoryInterface {
 }
 
 // CreateOrder runs the authoritative stock decrement (TDD §4.3):
-//   UPDATE skus SET stock = stock - $1 WHERE id = $2 AND stock >= $1
+//
+//	UPDATE skus SET stock = stock - $1 WHERE id = $2 AND stock >= $1
+//
 // Zero rows affected → ErrConflict → rollback the whole order.
 func (r *Repository) CreateOrder(ctx context.Context, o *models.Order, items []models.OrderItem) (int64, error) {
 	tx, err := r.db.BeginTx(ctx, pgx.TxOptions{})

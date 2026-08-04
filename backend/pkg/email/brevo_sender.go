@@ -45,9 +45,9 @@ type brevoEmailRequest struct {
 	To []struct {
 		Email string `json:"email"`
 	} `json:"to"`
-	Subject      string `json:"subject"`
-	HTMLContent  string `json:"htmlContent"`
-	TextContent  string `json:"textContent,omitempty"`
+	Subject     string `json:"subject"`
+	HTMLContent string `json:"htmlContent"`
+	TextContent string `json:"textContent,omitempty"`
 }
 
 // SendEmail sends a transactional email via Brevo. If no API key is configured

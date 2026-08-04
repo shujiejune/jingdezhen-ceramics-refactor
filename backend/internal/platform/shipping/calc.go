@@ -7,16 +7,17 @@
 package shipping
 
 import (
-	"jingdezhen-ceramics-backend/internal/models"
 	"sort"
+
+	"jingdezhen-ceramics-backend/internal/models"
 )
 
 // Tier is one row of a country's weight-tiered fee table: orders weighing up to
 // MaxWeightGrams (inclusive) cost FeeCNY minor units (fen).
 type Tier struct {
-	Country          string // ISO 3166-1 alpha-2
-	MaxWeightGrams   int
-	FeeCNY           int64 // minor units (fen)
+	Country        string // ISO 3166-1 alpha-2
+	MaxWeightGrams int
+	FeeCNY         int64 // minor units (fen)
 }
 
 // CalcFee returns the CNY minor-unit shipping fee for an order of the given

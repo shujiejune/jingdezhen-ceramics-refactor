@@ -33,54 +33,54 @@ type TagWithCount struct {
 // Product is the merged public view: parent fields + the requested locale's
 // translation. Scanned from a JOIN of products + product_translations.
 type Product struct {
-	ID              int64          `json:"id" db:"id"`
-	ArtistID        *int64         `json:"artist_id,omitempty" db:"artist_id"`     // parent: FK to artists.id
-	ArtistName      *string        `json:"artist_name,omitempty" db:"-"`           // populated by service (joined or from artist_translations)
-	ArtistSlug      *string        `json:"artist_slug,omitempty" db:"-"`           // for cross-link to artist profile
-	Category        *string        `json:"category,omitempty" db:"category"`       // parent: bare string for now (dead post-media; kept for back-comat)
-	ThumbnailURL    *string        `json:"thumbnail_url,omitempty" db:"thumbnail_url"` // parent: primary display (dead post-media; gallery preferred)
-	DisplayOrder    int            `json:"display_order" db:"display_order"`       // parent
+	ID           int64   `json:"id" db:"id"`
+	ArtistID     *int64  `json:"artist_id,omitempty" db:"artist_id"`         // parent: FK to artists.id
+	ArtistName   *string `json:"artist_name,omitempty" db:"-"`               // populated by service (joined or from artist_translations)
+	ArtistSlug   *string `json:"artist_slug,omitempty" db:"-"`               // for cross-link to artist profile
+	Category     *string `json:"category,omitempty" db:"category"`           // parent: bare string for now (dead post-media; kept for back-comat)
+	ThumbnailURL *string `json:"thumbnail_url,omitempty" db:"thumbnail_url"` // parent: primary display (dead post-media; gallery preferred)
+	DisplayOrder int     `json:"display_order" db:"display_order"`           // parent
 	// Translation fields.
-	Title           string         `json:"title" db:"title"`
-	Slug            string         `json:"slug" db:"slug"`
-	Description     *string        `json:"description,omitempty" db:"description"`
-	MetaTitle       *string        `json:"meta_title,omitempty" db:"meta_title"`
-	MetaDescription *string        `json:"meta_description,omitempty" db:"meta_description"`
-	Locale          string         `json:"locale" db:"locale"`
-	Status          ContentStatus  `json:"status" db:"status"`
-	PublishedAt     *time.Time     `json:"published_at,omitempty" db:"published_at"`
+	Title           string        `json:"title" db:"title"`
+	Slug            string        `json:"slug" db:"slug"`
+	Description     *string       `json:"description,omitempty" db:"description"`
+	MetaTitle       *string       `json:"meta_title,omitempty" db:"meta_title"`
+	MetaDescription *string       `json:"meta_description,omitempty" db:"meta_description"`
+	Locale          string        `json:"locale" db:"locale"`
+	Status          ContentStatus `json:"status" db:"status"`
+	PublishedAt     *time.Time    `json:"published_at,omitempty" db:"published_at"`
 	// SKUs loaded by the service (detail view only; omitted from list view).
-	SKUs            []SKU          `json:"skus,omitempty" db:"-"`
+	SKUs []SKU `json:"skus,omitempty" db:"-"`
 	// Gallery loaded by the service (detail view only). Empty when no
 	// product_media rows. The first item's media PublicURL is the preferred
 	// thumbnail; ThumbnailURL above is the fallback for back-comat.
-	Gallery         []ProductMediaItem `json:"gallery,omitempty" db:"-"`
+	Gallery []ProductMediaItem `json:"gallery,omitempty" db:"-"`
 	// Tags loaded by the service (list + detail views; batch-loaded to avoid N+1).
 	// `Name` is the locale-resolved display name (en-US → key fallback).
-	Tags            []Tag              `json:"tags,omitempty" db:"-"`
-	CreatedAt       time.Time      `json:"created_at" db:"created_at"`             // parent
-	UpdatedAt       time.Time      `json:"updated_at" db:"updated_at"`             // parent
+	Tags      []Tag     `json:"tags,omitempty" db:"-"`
+	CreatedAt time.Time `json:"created_at" db:"created_at"` // parent
+	UpdatedAt time.Time `json:"updated_at" db:"updated_at"` // parent
 }
 
 // SKU is a purchasable variant of a product. Money is stored as BIGINT minor
 // units (fen for CNY) — never floats (TDD §3.1). The attributes JSONB holds the
 // launch attribute set (size, technique, glaze, edition type, year, kiln).
 type SKU struct {
-	ID                 int64           `json:"id" db:"id"`
-	ProductID          int64           `json:"product_id" db:"product_id"`
-	SKUCode            string          `json:"sku_code" db:"sku_code"`
-	PriceCNY           int64           `json:"price_cny" db:"price_cny"`               // minor units (fen)
-	Stock              int             `json:"stock" db:"stock"`
-	WeightGrams        int             `json:"weight_grams" db:"weight_grams"`          // packed weight
-	LowStockThreshold  int             `json:"low_stock_threshold" db:"low_stock_threshold"`
-	Attributes         json.RawMessage `json:"attributes" db:"attributes"`             // JSONB map
-	IsActive           bool            `json:"is_active" db:"is_active"`
-	CreatedAt          time.Time       `json:"created_at" db:"created_at"`
-	UpdatedAt          time.Time       `json:"updated_at" db:"updated_at"`
+	ID                int64           `json:"id" db:"id"`
+	ProductID         int64           `json:"product_id" db:"product_id"`
+	SKUCode           string          `json:"sku_code" db:"sku_code"`
+	PriceCNY          int64           `json:"price_cny" db:"price_cny"` // minor units (fen)
+	Stock             int             `json:"stock" db:"stock"`
+	WeightGrams       int             `json:"weight_grams" db:"weight_grams"` // packed weight
+	LowStockThreshold int             `json:"low_stock_threshold" db:"low_stock_threshold"`
+	Attributes        json.RawMessage `json:"attributes" db:"attributes"` // JSONB map
+	IsActive          bool            `json:"is_active" db:"is_active"`
+	CreatedAt         time.Time       `json:"created_at" db:"created_at"`
+	UpdatedAt         time.Time       `json:"updated_at" db:"updated_at"`
 	// Presentment-currency price (populated when the request carries ?currency=).
 	// Nil when no conversion was requested. TDD §7: converted at read time from
 	// the cached fx_rates, with the PRD rounding rule applied.
-	Price         *int64  `json:"price,omitempty" db:"-"`         // presentment minor units
+	Price         *int64  `json:"price,omitempty" db:"-"`          // presentment minor units
 	PriceCurrency *string `json:"price_currency,omitempty" db:"-"` // ISO 4217
 }
 
@@ -102,7 +102,7 @@ type CreateProductData struct {
 	// Tags is a list of canonical tag keys (lowercase kebab-case). Unknown keys
 	// are created inline with an en-US display name defaulting to the key itself
 	// (the operator edits the name later from the CMS).
-	Tags            []string `json:"tags,omitempty"`
+	Tags []string `json:"tags,omitempty"`
 }
 
 // UpdateProductData updates a product's translation (localized fields) and/or
@@ -119,7 +119,7 @@ type UpdateProductData struct {
 	DisplayOrder    *int    `json:"display_order,omitempty" validate:"omitempty,gte=0"`
 	// Tags replaces the full tag set (absolute, like cart PATCH). nil = leave
 	// unchanged; an empty slice = clear all tags. Values are canonical keys.
-	Tags            *[]string `json:"tags,omitempty"`
+	Tags *[]string `json:"tags,omitempty"`
 }
 
 // CreateSKUData creates a new SKU under a product.
@@ -138,14 +138,14 @@ type CreateSKUData struct {
 // the regular per-product SKU endpoint after import. The CSV columns mirror
 // CreateProductData + CreateSKUData; the handler maps them.
 type BulkImportRow struct {
-	Title             string // required
-	Slug              string // required
-	Category          string
-	ArtistID          *int64
-	ThumbnailURL      string
-	DisplayOrder      int
-	Description       string
-	Locale            string // defaults to en-US
+	Title        string // required
+	Slug         string // required
+	Category     string
+	ArtistID     *int64
+	ThumbnailURL string
+	DisplayOrder int
+	Description  string
+	Locale       string // defaults to en-US
 	// First SKU (optional — a product row may have no SKU).
 	SKUCode           string
 	PriceCNY          int64
@@ -155,15 +155,15 @@ type BulkImportRow struct {
 	Attributes        string // raw JSON string; empty → NULL
 	// Tags: semicolon-separated canonical keys within the CSV cell (e.g.
 	// `hand-painted;cobalt-blue`). Empty → no tags.
-	Tags              []string
+	Tags []string
 }
 
 // BulkImportResult is the per-row outcome of a bulk import.
 type BulkImportResult struct {
-	Row        int    `json:"row"`         // 1-indexed CSV row number (after header)
-	ProductID  int64  `json:"product_id,omitempty"`
-	SKUCode    string `json:"sku_code,omitempty"`
-	Error      string `json:"error,omitempty"`
+	Row       int    `json:"row"` // 1-indexed CSV row number (after header)
+	ProductID int64  `json:"product_id,omitempty"`
+	SKUCode   string `json:"sku_code,omitempty"`
+	Error     string `json:"error,omitempty"`
 }
 
 // BulkImportSummary is the response for POST /admin/products/import.

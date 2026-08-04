@@ -14,7 +14,7 @@ func TestHashBackupCodeNormalization(t *testing.T) {
 		"ABCD-1234",  // display form with dash
 		"abcd-1234",  // lowercase + dash
 		" ABCD1234 ", // surrounding spaces (space is stripped)
-		"AbCd-1234", // mixed case + dash
+		"AbCd-1234",  // mixed case + dash
 	}
 	want := hashBackupCode(pepper, canonical)
 	for _, f := range forms {

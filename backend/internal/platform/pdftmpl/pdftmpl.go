@@ -61,43 +61,44 @@ func RenderCertificate(cert *models.Certificate, baseURL, qrURL, locale string) 
 	}
 	return buf.String(), nil
 }
+
 // ItineraryQuoteData is the template input for the itinerary quote PDF
 // (PRD §3.3.2 line 269: "day-by-day plan, included services, pricing summary;
 // branded template, in the customer's locale"). The worker loads the request
 // (trip details) + the quote (priced line items + FX-snapshotted totals) and
 // passes both here.
 type ItineraryQuoteData struct {
-	RequestID        string
-	Locale           string
-	SentAt           string // pre-formatted (locale-aware date)
-	QuoteStatus      string
+	RequestID   string
+	Locale      string
+	SentAt      string // pre-formatted (locale-aware date)
+	QuoteStatus string
 	// Trip details (from the request)
-	ArrivalDate      string
-	DurationDays     int
-	Flexible         bool
-	Adults           int
-	Children         int
-	Pace             string
-	Interests        string
-	ServicesSummary  string
-	Notes            string
+	ArrivalDate     string
+	DurationDays    int
+	Flexible        bool
+	Adults          int
+	Children        int
+	Pace            string
+	Interests       string
+	ServicesSummary string
+	Notes           string
 	// Priced line items (from the quote JSONB)
-	LineItems        []quoteLineDisplay
+	LineItems []quoteLineDisplay
 	// Totals
-	TotalCNYMajor    string // ¥ fen → yuan
-	Currency         string
-	CurrencySymbol   string
-	TotalMinorMajor  string
+	TotalCNYMajor     string // ¥ fen → yuan
+	Currency          string
+	CurrencySymbol    string
+	TotalMinorMajor   string
 	DepositMinorMajor string
 	BalanceMinorMajor string
-	FxRateUsed       string
+	FxRateUsed        string
 }
 
 // quoteLineDisplay is one row of the priced line-items table.
 type quoteLineDisplay struct {
-	Label       string
-	Qty         int
-	Unit        string
+	Label        string
+	Qty          int
+	Unit         string
 	RateCNYMajor string // fen → yuan
 	LineCNYMajor string
 }

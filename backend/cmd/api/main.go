@@ -18,31 +18,31 @@ import (
 	"jingdezhen-ceramics-backend/internal/models"
 	"jingdezhen-ceramics-backend/internal/modules/address"
 	"jingdezhen-ceramics-backend/internal/modules/artist"
+	"jingdezhen-ceramics-backend/internal/modules/cart"
 	"jingdezhen-ceramics-backend/internal/modules/ceramicstory"
+	"jingdezhen-ceramics-backend/internal/modules/certificate"
 	"jingdezhen-ceramics-backend/internal/modules/consent"
 	"jingdezhen-ceramics-backend/internal/modules/engage"
+	"jingdezhen-ceramics-backend/internal/modules/itinerary"
+	"jingdezhen-ceramics-backend/internal/modules/media"
 	"jingdezhen-ceramics-backend/internal/modules/notification"
-	"jingdezhen-ceramics-backend/internal/modules/privacy"
-	"jingdezhen-ceramics-backend/internal/modules/product"
-	"jingdezhen-ceramics-backend/internal/modules/user"
-	"jingdezhen-ceramics-backend/internal/modules/twofa"
-	"jingdezhen-ceramics-backend/internal/modules/wishlist"
-	"jingdezhen-ceramics-backend/internal/modules/cart"
-	"jingdezhen-ceramics-backend/internal/modules/shipping"
 	"jingdezhen-ceramics-backend/internal/modules/order"
 	"jingdezhen-ceramics-backend/internal/modules/payment"
-	"jingdezhen-ceramics-backend/internal/modules/certificate"
-	"jingdezhen-ceramics-backend/internal/modules/media"
-	"jingdezhen-ceramics-backend/internal/modules/itinerary"
-	"jingdezhen-ceramics-backend/pkg/adapters/pdf"
-	"jingdezhen-ceramics-backend/pkg/adapters/payments"
-	"jingdezhen-ceramics-backend/pkg/adapters/certchain"
-	"jingdezhen-ceramics-backend/pkg/adapters/storage"
+	"jingdezhen-ceramics-backend/internal/modules/privacy"
+	"jingdezhen-ceramics-backend/internal/modules/product"
+	"jingdezhen-ceramics-backend/internal/modules/shipping"
+	"jingdezhen-ceramics-backend/internal/modules/twofa"
+	"jingdezhen-ceramics-backend/internal/modules/user"
+	"jingdezhen-ceramics-backend/internal/modules/wishlist"
 	"jingdezhen-ceramics-backend/internal/platform/fx"
 	"jingdezhen-ceramics-backend/internal/platform/jobs"
 	"jingdezhen-ceramics-backend/internal/platform/pdftmpl"
 	platformredis "jingdezhen-ceramics-backend/internal/platform/redis"
 	"jingdezhen-ceramics-backend/internal/ws"
+	"jingdezhen-ceramics-backend/pkg/adapters/certchain"
+	"jingdezhen-ceramics-backend/pkg/adapters/payments"
+	"jingdezhen-ceramics-backend/pkg/adapters/pdf"
+	"jingdezhen-ceramics-backend/pkg/adapters/storage"
 	"jingdezhen-ceramics-backend/pkg/email"
 
 	"github.com/gofiber/fiber/v2"
@@ -304,7 +304,6 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 	productHandler.SetPriceConverter(fxService)
 	cartHandler.SetPriceConverter(fxService)
 
-
 	engageRepo := engage.NewRepository(dbPool)
 	engageService := engage.NewService(engageRepo)
 	engageHandler := engage.NewHandler(engageService)
@@ -329,12 +328,12 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 		addressService,                // AddressFetcher (GetAddress)
 		shippingService,               // ShippingCalcer (TiersForCountry)
 		fxService,                     // CheckoutFX (Convert + Rate)
-		orderEmailEnqueuer{jobClient},  // EmailEnqueuer
-		paymentEnqueuer{jobClient},     // PaymentEnqueuer
-		userService,                    // UserPrefFetcher (PreferredCurrency)
+		orderEmailEnqueuer{jobClient}, // EmailEnqueuer
+		paymentEnqueuer{jobClient},    // PaymentEnqueuer
+		userService,                   // UserPrefFetcher (PreferredCurrency)
 		nil,                           // PaymentIntenter (wired after payment.Service below)
 		nil,                           // PaymentRefunder (wired after payment.Service below)
-		userService,                    // UserFetcher (GetUserProfile for the email)
+		userService,                   // UserFetcher (GetUserProfile for the email)
 		cfg.PaymentsMode,
 	)
 
@@ -361,9 +360,9 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 	paymentRepo := payment.NewRepository(dbPool)
 	paymentService := payment.NewService(
 		paymentRepo, gatewayRegistry,
-		orderService,                 // OrderFinalizer (MarkPaid)
-		orderService,                 // OrderLoader (GetAdmin)
-		paymentEnqueuer{jobClient},    // PaymentEnqueuer
+		orderService,                        // OrderFinalizer (MarkPaid)
+		orderService,                        // OrderLoader (GetAdmin)
+		paymentEnqueuer{jobClient},          // PaymentEnqueuer
 		cfg.ClientOrigin+"/checkout/return", // gateway redirect URL after payment
 	)
 	orderService.SetPaymentIntenter(paymentService) // break order↔payment cycle
@@ -377,8 +376,8 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 	// provenance at order-paid. NoopChain = no on-chain registration yet.
 	certRepo := certificate.NewRepository(dbPool)
 	certService := certificate.NewService(certRepo, certchain.NewNoopChain())
-	productService.SetCertificateIssuer(certService) // auto-issue at create
-	orderService.SetProvenanceRecorder(certService)  // `sold` at MarkPaid
+	productService.SetCertificateIssuer(certService)                       // auto-issue at create
+	orderService.SetProvenanceRecorder(certService)                        // `sold` at MarkPaid
 	orderService.SetStockCheckEnqueuer(orderStockCheckEnqueuer{jobClient}) // low-stock alert at MarkPaid
 	// Certificate handler is constructed after the media/storage section below
 	// (it needs storageStore to resolve pdf_key → public URL in PDFDownload).
@@ -427,18 +426,18 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 	itineraryRepo := itinerary.NewRepository(dbPool)
 	itineraryService := itinerary.NewService(
 		itineraryRepo,
-		orderEmailEnqueuer{jobClient},     // EmailEnqueuer (24h-SLA ack + quote-ready)
-		userService,                        // UserDirectory (customer email + ListStaffByRole)
+		orderEmailEnqueuer{jobClient},       // EmailEnqueuer (24h-SLA ack + quote-ready)
+		userService,                         // UserDirectory (customer email + ListStaffByRole)
 		itinConsentRecorder{consentService}, // ConsentRecorder (GDPR audit)
-		fxService,                          // CheckoutFX (quote CNY→presentment)
-		cfg.PaymentsMode,                   // mock|sandbox|live
+		fxService,                           // CheckoutFX (quote CNY→presentment)
+		cfg.PaymentsMode,                    // mock|sandbox|live
 	)
 	itineraryHandler := itinerary.NewHandler(itineraryService, storageStore)
 	// Quote-payment setters (post-construction, break the itinerary↔payment cycle).
 	itineraryService.SetQuotePaymentIntenter(paymentService)
 	itineraryService.SetQuoteRefunder(paymentService)
 	itineraryService.SetDepositFinalizeEnqueuer(paymentEnqueuer{jobClient}) // mock-mode auto-finalize seam
-	itineraryService.SetPDFEnqueuer(pdfEnqueuer{jobClient})                // quote-send PDF render
+	itineraryService.SetPDFEnqueuer(pdfEnqueuer{jobClient})                 // quote-send PDF render
 
 	// --- Static mount for local-dev media (STORAGE_MODE=local) ---
 	// Registered BEFORE SetupRoutes: Fiber v2 attaches `Group("").Use()` (the

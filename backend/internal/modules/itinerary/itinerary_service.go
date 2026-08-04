@@ -98,8 +98,8 @@ type ServiceInterface interface {
 	ListAdmin(ctx context.Context, status, assignedTo, sla string, page, limit int) ([]models.ItineraryAdminRow, int, error)
 	GetAdmin(ctx context.Context, id int64) (*models.ItineraryAdminRow, error)
 	ListPlanners(ctx context.Context) ([]models.User, error)
-	Open(ctx context.Context, id int64) error                  // pending → processing
-	Close(ctx context.Context, id int64, req models.ItineraryReasonRequest) error // {pending,processing} → closed
+	Open(ctx context.Context, id int64) error                                             // pending → processing
+	Close(ctx context.Context, id int64, req models.ItineraryReasonRequest) error         // {pending,processing} → closed
 	CancelByStaff(ctx context.Context, id int64, req models.ItineraryReasonRequest) error // {pending,processing} → cancelled
 	Assign(ctx context.Context, id int64, req models.AssignItineraryRequest) error
 	AddNote(ctx context.Context, requestID int64, authorID string, req models.ItineraryNoteRequest) (*models.CRMNote, error)
@@ -121,18 +121,18 @@ type ServiceInterface interface {
 }
 
 type Service struct {
-	repo      RepositoryInterface
-	email     EmailEnqueuer
-	user      UserDirectory
-	consent   ConsentRecorder
-	fx        CheckoutFX // required for quote FX conversion
+	repo    RepositoryInterface
+	email   EmailEnqueuer
+	user    UserDirectory
+	consent ConsentRecorder
+	fx      CheckoutFX // required for quote FX conversion
 	// Quote-payment deps, injected post-construction (break the itinerary↔payment
 	// import cycle, mirroring order's SetPaymentIntenter/SetPaymentRefunder).
-	quoteIntenter QuotePaymentIntenter
-	quoteRefunder QuoteRefunder
+	quoteIntenter   QuotePaymentIntenter
+	quoteRefunder   QuoteRefunder
 	depositEnqueuer DepositFinalizeEnqueuer // mock-mode auto-finalize seam
-	pdf          PDFEnqueuer             // optional; nil → no PDF job (worker)
-	paymentsMode  string                      // "mock" (dev) | "sandbox"/"live" (#6)
+	pdf             PDFEnqueuer             // optional; nil → no PDF job (worker)
+	paymentsMode    string                  // "mock" (dev) | "sandbox"/"live" (#6)
 }
 
 func NewService(repo RepositoryInterface, email EmailEnqueuer, user UserDirectory, consent ConsentRecorder, fx CheckoutFX, paymentsMode string) *Service {
@@ -369,15 +369,16 @@ func (s *Service) ListNotes(ctx context.Context, requestID int64) ([]models.CRMN
 // Quote builder + deposit service methods (PRD §3.3.2, TDD §3.4 M3 #3)
 // =============================================================================
 
-// depositFraction is the PRD §3.3.2 deposit fraction (30%). The balance is due
-// 14 days before arrival (collected out-of-band in this sub-track; the full-
-// amount pay_full toggle is the MVP alternative).
-const depositFraction = 0.30
+// depositPercent is the PRD §3.3.2 deposit fraction (30%). The balance is due
+// 14 days before arrival (collected out-of-band; the full-amount pay_full
+// toggle is the MVP alternative). Expressed as a whole percent for integer
+// minor-unit math (TDD §7: never floats for money).
+const depositPercent = 30
 
-// roundDeposit rounds total_minor × 0.30 (half-up) to a whole minor unit.
+// roundDeposit rounds total_minor × depositPercent% (half-up) to a whole minor
+// unit. E.g. depositPercent=30 → (totalMinor × 30 + 50) / 100.
 func roundDeposit(totalMinor int64) int64 {
-	// totalMinor × 0.30 → (totalMinor × 30 + 50) / 100 (half-up on minor units).
-	return (totalMinor*30 + 50) / 100
+	return (totalMinor*depositPercent + 50) / 100
 }
 
 func (s *Service) ListOptionRates(ctx context.Context) ([]models.OptionRate, error) {

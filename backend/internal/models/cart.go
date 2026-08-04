@@ -25,33 +25,33 @@ import (
 // requested locale + totals. CNY totals are always present; presentment totals
 // are populated only when ?currency= is supplied and FX rates are available.
 type Cart struct {
-	Items      []CartItem `json:"items"`
-	ItemCount  int        `json:"item_count"` // sum of distinct SKUs (not sum of qty)
-	TotalCNY   int64      `json:"total_cny"`  // sum of line_total_cny, minor units (fen)
-	Total      *int64     `json:"total,omitempty" db:"-"`         // presentment minor units (when ?currency=)
-	Currency   *string    `json:"currency,omitempty" db:"-"`     // ISO 4217 (when ?currency=)
+	Items     []CartItem `json:"items"`
+	ItemCount int        `json:"item_count"`                // sum of distinct SKUs (not sum of qty)
+	TotalCNY  int64      `json:"total_cny"`                 // sum of line_total_cny, minor units (fen)
+	Total     *int64     `json:"total,omitempty" db:"-"`    // presentment minor units (when ?currency=)
+	Currency  *string    `json:"currency,omitempty" db:"-"` // ISO 4217 (when ?currency=)
 }
 
 // CartItem is a cart line enriched with the parent product's display info for
 // the requested locale (published translations only), mirroring WishlistItem.
 type CartItem struct {
-	SkuID         int64           `json:"sku_id"`
-	SKUCode       string          `json:"sku_code"`
-	Qty           int             `json:"qty"`
-	UnitPriceCNY  int64           `json:"unit_price_cny"` // minor units (fen)
-	LineTotalCNY  int64           `json:"line_total_cny"` // unit_price_cny * qty
-	Stock         int             `json:"stock"`
-	WeightGrams   int             `json:"weight_grams"`
-	ProductID     int64           `json:"product_id"`
-	ProductSlug   string          `json:"product_slug"`
-	ProductTitle  string          `json:"product_title"`
-	ThumbnailURL  *string         `json:"thumbnail_url,omitempty"`
-	ArtistName    *string         `json:"artist_name,omitempty"`
-	Attributes    json.RawMessage `json:"attributes,omitempty"`
-	AddedAt       time.Time       `json:"added_at"`
+	SkuID        int64           `json:"sku_id"`
+	SKUCode      string          `json:"sku_code"`
+	Qty          int             `json:"qty"`
+	UnitPriceCNY int64           `json:"unit_price_cny"` // minor units (fen)
+	LineTotalCNY int64           `json:"line_total_cny"` // unit_price_cny * qty
+	Stock        int             `json:"stock"`
+	WeightGrams  int             `json:"weight_grams"`
+	ProductID    int64           `json:"product_id"`
+	ProductSlug  string          `json:"product_slug"`
+	ProductTitle string          `json:"product_title"`
+	ThumbnailURL *string         `json:"thumbnail_url,omitempty"`
+	ArtistName   *string         `json:"artist_name,omitempty"`
+	Attributes   json.RawMessage `json:"attributes,omitempty"`
+	AddedAt      time.Time       `json:"added_at"`
 	// Presentment-currency fields (populated when ?currency= is supplied).
-	UnitPrice  *int64  `json:"unit_price,omitempty" db:"-"`      // presentment minor units
-	LineTotal  *int64  `json:"line_total,omitempty" db:"-"`      // presentment minor units
+	UnitPrice *int64 `json:"unit_price,omitempty" db:"-"` // presentment minor units
+	LineTotal *int64 `json:"line_total,omitempty" db:"-"` // presentment minor units
 }
 
 // --- Request DTOs ---
@@ -60,7 +60,7 @@ type CartItem struct {
 // the existing qty for this SKU is incremented by qty (default 1 if omitted).
 type AddCartItemRequest struct {
 	SkuID int64 `json:"sku_id" validate:"required,gt=0"`
-	Qty   int  `json:"qty,omitempty" validate:"omitempty,gte=1"`
+	Qty   int   `json:"qty,omitempty" validate:"omitempty,gte=1"`
 }
 
 // UpdateCartItemRequest is the body for PATCH /cart/items/:sku_id. PATCH is a
@@ -83,5 +83,5 @@ type MergeCartRequest struct {
 // MergeCartItem is one line of a guest cart payload.
 type MergeCartItem struct {
 	SkuID int64 `json:"sku_id" validate:"required,gt=0"`
-	Qty   int  `json:"qty" validate:"required,gte=1"`
+	Qty   int   `json:"qty" validate:"required,gte=1"`
 }

@@ -61,11 +61,17 @@ frontend/     REMOVED. To be created fresh with SolidStart per TDD §6.
 go build ./...            # must pass
 go vet ./...              # must pass
 go test ./...             # unit tests
+golangci-lint run ./...   # lint gate (CI uses this; stricter than `go vet`)
 make up                   # start dev services (docker compose, dev file)
 make migrate-up           # apply migrations (needs DATABASE_URL in .env)
 make migrate-down         # roll back last migration
 make logs                 # tail compose logs
 ```
+
+CI (GitHub Actions, `.github/workflows/ci.yml`): on every PR + push to main —
+lint (golangci-lint) → unit (`-short`) → integration (`-race`, testcontainers) →
+build (Docker image) → security (govulncheck hard gate + osv-scanner advisory).
+`TESTCONTAINERS_RYUK_DISABLED=true` is set on the ephemeral runner.
 
 Note: `make migrate-up` requires the `migrate` CLI installed and `DATABASE_URL` set in `backend/.env`. The dev compose file provisions PostgreSQL + Redis.
 

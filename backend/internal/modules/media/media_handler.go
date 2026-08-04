@@ -2,12 +2,13 @@ package media
 
 import (
 	"errors"
-	"jingdezhen-ceramics-backend/internal/models"
-	"jingdezhen-ceramics-backend/pkg/adapters/storage"
-	"jingdezhen-ceramics-backend/pkg/utils"
 	"log"
 	"strconv"
 	"strings"
+
+	"jingdezhen-ceramics-backend/internal/models"
+	"jingdezhen-ceramics-backend/pkg/adapters/storage"
+	"jingdezhen-ceramics-backend/pkg/utils"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
@@ -52,11 +53,11 @@ func (h *Handler) PresignUpload(c *fiber.Ctx) error {
 	// Local mode: no real presign — tell the browser to POST to /upload.
 	if h.store.Mode() == "local" {
 		return c.Status(fiber.StatusOK).JSON(fiber.Map{
-			"mode":        "local",
-			"upload_url":  "/admin/media/upload",
-			"oss_key":     key,
-			"public_url":  h.store.PublicURL(key),
-			"headers":     map[string]string{"X-Storage-Mode": "local"},
+			"mode":       "local",
+			"upload_url": "/admin/media/upload",
+			"oss_key":    key,
+			"public_url": h.store.PublicURL(key),
+			"headers":    map[string]string{"X-Storage-Mode": "local"},
 		})
 	}
 

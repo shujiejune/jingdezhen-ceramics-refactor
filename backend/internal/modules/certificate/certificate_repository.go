@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
+
 	"jingdezhen-ceramics-backend/internal/models"
 
 	"github.com/jackc/pgx/v5"
@@ -165,10 +166,10 @@ func (r *Repository) GetByCode(ctx context.Context, codeStr, locale string) (*mo
 		LEFT JOIN artists a ON a.id = p.artist_id
 		WHERE c.cert_code = $1`
 	var (
-		c       models.Certificate
-		title   *string
-		slug    *string
-		artistN *string
+		c        models.Certificate
+		title    *string
+		slug     *string
+		artistN  *string
 		artistID *int64
 	)
 	if err := r.db.QueryRow(ctx, query, codeStr, locale).Scan(

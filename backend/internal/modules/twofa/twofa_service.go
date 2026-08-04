@@ -7,11 +7,12 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"jingdezhen-ceramics-backend/internal/models"
-	"jingdezhen-ceramics-backend/pkg/utils"
 	"log"
 	"strings"
 	"time"
+
+	"jingdezhen-ceramics-backend/internal/models"
+	"jingdezhen-ceramics-backend/pkg/utils"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/pquerna/otp/totp"
@@ -54,10 +55,10 @@ type ServiceInterface interface {
 }
 
 type Service struct {
-	repo        RepositoryInterface
-	encKey      []byte // app key for encrypting the TOTP secret at rest
-	jwtSecret   string // for signing the pending 2FA token
-	issuer      string // default issuer label for otpauth URIs
+	repo      RepositoryInterface
+	encKey    []byte // app key for encrypting the TOTP secret at rest
+	jwtSecret string // for signing the pending 2FA token
+	issuer    string // default issuer label for otpauth URIs
 }
 
 func NewService(repo RepositoryInterface, encKey []byte, jwtSecret, issuer string) ServiceInterface {

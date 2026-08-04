@@ -1,8 +1,9 @@
 package ws
 
 import (
-	"jingdezhen-ceramics-backend/internal/models"
 	"log"
+
+	"jingdezhen-ceramics-backend/internal/models"
 
 	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"

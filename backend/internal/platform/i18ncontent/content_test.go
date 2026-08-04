@@ -2,8 +2,9 @@ package i18ncontent
 
 import (
 	"errors"
-	"jingdezhen-ceramics-backend/internal/models"
 	"testing"
+
+	"jingdezhen-ceramics-backend/internal/models"
 )
 
 // TestTransitionMatrix exhaustively checks the content-workflow state machine
@@ -12,11 +13,11 @@ import (
 // from publishing (the site can't go live).
 func TestTransitionMatrix(t *testing.T) {
 	type tc struct {
-		name        string
-		from        models.ContentStatus
-		to          models.ContentStatus
-		actor       WorkflowActor
-		wantErr     bool
+		name    string
+		from    models.ContentStatus
+		to      models.ContentStatus
+		actor   WorkflowActor
+		wantErr bool
 	}
 	tests := []tc{
 		// --- Editor ---

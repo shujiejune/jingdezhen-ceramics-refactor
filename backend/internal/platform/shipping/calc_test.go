@@ -2,8 +2,9 @@ package shipping
 
 import (
 	"errors"
-	"jingdezhen-ceramics-backend/internal/models"
 	"testing"
+
+	"jingdezhen-ceramics-backend/internal/models"
 
 	"github.com/stretchr/testify/assert"
 )

@@ -23,10 +23,11 @@ import (
 	"jingdezhen-ceramics-backend/internal/modules/order"
 	"jingdezhen-ceramics-backend/internal/testutil"
 
-	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/stretchr/testify/require"
 	"strconv"
 	"sync/atomic"
+
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/stretchr/testify/require"
 )
 
 // uniqueSlug returns a short unique suffix so seeded slugs / sku codes don't
@@ -134,8 +135,8 @@ func TestCreateOrder_RollsBackOnAnyItemInsufficient(t *testing.T) {
 	ctx := context.Background()
 	repo := order.NewRepository(pool)
 
-	_, skuA := seedProductAndSKU(t, pool, 5)  // plenty
-	_, skuB := seedProductAndSKU(t, pool, 1)  // only 1 in stock
+	_, skuA := seedProductAndSKU(t, pool, 5) // plenty
+	_, skuB := seedProductAndSKU(t, pool, 1) // only 1 in stock
 	userID := seedUser(t, pool, "buyer2@t.test")
 
 	o := &models.Order{

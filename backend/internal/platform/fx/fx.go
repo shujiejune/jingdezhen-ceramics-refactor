@@ -21,8 +21,9 @@ package fx
 import (
 	"context"
 	"fmt"
-	"jingdezhen-ceramics-backend/internal/models"
 	"time"
+
+	"jingdezhen-ceramics-backend/internal/models"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -120,9 +121,9 @@ type RepositoryInterface interface {
 
 // RateRow is one fx_rates row.
 type RateRow struct {
-	Currency   string          `json:"currency"`
-	RateToCNY  decimal.Decimal `json:"rate_to_cny"`
-	FetchedAt  time.Time       `json:"fetched_at"`
+	Currency  string          `json:"currency"`
+	RateToCNY decimal.Decimal `json:"rate_to_cny"`
+	FetchedAt time.Time       `json:"fetched_at"`
 }
 
 type Repository struct {
@@ -208,9 +209,9 @@ type ServiceInterface interface {
 // Service is the FX service. markup is applied at refresh time (stored in the
 // rate), so Convert reads a single column and divides.
 type Service struct {
-	repo       RepositoryInterface
-	source     RateSource
-	markup     decimal.Decimal // e.g. 0.02 for 2%
+	repo   RepositoryInterface
+	source RateSource
+	markup decimal.Decimal // e.g. 0.02 for 2%
 }
 
 // NewService builds the FX service. markupBPS is basis points (200 = 2%).

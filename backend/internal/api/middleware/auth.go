@@ -12,8 +12,8 @@ import (
 // It uses the jwtSecretKey from the config file (.env).
 func JWTMAuth(jwtSecretKey string) fiber.Handler {
 	return jwtware.New(jwtware.Config{
-		SigningKey:  jwtware.SigningKey{Key: []byte(jwtSecretKey)},
-		ContextKey:  "user",
+		SigningKey: jwtware.SigningKey{Key: []byte(jwtSecretKey)},
+		ContextKey: "user",
 		SuccessHandler: func(c *fiber.Ctx) error {
 			token := c.Locals("user").(*jwt.Token)
 			claims := token.Claims.(jwt.MapClaims)
@@ -112,19 +112,19 @@ func RequireRole(role string) fiber.Handler {
 // permissionRoleGate maps a permission key to the staff roles that may satisfy
 // it at the routing layer. Kept conservative (Super Admin always bypasses).
 var permissionRoleGate = map[string][]string{
-	models.PermUsersManage:      {models.RoleSuperAdmin},
-	models.PermContentWrite:     {models.RoleContentEditor},
-	models.PermContentPublish:   {models.RoleSuperAdmin},
-	models.PermProductRead:      {models.RoleEcommerceOperator},
-	models.PermProductWrite:     {models.RoleEcommerceOperator},
+	models.PermUsersManage:       {models.RoleSuperAdmin},
+	models.PermContentWrite:      {models.RoleContentEditor},
+	models.PermContentPublish:    {models.RoleSuperAdmin},
+	models.PermProductRead:       {models.RoleEcommerceOperator},
+	models.PermProductWrite:      {models.RoleEcommerceOperator},
 	models.PermCertificateManage: {models.RoleEcommerceOperator},
-	models.PermOrderRead:        {models.RoleEcommerceOperator, models.RoleCustomerService, models.RoleTravelPlanner},
-	models.PermOrderWrite:       {models.RoleEcommerceOperator},
-	models.PermOrderRefund:      {models.RoleEcommerceOperator},
-	models.PermItineraryRead:    {models.RoleTravelPlanner, models.RoleCustomerService},
-	models.PermItineraryWrite:   {models.RoleTravelPlanner},
-	models.PermItineraryConfirm: {models.RoleTravelPlanner},
-	models.PermChatHandle:       {models.RoleTravelPlanner, models.RoleCustomerService},
-	models.PermDashboardView:    {models.RoleEcommerceOperator, models.RoleCustomerService},
-	models.PermSettingsManage:   {models.RoleSuperAdmin},
+	models.PermOrderRead:         {models.RoleEcommerceOperator, models.RoleCustomerService, models.RoleTravelPlanner},
+	models.PermOrderWrite:        {models.RoleEcommerceOperator},
+	models.PermOrderRefund:       {models.RoleEcommerceOperator},
+	models.PermItineraryRead:     {models.RoleTravelPlanner, models.RoleCustomerService},
+	models.PermItineraryWrite:    {models.RoleTravelPlanner},
+	models.PermItineraryConfirm:  {models.RoleTravelPlanner},
+	models.PermChatHandle:        {models.RoleTravelPlanner, models.RoleCustomerService},
+	models.PermDashboardView:     {models.RoleEcommerceOperator, models.RoleCustomerService},
+	models.PermSettingsManage:    {models.RoleSuperAdmin},
 }

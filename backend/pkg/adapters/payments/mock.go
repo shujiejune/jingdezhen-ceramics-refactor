@@ -29,8 +29,10 @@ func (MockGateway) Refund(_ context.Context, req RefundRequest) (RefundResponse,
 }
 
 // VerifyWebhook (dev): the body is a JSON object
-//   {"order_id":N, "gateway_ref":"mock-N", "status":"succeeded"|"failed",
-//    "event_id":"<id>", "amount_minor":N, "currency":"USD"}
+//
+//	{"order_id":N, "gateway_ref":"mock-N", "status":"succeeded"|"failed",
+//	 "event_id":"<id>", "amount_minor":N, "currency":"USD"}
+//
 // The idempotency key = gateway_ref + ":" + event_id. No signature in dev.
 func (MockGateway) VerifyWebhook(_ context.Context, rawBody []byte, _ map[string]string) (WebhookEvent, error) {
 	var b struct {

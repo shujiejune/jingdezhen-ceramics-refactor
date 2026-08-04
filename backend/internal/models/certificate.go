@@ -42,12 +42,12 @@ type Certificate struct {
 	CreatedAt time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
 	// Display fields populated by the locale-aware JOIN (public page) — db:"-"
-	ProductTitle string           `json:"product_title,omitempty" db:"-"`
-	ProductSlug  string           `json:"product_slug,omitempty" db:"-"`
-	ArtistName   *string          `json:"artist_name,omitempty" db:"-"`
-	ArtistSlug   *string          `json:"artist_slug,omitempty" db:"-"`
-	ThumbnailURL *string          `json:"thumbnail_url,omitempty" db:"-"`
-	Attributes   json.RawMessage  `json:"attributes,omitempty" db:"-"` // the product's default-SKU attributes
+	ProductTitle string             `json:"product_title,omitempty" db:"-"`
+	ProductSlug  string             `json:"product_slug,omitempty" db:"-"`
+	ArtistName   *string            `json:"artist_name,omitempty" db:"-"`
+	ArtistSlug   *string            `json:"artist_slug,omitempty" db:"-"`
+	ThumbnailURL *string            `json:"thumbnail_url,omitempty" db:"-"`
+	Attributes   json.RawMessage    `json:"attributes,omitempty" db:"-"` // the product's default-SKU attributes
 	Provenance   []ProvenanceRecord `json:"provenance,omitempty" db:"-"`
 }
 

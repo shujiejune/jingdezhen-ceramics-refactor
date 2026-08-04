@@ -16,24 +16,24 @@ import "time"
 // Activity is the merged public view: parent fields + the requested locale's
 // translation. Scanned from a JOIN of activities + activity_translations.
 type Activity struct {
-	ID                int64          `json:"id" db:"id"`
-	Type              string         `json:"type" db:"type"` // parent: 'Destination', 'Local Lifestyle', etc.
+	ID   int64  `json:"id" db:"id"`
+	Type string `json:"type" db:"type"` // parent: 'Destination', 'Local Lifestyle', etc.
 	// Destination location (parent, non-localized; NULL for non-destination types).
-	Lat               *float64       `json:"lat,omitempty" db:"lat"`
-	Lng               *float64       `json:"lng,omitempty" db:"lng"`
-	Address           *string        `json:"address,omitempty" db:"address"`
+	Lat     *float64 `json:"lat,omitempty" db:"lat"`
+	Lng     *float64 `json:"lng,omitempty" db:"lng"`
+	Address *string  `json:"address,omitempty" db:"address"`
 	// Translation fields.
-	Slug              string         `json:"slug" db:"slug"`
-	Title             string         `json:"title" db:"title"`
-	BriefIntroduction *string        `json:"brief_introduction,omitempty" db:"brief_introduction"`
-	Body              *string        `json:"body,omitempty" db:"body"`
-	MetaTitle         *string        `json:"meta_title,omitempty" db:"meta_title"`
-	MetaDescription   *string        `json:"meta_description,omitempty" db:"meta_description"`
-	Locale            string         `json:"locale" db:"locale"`
-	Status            ContentStatus  `json:"status" db:"status"`
-	PublishedAt       *time.Time     `json:"published_at,omitempty" db:"published_at"`
-	CreatedAt         time.Time      `json:"created_at" db:"created_at"`
-	UpdatedAt         time.Time      `json:"updated_at" db:"updated_at"`
+	Slug              string        `json:"slug" db:"slug"`
+	Title             string        `json:"title" db:"title"`
+	BriefIntroduction *string       `json:"brief_introduction,omitempty" db:"brief_introduction"`
+	Body              *string       `json:"body,omitempty" db:"body"`
+	MetaTitle         *string       `json:"meta_title,omitempty" db:"meta_title"`
+	MetaDescription   *string       `json:"meta_description,omitempty" db:"meta_description"`
+	Locale            string        `json:"locale" db:"locale"`
+	Status            ContentStatus `json:"status" db:"status"`
+	PublishedAt       *time.Time    `json:"published_at,omitempty" db:"published_at"`
+	CreatedAt         time.Time     `json:"created_at" db:"created_at"`
+	UpdatedAt         time.Time     `json:"updated_at" db:"updated_at"`
 }
 
 // Article is retained as a type alias to Activity for backward compatibility
@@ -48,31 +48,31 @@ type Article = Activity
 // location fields (nullable for non-Destination types); the translation carries
 // the localized text.
 type CreateActivityData struct {
-	Locale             string   `json:"locale,omitempty" validate:"omitempty,len=5"`
-	Type               string   `json:"type" validate:"required,max=50"` // Destination | Local Lifestyle, etc.
-	Slug               string   `json:"slug" validate:"required,max=255"`
-	Title              string   `json:"title" validate:"required,max=255"`
-	BriefIntroduction  string   `json:"brief_introduction,omitempty"`
-	Body               string   `json:"body,omitempty"`
-	MetaTitle          string   `json:"meta_title,omitempty" validate:"omitempty,max=255"`
-	MetaDescription    string   `json:"meta_description,omitempty"`
+	Locale            string `json:"locale,omitempty" validate:"omitempty,len=5"`
+	Type              string `json:"type" validate:"required,max=50"` // Destination | Local Lifestyle, etc.
+	Slug              string `json:"slug" validate:"required,max=255"`
+	Title             string `json:"title" validate:"required,max=255"`
+	BriefIntroduction string `json:"brief_introduction,omitempty"`
+	Body              string `json:"body,omitempty"`
+	MetaTitle         string `json:"meta_title,omitempty" validate:"omitempty,max=255"`
+	MetaDescription   string `json:"meta_description,omitempty"`
 	// Destination location (parent, non-localized; nullable).
-	Lat                *float64 `json:"lat,omitempty"`
-	Lng                *float64 `json:"lng,omitempty"`
-	Address            string   `json:"address,omitempty"`
+	Lat     *float64 `json:"lat,omitempty"`
+	Lng     *float64 `json:"lng,omitempty"`
+	Address string   `json:"address,omitempty"`
 }
 
 // UpdateActivityData updates a translation (localized fields) and/or the
 // parent's non-localized fields. A nil pointer = leave unchanged.
 type UpdateActivityData struct {
-	Type               *string  `json:"type,omitempty" validate:"omitempty,max=50"`
-	Slug               *string  `json:"slug,omitempty" validate:"omitempty,max=255"`
-	Title              *string  `json:"title,omitempty" validate:"omitempty,max=255"`
-	BriefIntroduction  *string  `json:"brief_introduction,omitempty"`
-	Body               *string  `json:"body,omitempty"`
-	MetaTitle          *string  `json:"meta_title,omitempty" validate:"omitempty,max=255"`
-	MetaDescription    *string  `json:"meta_description,omitempty"`
-	Lat                *float64 `json:"lat,omitempty"`
-	Lng                *float64 `json:"lng,omitempty"`
-	Address            *string  `json:"address,omitempty"`
+	Type              *string  `json:"type,omitempty" validate:"omitempty,max=50"`
+	Slug              *string  `json:"slug,omitempty" validate:"omitempty,max=255"`
+	Title             *string  `json:"title,omitempty" validate:"omitempty,max=255"`
+	BriefIntroduction *string  `json:"brief_introduction,omitempty"`
+	Body              *string  `json:"body,omitempty"`
+	MetaTitle         *string  `json:"meta_title,omitempty" validate:"omitempty,max=255"`
+	MetaDescription   *string  `json:"meta_description,omitempty"`
+	Lat               *float64 `json:"lat,omitempty"`
+	Lng               *float64 `json:"lng,omitempty"`
+	Address           *string  `json:"address,omitempty"`
 }

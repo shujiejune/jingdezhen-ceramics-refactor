@@ -3,9 +3,10 @@ package notification
 import (
 	"context"
 	"fmt"
+	"log"
+
 	"jingdezhen-ceramics-backend/internal/models"
 	"jingdezhen-ceramics-backend/internal/modules/user"
-	"log"
 )
 
 // WebSocketService remains the same.
@@ -82,15 +83,6 @@ func (s *Service) CreateNotification(ctx context.Context, params models.CreateNo
 	}
 
 	return notification, nil
-}
-
-// mapKeysToSlice converts the keys of a map[string]struct{} to a slice of strings.
-func mapKeysToSlice(m map[string]struct{}) []string {
-	s := make([]string, 0, len(m))
-	for k := range m {
-		s = append(s, k)
-	}
-	return s
 }
 
 // GetNotificationsForUser retrieves notifications and composes them with actor details.

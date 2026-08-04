@@ -121,13 +121,13 @@ func TestCreateQuote_ReplacesOnResend(t *testing.T) {
 	// First quote: 2× hotel-budget.
 	_, err := svc.SendQuote(ctx, reqID, models.SendQuoteRequest{
 		LineItems: []models.QuoteLineItemInput{{OptionKey: "hotel-budget", Qty: 2}},
-		Currency: "USD",
+		Currency:  "USD",
 	})
 	require.NoError(t, err)
 	// Second quote: 1× pickup (different totals).
 	q2, err := svc.SendQuote(ctx, reqID, models.SendQuoteRequest{
 		LineItems: []models.QuoteLineItemInput{{OptionKey: "pickup", Qty: 1}},
-		Currency: "USD",
+		Currency:  "USD",
 	})
 	require.NoError(t, err)
 	require.Equal(t, int64(5000), q2.TotalCNY, "second quote's totals replace the first")
@@ -154,7 +154,7 @@ func TestSendQuote_RejectsNonProcessing(t *testing.T) {
 	reqID := seedRequest(t, pool, uid, time.Now().Add(24*time.Hour))
 	_, err := svc.SendQuote(ctx, reqID, models.SendQuoteRequest{
 		LineItems: []models.QuoteLineItemInput{{OptionKey: "pickup", Qty: 1}},
-		Currency: "USD",
+		Currency:  "USD",
 	})
 	require.ErrorIs(t, err, models.ErrInvalidOperation)
 }
@@ -172,7 +172,7 @@ func TestSendQuote_UnknownOptionKey(t *testing.T) {
 	reqID := seedProcessingRequest(t, pool, uid)
 	_, err := svc.SendQuote(ctx, reqID, models.SendQuoteRequest{
 		LineItems: []models.QuoteLineItemInput{{OptionKey: "nonexistent", Qty: 1}},
-		Currency: "USD",
+		Currency:  "USD",
 	})
 	require.ErrorIs(t, err, models.ErrInvalidQuote)
 }
@@ -192,7 +192,7 @@ func TestMarkDepositPaid_Idempotent(t *testing.T) {
 	reqID := seedProcessingRequest(t, pool, uid)
 	q, err := svc.SendQuote(ctx, reqID, models.SendQuoteRequest{
 		LineItems: []models.QuoteLineItemInput{{OptionKey: "pickup", Qty: 1}},
-		Currency: "USD",
+		Currency:  "USD",
 	})
 	require.NoError(t, err)
 
@@ -223,7 +223,7 @@ func TestConfirm_DepositPaidToConfirmed(t *testing.T) {
 	reqID := seedProcessingRequest(t, pool, uid)
 	q, err := svc.SendQuote(ctx, reqID, models.SendQuoteRequest{
 		LineItems: []models.QuoteLineItemInput{{OptionKey: "pickup", Qty: 1}},
-		Currency: "USD",
+		Currency:  "USD",
 	})
 	require.NoError(t, err)
 
@@ -253,7 +253,7 @@ func TestRefundDeposit_CancelQuoteAndRequest(t *testing.T) {
 	reqID := seedProcessingRequest(t, pool, uid)
 	q, err := svc.SendQuote(ctx, reqID, models.SendQuoteRequest{
 		LineItems: []models.QuoteLineItemInput{{OptionKey: "pickup", Qty: 1}},
-		Currency: "USD",
+		Currency:  "USD",
 	})
 	require.NoError(t, err)
 	require.NoError(t, svc.MarkDepositPaid(ctx, q.ID))

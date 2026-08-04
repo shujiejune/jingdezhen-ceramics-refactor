@@ -161,6 +161,7 @@ func TestFindAllPublished_TagFilter(t *testing.T) {
 	got, total, err = repo.FindAllPublished(ctx, "en-US", "", 0, []string{"hand-painted", "celadon-glaze"}, 1, 50)
 	require.NoError(t, err)
 	require.Equal(t, 2, total)
+	require.Len(t, got, 2)
 
 	// Unknown tag → zero products (the EXISTS subquery matches nothing).
 	got, total, err = repo.FindAllPublished(ctx, "en-US", "", 0, []string{"nonexistent-tag"}, 1, 50)
@@ -172,6 +173,7 @@ func TestFindAllPublished_TagFilter(t *testing.T) {
 	got, total, err = repo.FindAllPublished(ctx, "en-US", "", 0, nil, 1, 50)
 	require.NoError(t, err)
 	require.Equal(t, 3, total)
+	require.Len(t, got, 3)
 }
 
 // TestFindAllTagsInUse_OnlyPublishedProducts verifies the facet list only

@@ -4,9 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
+
 	"jingdezhen-ceramics-backend/internal/models"
 	"jingdezhen-ceramics-backend/internal/platform/i18ncontent"
-	"log"
 )
 
 // ServiceInterface defines product/SKU business logic (i18n-aware).
@@ -41,9 +42,9 @@ type CertificateIssuer interface {
 }
 
 type Service struct {
-	repo           RepositoryInterface
-	certIssuer     CertificateIssuer // optional; nil => no auto-issue (e.g. worker mode)
-	galleryLoader  GalleryLoader    // optional; nil => no gallery (list view)
+	repo          RepositoryInterface
+	certIssuer    CertificateIssuer // optional; nil => no auto-issue (e.g. worker mode)
+	galleryLoader GalleryLoader     // optional; nil => no gallery (list view)
 }
 
 // GalleryLoader loads a product's ordered media gallery. Implemented by the

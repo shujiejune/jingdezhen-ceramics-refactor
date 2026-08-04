@@ -67,11 +67,11 @@ func IsPublishedStatus(s ContentStatus) bool { return s == StatusPublished }
 // media_assets (integrity + CDN URL resolution at render time), not raw URLs.
 // Rendering to HTML/SSR happens in the frontend; the API stores + returns these.
 type ContentBlock struct {
-	Type     string `json:"type"`               // paragraph | heading | image | video
-	Text     string `json:"text,omitempty"`     // paragraph/heading body
-	Level    int    `json:"level,omitempty"`    // heading level (1-6)
-	AssetID *int64 `json:"asset_id,omitempty"`  // image/video → media_assets.id
-	Caption  string `json:"caption,omitempty"`  // image caption
+	Type    string `json:"type"`               // paragraph | heading | image | video
+	Text    string `json:"text,omitempty"`     // paragraph/heading body
+	Level   int    `json:"level,omitempty"`    // heading level (1-6)
+	AssetID *int64 `json:"asset_id,omitempty"` // image/video → media_assets.id
+	Caption string `json:"caption,omitempty"`  // image caption
 }
 
 // Valid block types.
@@ -105,13 +105,13 @@ type LocaleQuery struct {
 // endpoint: title, slug, meta tags, and the workflow status (so the frontend
 // can show an editor's own draft vs. a reader's published view).
 type TranslationMeta struct {
-	Locale           string        `json:"locale"`
-	Slug             string        `json:"slug"`
-	Title            string        `json:"title"`
-	MetaTitle        *string       `json:"meta_title,omitempty"`
-	MetaDescription  *string       `json:"meta_description,omitempty"`
-	Status           ContentStatus `json:"status"`
-	PublishedAt      *string       `json:"published_at,omitempty"` // ISO 8601; nil if not published
+	Locale          string        `json:"locale"`
+	Slug            string        `json:"slug"`
+	Title           string        `json:"title"`
+	MetaTitle       *string       `json:"meta_title,omitempty"`
+	MetaDescription *string       `json:"meta_description,omitempty"`
+	Status          ContentStatus `json:"status"`
+	PublishedAt     *string       `json:"published_at,omitempty"` // ISO 8601; nil if not published
 }
 
 // --- Workflow transition errors ---------------------------------------------

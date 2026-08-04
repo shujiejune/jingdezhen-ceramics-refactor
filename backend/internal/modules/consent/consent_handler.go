@@ -2,9 +2,10 @@ package consent
 
 import (
 	"errors"
+	"log"
+
 	"jingdezhen-ceramics-backend/internal/models"
 	"jingdezhen-ceramics-backend/pkg/utils"
-	"log"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"

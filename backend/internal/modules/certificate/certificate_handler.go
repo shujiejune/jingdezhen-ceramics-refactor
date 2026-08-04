@@ -3,11 +3,12 @@ package certificate
 import (
 	"errors"
 	"fmt"
+	"log"
+	"strconv"
+
 	"jingdezhen-ceramics-backend/internal/models"
 	"jingdezhen-ceramics-backend/pkg/adapters/storage"
 	"jingdezhen-ceramics-backend/pkg/utils"
-	"log"
-	"strconv"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
@@ -85,7 +86,7 @@ func (h *Handler) QRCode(c *fiber.Ctx) error {
 	}
 	c.Set("Content-Type", "image/png")
 	c.Set("Cache-Control", "public, max-age=86400") // QR is stable per code
-	return c.Send(png) //nolint:errcheck
+	return c.Send(png)                              //nolint:errcheck
 }
 
 // --- Admin ---

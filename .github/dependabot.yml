@@ -1,0 +1,24 @@
+# Dependabot (PRD §2.4.1) — weekly dependency + action updates.
+version: 2
+updates:
+  # Go modules (backend).
+  - package-ecosystem: gomod
+    directory: /backend
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - backend
+
+  # GitHub Actions versions (the workflow files themselves).
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - ci

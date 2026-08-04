@@ -31,20 +31,20 @@ func IsStaffRole(key string) bool {
 // Permission key constants — must match the `permissions` table seed (000002_rbac).
 // Reference these in middleware.RequirePermission(...) so renames surface at compile time.
 const (
-	PermUsersManage      = "users.manage"
-	PermContentWrite     = "content.write"
-	PermContentPublish   = "content.publish"
-	PermProductRead      = "product.read"
-	PermProductWrite     = "product.write"
-	PermProductPublish   = "product.publish"   // Super Admin only — approve/publish products (PRD §3.1.1)
+	PermUsersManage       = "users.manage"
+	PermContentWrite      = "content.write"
+	PermContentPublish    = "content.publish"
+	PermProductRead       = "product.read"
+	PermProductWrite      = "product.write"
+	PermProductPublish    = "product.publish"    // Super Admin only — approve/publish products (PRD §3.1.1)
 	PermCertificateManage = "certificate.manage" // List/view/regenerate product certificates (PRD §3.2.1)
-	PermOrderRead        = "order.read"
-	PermOrderWrite       = "order.write"
-	PermOrderRefund      = "order.refund"
-	PermItineraryRead    = "itinerary.read"
-	PermItineraryWrite   = "itinerary.write"
-	PermItineraryConfirm = "itinerary.confirm"
-	PermChatHandle       = "chat.handle"
-	PermDashboardView    = "dashboard.view"
-	PermSettingsManage   = "settings.manage"
+	PermOrderRead         = "order.read"
+	PermOrderWrite        = "order.write"
+	PermOrderRefund       = "order.refund"
+	PermItineraryRead     = "itinerary.read"
+	PermItineraryWrite    = "itinerary.write"
+	PermItineraryConfirm  = "itinerary.confirm"
+	PermChatHandle        = "chat.handle"
+	PermDashboardView     = "dashboard.view"
+	PermSettingsManage    = "settings.manage"
 )

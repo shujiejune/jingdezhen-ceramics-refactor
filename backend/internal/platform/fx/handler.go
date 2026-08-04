@@ -3,8 +3,9 @@ package fx
 import (
 	"context"
 	"errors"
-	"jingdezhen-ceramics-backend/internal/models"
 	"log"
+
+	"jingdezhen-ceramics-backend/internal/models"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -17,7 +18,7 @@ type JobEnqueuer interface {
 
 // Handler exposes FX admin + debug endpoints (TDD §7, PRD §3.2.3).
 type Handler struct {
-	service    ServiceInterface
+	service     ServiceInterface
 	jobEnqueuer JobEnqueuer
 }
 

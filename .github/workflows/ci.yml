@@ -1,0 +1,143 @@
+# CI pipeline (PRD §2.4.1) — runs on every PR + push to main.
+#
+# Five jobs, all on ubuntu-24.04 (Docker is preinstalled for testcontainers):
+#   lint         golangci-lint (stricter than `go vet`)
+#   unit         `go test -race -short` (fast, no Docker) + coverage artifact
+#   integration  `go test -race` (testcontainers-go: real PG + Redis)
+#   build        Docker image build (validates the Dockerfile compiles the binary)
+#   security     govulncheck + osv-scanner on go.sum
+#
+# unit + integration + lint + security run in parallel; build waits on
+# unit + integration to avoid wasting compute on a broken tree. A new push
+# to the same branch cancels the stale run (concurrency group).
+#
+# No secrets required at this stage (no registry/VPS/gateway creds). The
+# main-branch deploy workflow (ACR push → VPS deploy → smoke) is a follow-up
+# once that infra lands.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch: # manual rerun
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint (golangci-lint)
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache: true
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: v1.64
+          working-directory: backend
+          args: --timeout 5m
+
+  unit:
+    name: Unit tests (-short, no Docker)
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache: true
+      - name: go test -race -short -cover
+        # -short skips testcontainers integration tests (fast inner loop).
+        # TESTCONTAINERS_RYUK_DISABLED is harmless here (no containers spin up).
+        env:
+          TESTCONTAINERS_RYUK_DISABLED: "true"
+        run: go test -race -short -coverprofile=coverage.out -coverpkg=./... ./...
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-unit
+          path: backend/coverage.out
+          retention-days: 14
+
+  integration:
+    name: Integration tests (-race, testcontainers)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20 # cold first-run pulls postgis + redis images
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache: true
+      - name: go test -race
+        # Full suite: unit + integration via testcontainers-go (real PG + Redis
+        # in Docker). Ryuk is disabled — the ephemeral runner cleans up on exit.
+        env:
+          TESTCONTAINERS_RYUK_DISABLED: "true"
+        run: go test -race ./...
+
+  build:
+    name: Build Docker image
+    runs-on: ubuntu-24.04
+    needs: [unit, integration] # don't build a broken tree
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build (push: false — validates the Dockerfile compiles the binary)
+        uses: docker/build-push-action@v6
+        with:
+          context: backend
+          push: false
+          tags: jdz-backend:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  security:
+    name: Security (govulncheck + osv-scanner)
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:\          go-version-file: backend/go.mod
+          cache: true
+      - name: govulncheck (hard gate — reachable vulns)
+        # Scans the module for known vulnerabilities in dependencies + the
+        # standard library, validated against the call graph (only flags
+        # vulns our code actually reaches). Fails the job on any finding.
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./...
+      - name: osv-scanner (advisory — transitive deps)
+        # Broader than govulncheck: cross-checks go.sum against the OSV DB
+        # without call-graph analysis, so it flags non-reachable transitive
+        # vulns (deps with no fix available yet). Advisory: reports but does
+        # NOT fail the job — the govulncheck gate above is the blocker. Keeps
+        # visibility on the transitive surface without blocking on unfixed
+        # upstream CVEs.
+        continue-on-error: true
+        uses: google/osv-scanner-action/osv-scanner-action@v2
+        with:
+          scan-args: |-
+            -r
+            .

@@ -1,0 +1,53 @@
+# golangci-lint config (PRD §2.4.1). Minimal + strict on the high-signal
+# linters; `go vet` is the current gate (passes clean) — this supersedes it.
+# Kept conservative so a first run doesn't drown in style nits; widen later.
+
+run:
+  timeout: 5m
+  # Tests are exempt from errcheck (helpers often ignore errors); other
+  # linters still run on test code.
+  tests: true
+
+linters:
+  enable:
+    - gofmt
+    - goimports
+    - govet
+    - errcheck
+    - staticcheck
+    - ineffassign
+    - unused
+    - misspell
+    - gosimple
+
+linters-settings:
+  goimports:
+    local-prefixes: jingdezhen-ceramics-backend
+
+issues:
+  # Don't auto-exclude anything by default — surface it all.
+  exclude-use-default: false
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  exclude-rules:
+    # Test files: relax errcheck (test plumbing ignores many errors on purpose).
+    - path: _test\.go
+      linters:
+        - errcheck
+
+    # Idiomatic Go: deferred Close/Rollback where the error is non-actionable.
+    # The standard library itself does `defer resp.Body.Close()`. Checking these
+    # adds noise without catching real bugs (the close/rollback is best-effort
+    # cleanup; the error means the resource is already gone). Also covers the
+    # WebSocket write/deadline calls — on a disconnecting peer the error is
+    # non-actionable (the conn is already broken).
+    - linters:
+        - errcheck
+      text: "Error return value of `(.*Close|tx.Rollback|.*SetReadDeadline|.*SetWriteDeadline|.*WriteJSON|.*WriteMessage)` is not checked"
+
+    # cmd/api/main.go: deferred shutdown closes (redisClient, jobClient) —
+    # non-actionable at process exit. Covered by the Close() rule above too,
+    # but kept explicit for clarity.
+    - path: cmd/api/main\.go
+      linters:
+        - errcheck

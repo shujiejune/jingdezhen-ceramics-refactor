@@ -5,23 +5,23 @@ import (
 	"jingdezhen-ceramics-backend/internal/models"
 	"jingdezhen-ceramics-backend/internal/modules/address"
 	"jingdezhen-ceramics-backend/internal/modules/artist"
+	"jingdezhen-ceramics-backend/internal/modules/cart"
 	"jingdezhen-ceramics-backend/internal/modules/ceramicstory"
+	"jingdezhen-ceramics-backend/internal/modules/certificate"
 	"jingdezhen-ceramics-backend/internal/modules/consent"
 	"jingdezhen-ceramics-backend/internal/modules/engage"
+	"jingdezhen-ceramics-backend/internal/modules/itinerary"
+	"jingdezhen-ceramics-backend/internal/modules/media"
 	"jingdezhen-ceramics-backend/internal/modules/notification"
-	"jingdezhen-ceramics-backend/internal/modules/product"
-	"jingdezhen-ceramics-backend/internal/modules/privacy"
-	"jingdezhen-ceramics-backend/internal/modules/twofa"
-	"jingdezhen-ceramics-backend/internal/modules/wishlist"
-	"jingdezhen-ceramics-backend/internal/modules/cart"
-	"jingdezhen-ceramics-backend/internal/modules/shipping"
 	"jingdezhen-ceramics-backend/internal/modules/order"
 	"jingdezhen-ceramics-backend/internal/modules/payment"
-	"jingdezhen-ceramics-backend/internal/modules/certificate"
-	"jingdezhen-ceramics-backend/internal/modules/media"
-	"jingdezhen-ceramics-backend/internal/modules/itinerary"
-	"jingdezhen-ceramics-backend/internal/platform/fx"
+	"jingdezhen-ceramics-backend/internal/modules/privacy"
+	"jingdezhen-ceramics-backend/internal/modules/product"
+	"jingdezhen-ceramics-backend/internal/modules/shipping"
+	"jingdezhen-ceramics-backend/internal/modules/twofa"
 	"jingdezhen-ceramics-backend/internal/modules/user"
+	"jingdezhen-ceramics-backend/internal/modules/wishlist"
+	"jingdezhen-ceramics-backend/internal/platform/fx"
 	"jingdezhen-ceramics-backend/internal/ws"
 
 	"github.com/gofiber/contrib/websocket"
@@ -223,7 +223,7 @@ func SetupRoutes(
 	   precede the authed empty-prefix group. See TDD §4.3 / main.go. */
 	engageGroup := app.Group("/engage")
 	{
-		engageGroup.Get("", engageHandler.GetActivities)           // ?locale=&type=&page=&limit=
+		engageGroup.Get("", engageHandler.GetActivities)            // ?locale=&type=&page=&limit=
 		engageGroup.Get("/:slug", engageHandler.GetActivityArticle) // ?locale=
 	}
 

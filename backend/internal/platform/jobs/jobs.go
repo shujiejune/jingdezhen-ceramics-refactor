@@ -48,11 +48,11 @@ type EmailSendPayload struct {
 // the webhook handler after signature verification. Idempotent by GatewayRef,
 // or by the mock seam in dev (payments_mode=mock).
 type PaymentFinalizePayload struct {
-	OrderID           int64  `json:"order_id"`             // drives order.Status created→paid (0 for a deposit)
-	ItineraryQuoteID  int64  `json:"itinerary_quote_id"`   // drives itinerary quote sent→deposit_paid (0 for an order)
-	Success           bool   `json:"success"`              // true → MarkPaid / MarkDepositPaid; false → (TBD) cancel
-	Gateway           string `json:"gateway,omitempty"`   // "airwallex" | "paypal" | "mock"
-	GatewayRef        string `json:"gateway_ref,omitempty"`
+	OrderID          int64  `json:"order_id"`           // drives order.Status created→paid (0 for a deposit)
+	ItineraryQuoteID int64  `json:"itinerary_quote_id"` // drives itinerary quote sent→deposit_paid (0 for an order)
+	Success          bool   `json:"success"`            // true → MarkPaid / MarkDepositPaid; false → (TBD) cancel
+	Gateway          string `json:"gateway,omitempty"`  // "airwallex" | "paypal" | "mock"
+	GatewayRef       string `json:"gateway_ref,omitempty"`
 }
 
 // FXRefreshPayload triggers an FX-rate refresh (ECB fetch → 2% markup → upsert).
@@ -275,14 +275,21 @@ type Scheduler struct {
 }
 
 // NewScheduler builds the cron scheduler with the platform's recurring jobs.
+// Register returns an error only on a malformed cron spec — a programmer error,
+// so we panic (fail fast at startup rather than silently skipping a job).
 func NewScheduler(redisAddr string) *Scheduler {
 	sch := asynq.NewScheduler(asynq.RedisClientOpt{Addr: redisAddr}, nil)
+	mustRegister := func(spec string, task *asynq.Task) {
+		if _, err := sch.Register(spec, task); err != nil {
+			panic(fmt.Errorf("jobs.NewScheduler: bad cron spec %q for %s: %w", spec, task.Type(), err))
+		}
+	}
 	// fx:refresh daily at 16:05 CET (after ECB publishes ~16:00 CET).
-	sch.Register("* 5 16 * *", asynq.NewTask(TypeFXRefresh, nil))
+	mustRegister("* 5 16 * *", asynq.NewTask(TypeFXRefresh, nil))
 	// sla:check every 15 minutes.
-	sch.Register("*/15 * * * *", asynq.NewTask(TypeSLACheck, nil))
+	mustRegister("*/15 * * * *", asynq.NewTask(TypeSLACheck, nil))
 	// analytics:rollup nightly at 00:05.
-	sch.Register("5 0 * * *", asynq.NewTask(TypeAnalyticsRollup, nil))
+	mustRegister("5 0 * * *", asynq.NewTask(TypeAnalyticsRollup, nil))
 	return &Scheduler{sch: sch}
 }
 

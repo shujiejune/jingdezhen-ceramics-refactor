@@ -55,11 +55,11 @@ func (g *AirwallexGateway) CreateIntent(ctx context.Context, req IntentRequest) 
 		return IntentResponse{}, fmt.Errorf("airwallex.CreateIntent.token: %w", err)
 	}
 	body := map[string]any{
-		"request_id":      "jdz-" + strconv.FormatInt(req.OrderID, 10),
-		"amount":          float64(req.AmountMinor) / 100.0,
-		"currency":        req.Currency,
+		"request_id":        "jdz-" + strconv.FormatInt(req.OrderID, 10),
+		"amount":            float64(req.AmountMinor) / 100.0,
+		"currency":          req.Currency,
 		"merchant_order_id": strconv.FormatInt(req.OrderID, 10),
-		"return_url":      req.ReturnURL,
+		"return_url":        req.ReturnURL,
 		// Hosted page (Airwallex Drop-in / PaymentIntent with auto_capture).
 		"payment_method_options": map[string]any{
 			"card": map[string]any{"auto_capture": true},
@@ -105,9 +105,9 @@ func (g *AirwallexGateway) Refund(ctx context.Context, req RefundRequest) (Refun
 		return RefundResponse{}, fmt.Errorf("airwallex.Refund.token: %w", err)
 	}
 	body := map[string]any{
-		"request_id": "jdz-refund-" + req.GatewayRef,
-		"amount":     float64(req.AmountMinor) / 100.0,
-		"reason":     req.Reason,
+		"request_id":        "jdz-refund-" + req.GatewayRef,
+		"amount":            float64(req.AmountMinor) / 100.0,
+		"reason":            req.Reason,
 		"payment_intent_id": req.GatewayRef,
 	}
 	raw, _ := json.Marshal(body)
@@ -124,7 +124,9 @@ func (g *AirwallexGateway) Refund(ctx context.Context, req RefundRequest) (Refun
 	if resp.StatusCode >= 300 {
 		return RefundResponse{}, fmt.Errorf("airwallex.Refund.status: %d: %s", resp.StatusCode, string(respBody))
 	}
-	var out struct{ ID string `json:"id"` }
+	var out struct {
+		ID string `json:"id"`
+	}
 	_ = json.Unmarshal(respBody, &out)
 	return RefundResponse{RefundRef: out.ID}, nil
 }
@@ -146,10 +148,10 @@ func (g *AirwallexGateway) VerifyWebhook(ctx context.Context, rawBody []byte, he
 		Name string `json:"name"` // e.g. "payment_intent.succeeded"
 		Data struct {
 			Object struct {
-				ID             string `json:"id"`
-				MerchantOrderID string `json:"merchant_order_id"`
-				Amount         float64 `json:"amount"`
-				Currency       string  `json:"currency"`
+				ID              string  `json:"id"`
+				MerchantOrderID string  `json:"merchant_order_id"`
+				Amount          float64 `json:"amount"`
+				Currency        string  `json:"currency"`
 			} `json:"object"`
 		} `json:"data"`
 		ID string `json:"id"` // event id
@@ -199,7 +201,9 @@ func (g *AirwallexGateway) accessToken(ctx context.Context) (string, error) {
 	if resp.StatusCode >= 300 {
 		return "", fmt.Errorf("login status %d: %s", resp.StatusCode, string(respBody))
 	}
-	var out struct{ Token string `json:"token"` }
+	var out struct {
+		Token string `json:"token"`
+	}
 	if err := json.Unmarshal(respBody, &out); err != nil {
 		return "", err
 	}

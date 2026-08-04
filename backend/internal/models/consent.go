@@ -21,13 +21,13 @@ const (
 // minimisation, TDD §11); the HMAC key rotates daily so the hash is only
 // useful for short-term dedup/audit, not re-identification.
 type ConsentRecord struct {
-	ID          int64     `json:"id" db:"id"`
-	UserID      *string   `json:"user_id,omitempty" db:"user_id"` // NULL = anonymous visitor
-	Kind        ConsentKind `json:"kind" db:"kind"`
-	DocVersion  string    `json:"doc_version" db:"doc_version"`
-	Granted     bool      `json:"granted" db:"granted"`
-	IPHash      *string   `json:"-" db:"ip_hash"` // never exposed in JSON (minimisation)
-	CreatedAt   time.Time `json:"created_at" db:"created_at"`
+	ID         int64       `json:"id" db:"id"`
+	UserID     *string     `json:"user_id,omitempty" db:"user_id"` // NULL = anonymous visitor
+	Kind       ConsentKind `json:"kind" db:"kind"`
+	DocVersion string      `json:"doc_version" db:"doc_version"`
+	Granted    bool        `json:"granted" db:"granted"`
+	IPHash     *string     `json:"-" db:"ip_hash"` // never exposed in JSON (minimisation)
+	CreatedAt  time.Time   `json:"created_at" db:"created_at"`
 }
 
 // RecordConsentRequest is the body for POST /consent. `user_id` is never

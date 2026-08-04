@@ -6,9 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strconv"
+
 	"jingdezhen-ceramics-backend/internal/models"
 	platformshipping "jingdezhen-ceramics-backend/internal/platform/shipping"
-	"strconv"
 
 	"github.com/shopspring/decimal"
 )
@@ -108,21 +109,21 @@ type ServiceInterface interface {
 }
 
 type Service struct {
-	repo        RepositoryInterface
-	cart        CartFetcher
-	cartClear   CartClearer
-	address     AddressFetcher
-	shipping    ShippingCalcer
-	fx          CheckoutFX
-	email       EmailEnqueuer
-	payment     PaymentEnqueuer
-	userPref    UserPrefFetcher
-	paymentIntenter PaymentIntenter  // nil in mock mode (auto-finalize seam)
-	paymentRefunder PaymentRefunder // nil if refunds go through a different path
-	userFetcher    UserFetcher      // customer email for the order confirmation
-	paymentsMode string // "mock" (dev) | "live" (#6, not yet configured)
-	provenance   ProvenanceRecorder // optional; nil => no provenance (worker without the cert service)
-	stockCheck   StockCheckEnqueuer  // optional; nil => no low-stock alert (worker mode)
+	repo            RepositoryInterface
+	cart            CartFetcher
+	cartClear       CartClearer
+	address         AddressFetcher
+	shipping        ShippingCalcer
+	fx              CheckoutFX
+	email           EmailEnqueuer
+	payment         PaymentEnqueuer
+	userPref        UserPrefFetcher
+	paymentIntenter PaymentIntenter    // nil in mock mode (auto-finalize seam)
+	paymentRefunder PaymentRefunder    // nil if refunds go through a different path
+	userFetcher     UserFetcher        // customer email for the order confirmation
+	paymentsMode    string             // "mock" (dev) | "live" (#6, not yet configured)
+	provenance      ProvenanceRecorder // optional; nil => no provenance (worker without the cert service)
+	stockCheck      StockCheckEnqueuer // optional; nil => no low-stock alert (worker mode)
 }
 
 func NewService(
@@ -236,11 +237,11 @@ func (s *Service) Checkout(ctx context.Context, userID string, req models.Checko
 		lineMinor := unitMinor * int64(ci.Qty)
 		titleSnap, _ := json.Marshal(map[string]string{"title": ci.ProductTitle, "slug": ci.ProductSlug})
 		items[i] = models.OrderItem{
-			SkuID:             ci.SkuID,
-			Qty:               ci.Qty,
-			UnitPriceMinor:    unitMinor,
-			UnitPriceCNY:      ci.UnitPriceCNY,
-			TitleSnapshot:     titleSnap,
+			SkuID:              ci.SkuID,
+			Qty:                ci.Qty,
+			UnitPriceMinor:     unitMinor,
+			UnitPriceCNY:       ci.UnitPriceCNY,
+			TitleSnapshot:      titleSnap,
 			AttributesSnapshot: ci.Attributes,
 		}
 		subtotalMinor += lineMinor

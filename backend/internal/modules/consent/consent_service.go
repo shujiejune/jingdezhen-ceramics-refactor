@@ -7,9 +7,10 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"jingdezhen-ceramics-backend/internal/models"
 	"log"
 	"time"
+
+	"jingdezhen-ceramics-backend/internal/models"
 )
 
 // ServiceInterface defines consent-ledger business logic.
@@ -28,8 +29,8 @@ type ServiceInterface interface {
 }
 
 type Service struct {
-	repo     RepositoryInterface
-	hmacKey  []byte // secret for IP hashing; rotate daily in prod (TODO: key rotation)
+	repo    RepositoryInterface
+	hmacKey []byte // secret for IP hashing; rotate daily in prod (TODO: key rotation)
 }
 
 // NewService constructs the consent service. `hmacKey` seeds the IP hash HMAC;

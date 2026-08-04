@@ -24,8 +24,8 @@ func newAirwallexTestServer(t *testing.T, webhookSecret string) (*httptest.Serve
 	mux.HandleFunc("/pa/payment_intents/create", func(w http.ResponseWriter, r *http.Request) {
 		require.Equal(t, "Bearer test-token", r.Header.Get("Authorization"))
 		_ = json.NewEncoder(w).Encode(map[string]any{
-			"id":           "int_abc",
-			"next_action":  map[string]string{"url": "https://checkout.example/pay/int_abc"},
+			"id":          "int_abc",
+			"next_action": map[string]string{"url": "https://checkout.example/pay/int_abc"},
 		})
 	})
 	mux.HandleFunc("/pa/refunds/create", func(w http.ResponseWriter, r *http.Request) {
