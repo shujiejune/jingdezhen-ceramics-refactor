@@ -227,10 +227,16 @@ func TestUpsertWebhook_UpdatesIntentStatus(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, models.PaymentSucceeded, got.Status, "the pending intent must be advanced to succeeded")
 
-	// GetSucceededByOrderID now finds it (this is the lookup Refund uses).
+	// GetSucceededByOrderID now finds a succeeded payment for the order (this
+	// is the lookup Refund uses). Note: after a succeeded webhook there are two
+	// 'succeeded' rows for the order — the intent (updated) + the event row
+	// (inserted with status=succeeded). GetSucceededByOrderID returns the
+	// latest (ORDER BY id DESC); both share gateway_ref/amount/currency so
+	// Refund works regardless. We assert it finds *a* succeeded row, not which.
 	succ, err := repo.GetSucceededByOrderID(ctx, orderID)
 	require.NoError(t, err)
-	require.Equal(t, intentID, succ.ID)
+	require.Equal(t, models.PaymentSucceeded, succ.Status)
+	require.Equal(t, intent.GatewayRef, succ.GatewayRef, "both rows share the gateway_ref Refund needs")
 
 	// Replay the same event: inserted=false AND the intent status is untouched
 	// (still succeeded — not re-processed, not errored).

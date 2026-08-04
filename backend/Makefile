@@ -10,8 +10,8 @@ ifneq (,$(wildcard ./.env))
 endif
 
 .PHONY: help build up up-db down down-v stop logs logs-api logs-worker \
-        migrate-up migrate-down migrate-force db-shell db-reset db-seed
-        test test-unit test-integration
+	migrate-up migrate-down migrate-force db-shell db-reset db-seed
+	test test-unit test-integration
 
 help:
 	@echo "Usage: make [target]"

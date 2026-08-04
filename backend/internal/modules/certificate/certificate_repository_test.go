@@ -16,6 +16,8 @@ package certificate_test
 
 import (
 	"context"
+	"strconv"
+	"sync/atomic"
 	"testing"
 
 	"jingdezhen-ceramics-backend/internal/models"
@@ -26,17 +28,25 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// slugCounter keeps seeded slugs unique across tests so the
+// UNIQUE(locale, slug) constraint doesn't collide when multiple products are
+// created in one test.
+var slugCounter uint64
+
+func uniqueSuffix() string { return strconv.FormatUint(atomic.AddUint64(&slugCounter, 1), 36) }
+
 // seedProduct inserts one product (en-US translation, published) and returns
 // its id. Certificates FK to products, so every cert test needs a product.
 func seedProduct(t *testing.T, pool *pgxpool.Pool) int64 {
 	t.Helper()
 	ctx := context.Background()
+	slug := "t-" + uniqueSuffix()
 	var id int64
 	err := pool.QueryRow(ctx, `INSERT INTO products (category, display_order)
 		VALUES ('test', 0) RETURNING id`).Scan(&id)
 	require.NoError(t, err)
 	_, err = pool.Exec(ctx, `INSERT INTO product_translations (product_id, locale, title, slug, status, published_at)
-		VALUES ($1,'en-US','T','t','published',NOW())`, id)
+		VALUES ($1,'en-US','T',$2,'published',NOW())`, id, slug)
 	require.NoError(t, err)
 	return id
 }
