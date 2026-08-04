@@ -19,6 +19,7 @@ import (
 	"jingdezhen-ceramics-backend/internal/modules/payment"
 	"jingdezhen-ceramics-backend/internal/modules/certificate"
 	"jingdezhen-ceramics-backend/internal/modules/media"
+	"jingdezhen-ceramics-backend/internal/modules/itinerary"
 	"jingdezhen-ceramics-backend/internal/platform/fx"
 	"jingdezhen-ceramics-backend/internal/modules/user"
 	"jingdezhen-ceramics-backend/internal/ws"
@@ -49,6 +50,7 @@ func SetupRoutes(
 	mediaHandler *media.Handler,
 	twoFAHandler *twofa.Handler,
 	privacyHandler *privacy.Handler,
+	itineraryHandler *itinerary.Handler,
 ) {
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{"message": "Welcome to the Jingdezhen Ceramics Platform!"})
@@ -224,6 +226,17 @@ func SetupRoutes(
 		checkoutGroup.Get("/orders", orderHandler.ListMine)
 		checkoutGroup.Get("/orders/:id", orderHandler.GetMine)
 		checkoutGroup.Post("/orders/:id/cancel", orderHandler.CancelMine)
+
+		/* --- Custom Itinerary Builder (signed-in customers) — PRD §3.3.2 --- */
+		/* 4-step wizard: save-draft/resume + submit + list/get/cancel. The planner
+		   CRM (inbox/assign/quote/deposit) is a follow-up sub-track. */
+		checkoutGroup.Get("/itineraries/draft", itineraryHandler.GetDraft)
+		checkoutGroup.Put("/itineraries/draft", itineraryHandler.SaveDraft)
+		checkoutGroup.Delete("/itineraries/draft", itineraryHandler.DeleteDraft)
+		checkoutGroup.Post("/itineraries", itineraryHandler.Submit)
+		checkoutGroup.Get("/itineraries", itineraryHandler.ListMine)
+		checkoutGroup.Get("/itineraries/:id", itineraryHandler.GetMine)
+		checkoutGroup.Post("/itineraries/:id/cancel", itineraryHandler.CancelMine)
 	}
 
 	/* --- Engage (Destinations & Local Lifestyle, public) --- */

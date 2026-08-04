@@ -30,6 +30,7 @@ import (
 	"jingdezhen-ceramics-backend/internal/modules/payment"
 	"jingdezhen-ceramics-backend/internal/modules/certificate"
 	"jingdezhen-ceramics-backend/internal/modules/media"
+	"jingdezhen-ceramics-backend/internal/modules/itinerary"
 	"jingdezhen-ceramics-backend/pkg/adapters/payments"
 	"jingdezhen-ceramics-backend/pkg/adapters/certchain"
 	"jingdezhen-ceramics-backend/pkg/adapters/storage"
@@ -131,6 +132,20 @@ type orderStockCheckEnqueuer struct{ c *jobs.Client }
 
 func (e orderStockCheckEnqueuer) EnqueueStockCheck(ctx context.Context, orderID int64, skuIDs []int64) error {
 	return e.c.EnqueueStockCheck(ctx, jobs.StockCheckPayload{OrderID: orderID, SkuIDs: skuIDs})
+}
+
+// itinConsentRecorder adapts consent.Service → itinerary.ConsentRecorder.
+// Records the Privacy Policy consent at itinerary submit (PRD §3.3.2 step 4)
+// for the GDPR audit trail. clientIP is empty (server-side submit; the IP hash
+// is optional — the consent is recorded as granted-by-submit, not by-request).
+type itinConsentRecorder struct{ s consent.ServiceInterface }
+
+func (r itinConsentRecorder) RecordConsent(ctx context.Context, userID string, kind models.ConsentKind) error {
+	uid := userID
+	_, err := r.s.RecordConsent(ctx, &uid, "", models.RecordConsentRequest{
+		Kind: kind, DocVersion: "v1", Granted: true,
+	})
+	return err
 }
 
 // --- serve mode (API + WebSocket) --------------------------------------------
@@ -377,11 +392,25 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 	privacyService := privacy.NewService(privacyRepo, jobClient)
 	privacyHandler := privacy.NewHandler(privacyService)
 
+	// --- Itinerary (Custom Travel, PRD §3.3.2) ---
+	// Customer-facing wizard: submit + draft + list/get/cancel. The 24h-SLA ack
+	// email reuses the order email enqueuer; consent recording adapts consent.Service
+	// to a narrow interface (avoids an itinerary→consent import cycle).
+	itineraryRepo := itinerary.NewRepository(dbPool)
+	itineraryService := itinerary.NewService(
+		itineraryRepo,
+		orderEmailEnqueuer{jobClient},    // EmailEnqueuer (24h-SLA ack)
+		userService,                       // UserFetcher (customer email)
+		itinConsentRecorder{consentService}, // ConsentRecorder (GDPR audit)
+	)
+	itineraryHandler := itinerary.NewHandler(itineraryService)
+
 	api.SetupRoutes(app, cfg.JWTSecret,
 		wsHandler, userHandler, notifHandler,
 		ceramicStoryHandler, engageHandler, addressHandler,
 		consentHandler, artistHandler, productHandler, wishlistHandler, cartHandler, fxHandler,
 		shippingHandler, orderHandler, paymentHandler, certificateHandler, mediaHandler, twoFAHandler, privacyHandler,
+		itineraryHandler,
 	)
 
 	// --- Static mount for local-dev media (STORAGE_MODE=local) ---

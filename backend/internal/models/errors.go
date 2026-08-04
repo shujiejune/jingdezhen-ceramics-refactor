@@ -26,3 +26,5 @@ var ErrOverweight = errors.New("order exceeds the maximum shipping weight for th
 var ErrWebhookSignatureInvalid = errors.New("webhook signature verification failed") // gateway webhook signature mismatch (TDD §10)
 var ErrPaymentNotSucceeded = errors.New("no succeeded payment found for the order") // refund on an unpaid order
 var ErrGatewayUnavailable = errors.New("payment gateway is not configured") // PAYMENTS_MODE live but no creds / unknown gateway
+var ErrConsentRequired = errors.New("privacy policy consent is required")              // PRD §3.3.2 step 4: the GDPR checkbox must be checked to submit
+var ErrItineraryNotCancellable = errors.New("itinerary request is not in a cancellable state") // only `pending` is customer-cancellable

@@ -1,7 +1,7 @@
 # --- Stage 1: Build Stage ---
 # Use an official Go image as the base for our build environment.
 # Using a specific version ensures a consistent build environment.
-FROM golang:1.24-alpine AS builder
+FROM golang:1.25-alpine AS builder
 
 # Set the working directory inside the container.
 WORKDIR /app
