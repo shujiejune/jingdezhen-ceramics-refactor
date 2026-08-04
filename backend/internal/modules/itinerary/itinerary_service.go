@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"regexp"
 	"strconv"
 	"time"
 
@@ -104,8 +105,13 @@ type ServiceInterface interface {
 	AddNote(ctx context.Context, requestID int64, authorID string, req models.ItineraryNoteRequest) (*models.CRMNote, error)
 	ListNotes(ctx context.Context, requestID int64) ([]models.CRMNote, error)
 
-	// --- Quote builder + deposit (PRD §3.3.2, TDD §3.4 M3 #3) ---
+	// --- Option-rate CMS (PRD §3.3.2: operator-configured rate table) ---
 	ListOptionRates(ctx context.Context) ([]models.OptionRate, error)
+	CreateOptionRate(ctx context.Context, req models.CreateOptionRateRequest) (*models.OptionRate, error)
+	UpdateOptionRate(ctx context.Context, id int64, req models.UpdateOptionRateRequest) (*models.OptionRate, error)
+	DeleteOptionRate(ctx context.Context, id int64) error
+
+	// --- Quote builder + deposit (PRD §3.3.2, TDD §3.4 M3 #3) ---
 	SendQuote(ctx context.Context, requestID int64, req models.SendQuoteRequest) (*models.ItineraryQuote, error)
 	GetQuote(ctx context.Context, requestID int64) (*models.ItineraryQuote, error)
 	PayDeposit(ctx context.Context, userID string, requestID int64, req models.PayDepositRequest) (*models.DepositPaidResponse, error)
@@ -376,6 +382,44 @@ func roundDeposit(totalMinor int64) int64 {
 
 func (s *Service) ListOptionRates(ctx context.Context) ([]models.OptionRate, error) {
 	return s.repo.ListOptionRates(ctx)
+}
+
+// optionKeyPattern is the canonical option_key format (matches the DB CHECK in
+// 000024): lowercase kebab/alphanumeric, starting alphanumeric. Validated in
+// the service for a clear 400 before hitting SQL.
+var optionKeyPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9_-]*$`)
+
+// CreateOptionRate inserts a new rate row (PRD §3.3.2: operator-configured).
+// Validates the option_key regex (the DB CHECK is the backstop). option_key is
+// immutable after create.
+func (s *Service) CreateOptionRate(ctx context.Context, req models.CreateOptionRateRequest) (*models.OptionRate, error) {
+	if !optionKeyPattern.MatchString(req.OptionKey) {
+		return nil, fmt.Errorf("%w: option_key must match ^[a-z0-9][a-z0-9_-]*$", models.ErrInvalidOperation)
+	}
+	return s.repo.CreateOptionRate(ctx, req)
+}
+
+// UpdateOptionRate mutates rate_cny/unit/display_label (option_key is immutable).
+func (s *Service) UpdateOptionRate(ctx context.Context, id int64, req models.UpdateOptionRateRequest) (*models.OptionRate, error) {
+	o, err := s.repo.UpdateOptionRate(ctx, id, req)
+	if err != nil {
+		if errors.Is(err, models.ErrNotFound) {
+			return nil, models.ErrNotFound
+		}
+		return nil, err
+	}
+	return o, nil
+}
+
+// DeleteOptionRate removes a rate row.
+func (s *Service) DeleteOptionRate(ctx context.Context, id int64) error {
+	if err := s.repo.DeleteOptionRate(ctx, id); err != nil {
+		if errors.Is(err, models.ErrNotFound) {
+			return models.ErrNotFound
+		}
+		return err
+	}
+	return nil
 }
 
 // SendQuote prices the planner's line-item selection from option_rates (CNY),

@@ -327,6 +327,15 @@ func SetupRoutes(
 		adminItinRead.Get("/export", itineraryHandler.AdminExport)
 		adminItinRead.Get("/planners", itineraryHandler.AdminListPlanners)
 		adminItinRead.Get("/option-rates", itineraryHandler.AdminListOptionRates)
+		// Option-rate CMS write (PRD §3.3.2): create/update/delete gated to
+		// settings.manage (super_admin) via a route-level middleware. Registered
+		// on adminItinRead (group middleware = itinerary.read) so the effective
+		// gate is settings.manage — the route-level middleware runs after the
+		// group middleware, and super_admin bypasses both. The list GET above
+		// stays planner-readable (itinerary.read only). option_key is immutable.
+		adminItinRead.Post("/option-rates", middleware.RequirePermission(models.PermSettingsManage), itineraryHandler.AdminCreateOptionRate)
+		adminItinRead.Put("/option-rates/:id", middleware.RequirePermission(models.PermSettingsManage), itineraryHandler.AdminUpdateOptionRate)
+		adminItinRead.Delete("/option-rates/:id", middleware.RequirePermission(models.PermSettingsManage), itineraryHandler.AdminDeleteOptionRate)
 		adminItinRead.Get("", itineraryHandler.AdminList)
 		adminItinRead.Get("/:id", itineraryHandler.AdminGet)
 		adminItinRead.Get("/:id/notes", itineraryHandler.AdminListNotes)

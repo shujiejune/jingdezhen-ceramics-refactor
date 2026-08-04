@@ -8,6 +8,7 @@ import (
 	"jingdezhen-ceramics-backend/pkg/utils"
 	"log"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-playground/validator/v10"
@@ -471,6 +472,75 @@ func (h *Handler) AdminListOptionRates(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(models.ErrorResponse{Message: "Failed to list option rates"})
 	}
 	return c.Status(fiber.StatusOK).JSON(rates)
+}
+
+// AdminCreateOptionRate: POST /admin/itineraries/option-rates (settings.manage).
+// option_key is the canonical immutable identifier (lowercase kebab).
+func (h *Handler) AdminCreateOptionRate(c *fiber.Ctx) error {
+	var req models.CreateOptionRateRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(models.ErrorResponse{Message: "Invalid request body"})
+	}
+	if err := h.validate.Struct(req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(models.ErrorResponse{Message: "Validation failed: " + err.Error()})
+	}
+	o, err := h.service.CreateOptionRate(c.Context(), req)
+	if err != nil {
+		return mapOptionRateErr(c, err, "AdminCreateOptionRate")
+	}
+	return c.Status(fiber.StatusCreated).JSON(o)
+}
+
+// AdminUpdateOptionRate: PUT /admin/itineraries/option-rates/:id (settings.manage).
+// Mutates rate_cny/unit/display_label only; option_key is immutable.
+func (h *Handler) AdminUpdateOptionRate(c *fiber.Ctx) error {
+	id, err := strconv.ParseInt(c.Params("id"), 10, 64)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(models.ErrorResponse{Message: "Invalid option rate id"})
+	}
+	var req models.UpdateOptionRateRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(models.ErrorResponse{Message: "Invalid request body"})
+	}
+	if err := h.validate.Struct(req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(models.ErrorResponse{Message: "Validation failed: " + err.Error()})
+	}
+	o, err := h.service.UpdateOptionRate(c.Context(), id, req)
+	if err != nil {
+		return mapOptionRateErr(c, err, "AdminUpdateOptionRate")
+	}
+	return c.Status(fiber.StatusOK).JSON(o)
+}
+
+// AdminDeleteOptionRate: DELETE /admin/itineraries/option-rates/:id (settings.manage).
+func (h *Handler) AdminDeleteOptionRate(c *fiber.Ctx) error {
+	id, err := strconv.ParseInt(c.Params("id"), 10, 64)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(models.ErrorResponse{Message: "Invalid option rate id"})
+	}
+	if err := h.service.DeleteOptionRate(c.Context(), id); err != nil {
+		return mapOptionRateErr(c, err, "AdminDeleteOptionRate")
+	}
+	return c.SendStatus(fiber.StatusNoContent)
+}
+
+// mapOptionRateErr maps service errors for the option-rate CRUD. The UNIQUE
+// violation on create (duplicate option_key) surfaces as a 409.
+func mapOptionRateErr(c *fiber.Ctx, err error, op string) error {
+	switch {
+	case errors.Is(err, models.ErrNotFound):
+		return c.Status(fiber.StatusNotFound).JSON(models.ErrorResponse{Message: "Option rate not found"})
+	case errors.Is(err, models.ErrInvalidOperation):
+		return c.Status(fiber.StatusBadRequest).JSON(models.ErrorResponse{Message: err.Error()})
+	default:
+		// A duplicate option_key surfaces as a pgx unique-violation wrapped error;
+		// detect by the constraint name so the planner/operator gets a clear 409.
+		if strings.Contains(err.Error(), "option_rates_option_key_key") {
+			return c.Status(fiber.StatusConflict).JSON(models.ErrorResponse{Message: "An option rate with that option_key already exists"})
+		}
+		log.Printf("Handler.%s: %v", op, err)
+		return c.Status(fiber.StatusInternalServerError).JSON(models.ErrorResponse{Message: "Failed to save option rate"})
+	}
 }
 
 // AdminSendQuote: POST /admin/itineraries/:id/quote

@@ -231,11 +231,35 @@ type ItineraryReasonRequest struct {
 // OptionRate is one row of the mocked CMS rate table (PRD §3.3.2). The planner
 // picks option_keys + qtys; the service prices each from this table.
 type OptionRate struct {
-	ID           int64  `json:"id" db:"id"`
-	OptionKey    string `json:"option_key" db:"option_key"`
-	RateCNY      int64  `json:"rate_cny" db:"rate_cny"` // fen
-	Unit         string `json:"unit" db:"unit"`         // per_person|per_day|flat
-	DisplayLabel string `json:"display_label" db:"display_label"`
+	ID           int64     `json:"id" db:"id"`
+	OptionKey    string    `json:"option_key" db:"option_key"`
+	RateCNY      int64     `json:"rate_cny" db:"rate_cny"` // fen
+	Unit         string    `json:"unit" db:"unit"`         // per_person|per_day|flat
+	DisplayLabel string    `json:"display_label" db:"display_label"`
+	CreatedAt    time.Time `json:"-" db:"created_at"`  // internal; not in the API response
+	UpdatedAt    time.Time `json:"-" db:"updated_at"`  // internal; not in the API response
+}
+
+// --- Option-rate CMS DTOs (PRD §3.3.2: operator-configured rate table) ---
+
+// CreateOptionRateRequest is the body for POST /admin/itineraries/option-rates.
+// option_key is the canonical immutable identifier (lowercase kebab; the DB
+// CHECK + a service-layer regex guard enforce it). Once created, the key
+// cannot be changed — historical quote snapshots freeze it.
+type CreateOptionRateRequest struct {
+	OptionKey    string `json:"option_key" validate:"required,max=60"`
+	RateCNY      int64  `json:"rate_cny" validate:"required,gte=0"` // fen
+	Unit         string `json:"unit" validate:"required,oneof=per_person per_day flat"`
+	DisplayLabel string `json:"display_label" validate:"omitempty,max=120"`
+}
+
+// UpdateOptionRateRequest is the body for PUT /admin/itineraries/option-rates/:id.
+// option_key is intentionally absent: it's immutable (renames would orphan
+// historical quote snapshots that froze the prior key).
+type UpdateOptionRateRequest struct {
+	RateCNY      int64  `json:"rate_cny" validate:"required,gte=0"` // fen
+	Unit         string `json:"unit" validate:"required,oneof=per_person per_day flat"`
+	DisplayLabel string `json:"display_label" validate:"omitempty,max=120"`
 }
 
 // QuoteStatus is the itinerary_quotes state machine.

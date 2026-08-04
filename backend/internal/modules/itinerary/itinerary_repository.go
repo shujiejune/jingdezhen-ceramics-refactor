@@ -61,6 +61,17 @@ type RepositoryInterface interface {
 	// --- Quote builder + deposit (PRD §3.3.2, TDD §3.4 M3 #3) ---
 	ListOptionRates(ctx context.Context) ([]models.OptionRate, error)
 	GetOptionRatesByKeys(ctx context.Context, keys []string) (map[string]models.OptionRate, error)
+	// CreateOptionRate inserts a new rate row (option_key is immutable). The
+	// service validates the option_key regex before calling.
+	CreateOptionRate(ctx context.Context, req models.CreateOptionRateRequest) (*models.OptionRate, error)
+	// UpdateOptionRate mutates rate_cny/unit/display_label only (option_key is
+	// immutable — historical quote snapshots freeze it). ErrNotFound if missing.
+	UpdateOptionRate(ctx context.Context, id int64, req models.UpdateOptionRateRequest) (*models.OptionRate, error)
+	// DeleteOptionRate removes a rate row. ErrNotFound if missing. PRD doesn't
+	// forbid deleting a key referenced by past quotes (snapshots carry their own
+	// copy), but a re-quote of an old request selecting a deleted key →
+	// ErrInvalidQuote at SendQuote (unknown option_key).
+	DeleteOptionRate(ctx context.Context, id int64) error
 	// CreateQuote inserts OR replaces the active quote for a request (UNIQUE
 	// request_id; re-quote replaces). Returns the new row.
 	CreateQuote(ctx context.Context, q *models.ItineraryQuote) (*models.ItineraryQuote, error)
@@ -589,6 +600,73 @@ func joinStrings(ss []string, sep string) string {
 }
 
 // =============================================================================
+// Option-rate CMS methods (PRD §3.3.2: operator-configured rate table)
+// =============================================================================
+
+// optionRateCols selects all option_rates columns in the OptionRate struct's
+// field order (id, option_key, rate_cny, unit, display_label, created_at,
+// updated_at). Shared by List/Get/Create/Update so the scan order stays
+// consistent.
+const optionRateCols = `
+	id, option_key, rate_cny, unit, display_label, created_at, updated_at `
+
+// scanOptionRate scans one option_rates row into a OptionRate.
+func (r *Repository) scanOptionRate(row pgx.Row) (*models.OptionRate, error) {
+	var o models.OptionRate
+	if err := row.Scan(&o.ID, &o.OptionKey, &o.RateCNY, &o.Unit, &o.DisplayLabel, &o.CreatedAt, &o.UpdatedAt); err != nil {
+		return nil, err
+	}
+	return &o, nil
+}
+
+// CreateOptionRate inserts a new rate row. The service validates the option_key
+// regex; the DB UNIQUE + CHECK constraints are the backstop.
+func (r *Repository) CreateOptionRate(ctx context.Context, req models.CreateOptionRateRequest) (*models.OptionRate, error) {
+	o, err := r.scanOptionRate(r.db.QueryRow(ctx, `
+		INSERT INTO option_rates (option_key, rate_cny, unit, display_label)
+		VALUES ($1, $2, $3, $4)
+		RETURNING `+optionRateCols,
+		req.OptionKey, req.RateCNY, req.Unit, req.DisplayLabel))
+	if err != nil {
+		return nil, fmt.Errorf("itinerary.CreateOptionRate: %w", err)
+	}
+	return o, nil
+}
+
+// UpdateOptionRate mutates rate_cny/unit/display_label only. option_key is
+// immutable (excluded from SET) — a rename would orphan historical quote
+// snapshots that froze the prior key.
+func (r *Repository) UpdateOptionRate(ctx context.Context, id int64, req models.UpdateOptionRateRequest) (*models.OptionRate, error) {
+	o, err := r.scanOptionRate(r.db.QueryRow(ctx, `
+		UPDATE option_rates
+		SET rate_cny = $2, unit = $3, display_label = $4, updated_at = NOW()
+		WHERE id = $1
+		RETURNING `+optionRateCols,
+		id, req.RateCNY, req.Unit, req.DisplayLabel))
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, models.ErrNotFound
+		}
+		return nil, fmt.Errorf("itinerary.UpdateOptionRate: %w", err)
+	}
+	return o, nil
+}
+
+// DeleteOptionRate removes a rate row. Past quote snapshots carry their own
+// copy of the rate/label, so deleting a key doesn't affect them; a re-quote
+// selecting a deleted key fails at SendQuote (unknown option_key).
+func (r *Repository) DeleteOptionRate(ctx context.Context, id int64) error {
+	cmd, err := r.db.Exec(ctx, `DELETE FROM option_rates WHERE id = $1`, id)
+	if err != nil {
+		return fmt.Errorf("itinerary.DeleteOptionRate: %w", err)
+	}
+	if cmd.RowsAffected() == 0 {
+		return models.ErrNotFound
+	}
+	return nil
+}
+
+// =============================================================================
 // Quote builder + deposit repository methods (PRD §3.3.2, TDD §3.4 M3 #3)
 // =============================================================================
 
@@ -613,7 +691,7 @@ func (r *Repository) scanQuote(row pgx.Row) (*models.ItineraryQuote, error) {
 
 func (r *Repository) ListOptionRates(ctx context.Context) ([]models.OptionRate, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT id, option_key, rate_cny, unit, display_label
+		SELECT id, option_key, rate_cny, unit, display_label, created_at, updated_at
 		FROM option_rates ORDER BY option_key`)
 	if err != nil {
 		return nil, fmt.Errorf("itinerary.ListOptionRates: %w", err)
@@ -622,7 +700,7 @@ func (r *Repository) ListOptionRates(ctx context.Context) ([]models.OptionRate, 
 	out := []models.OptionRate{}
 	for rows.Next() {
 		var o models.OptionRate
-		if err := rows.Scan(&o.ID, &o.OptionKey, &o.RateCNY, &o.Unit, &o.DisplayLabel); err != nil {
+		if err := rows.Scan(&o.ID, &o.OptionKey, &o.RateCNY, &o.Unit, &o.DisplayLabel, &o.CreatedAt, &o.UpdatedAt); err != nil {
 			return nil, fmt.Errorf("itinerary.ListOptionRates.Scan: %w", err)
 		}
 		out = append(out, o)
@@ -635,7 +713,7 @@ func (r *Repository) GetOptionRatesByKeys(ctx context.Context, keys []string) (m
 		return map[string]models.OptionRate{}, nil
 	}
 	rows, err := r.db.Query(ctx, `
-		SELECT id, option_key, rate_cny, unit, display_label
+		SELECT id, option_key, rate_cny, unit, display_label, created_at, updated_at
 		FROM option_rates WHERE option_key = ANY($1)`, keys)
 	if err != nil {
 		return nil, fmt.Errorf("itinerary.GetOptionRatesByKeys: %w", err)
@@ -644,7 +722,7 @@ func (r *Repository) GetOptionRatesByKeys(ctx context.Context, keys []string) (m
 	out := map[string]models.OptionRate{}
 	for rows.Next() {
 		var o models.OptionRate
-		if err := rows.Scan(&o.ID, &o.OptionKey, &o.RateCNY, &o.Unit, &o.DisplayLabel); err != nil {
+		if err := rows.Scan(&o.ID, &o.OptionKey, &o.RateCNY, &o.Unit, &o.DisplayLabel, &o.CreatedAt, &o.UpdatedAt); err != nil {
 			return nil, fmt.Errorf("itinerary.GetOptionRatesByKeys.Scan: %w", err)
 		}
 		out[o.OptionKey] = o
