@@ -12,7 +12,7 @@ INSERT INTO itinerary_requests (
     id, user_id, status, arrival_date, duration_days, flexible, adults, children,
     interests, budget, pace, services, contact, notes, locale, sla_deadline, submitted_at
 ) VALUES
-    (1, '00000000-0000-0000-0000-000000000002', 'pending',
+    (1, '00000000-0000-0000-0000-000000000002', 'processing',
      '2026-09-15', 5, FALSE, 2, 0,
      '["pottery-workshop","kiln-heritage-sites","local-food"]'::jsonb,
      '{"currency":"USD","min_minor":100000,"max_minor":200000}'::jsonb,
@@ -57,6 +57,38 @@ WHERE NOT EXISTS (SELECT 1 FROM crm_notes WHERE request_id = 1);
 
 SELECT setval(pg_get_serial_sequence('itinerary_requests', 'id'),
               COALESCE((SELECT MAX(id) FROM itinerary_requests), 0) + 1, false);
+
+-- A 'quoted' request (#5) with a pre-built quote, so the customer pay-deposit
+-- flow is exercisable live without the planner first sending a quote. The
+-- quote is built from option_rates: 2× hotel-comfort + 5× base-itinerary
+-- (group=2, days=5). Idempotent upserts.
+INSERT INTO itinerary_requests (
+    id, user_id, status, arrival_date, duration_days, flexible, adults, children,
+    interests, budget, pace, services, contact, notes, locale, sla_deadline, submitted_at
+) VALUES
+    (5, '00000000-0000-0000-0000-000000000002', 'quoted',
+     '2026-11-20', 5, FALSE, 2, 0,
+     '["pottery-workshop"]'::jsonb,
+     '{"currency":"USD","min_minor":150000,"max_minor":300000}'::jsonb,
+     'balanced',
+     '{"guide":"english","hotel":true,"hotel_level":"comfort","pickup":true,"experience":false,"dietary_accessibility":""}'::jsonb,
+     '{"channel":"email","notes":""}'::jsonb,
+     'Honeymoon trip',
+     'en-US', NOW() + INTERVAL '24 hours', NOW() - INTERVAL '1 hour')
+ON CONFLICT (id) DO UPDATE SET
+    status = EXCLUDED.status, arrival_date = EXCLUDED.arrival_date,
+    duration_days = EXCLUDED.duration_days, adults = EXCLUDED.adults,
+    services = EXCLUDED.services, notes = EXCLUDED.notes;
+
+-- The quote for request #5: 2× hotel-comfort (¥400/person × 2 = ¥800 = 80000 fen)
+-- + 5× base-itinerary (¥10/day × 5 = ¥50 = 5000 fen) = ¥850 total = 85000 fen.
+-- Converted to USD at the seeded rate (~7.098 → ~$119.74 → 11974 minor; rounded
+-- per FX rule). deposit = 30% → ~3593 minor. We store a fixed presentment
+-- snapshot here (the live SendQuote would compute it); these are illustrative.
+INSERT INTO itinerary_quotes (request_id, line_items, total_cny, currency, total_minor, deposit_minor, fx_rate_used, status, sent_at)
+SELECT 5, '[{"option_key":"hotel-comfort","qty":2,"rate_cny":40000,"unit":"per_person","label":"Comfort hotel (per night)","line_cny":80000},{"option_key":"base-itinerary","qty":5,"rate_cny":1000,"unit":"per_day","label":"Base itinerary planning","line_cny":5000}]'::jsonb,
+       85000, 'USD', 11974, 3593, '7.09832850', 'sent', NOW()
+WHERE NOT EXISTS (SELECT 1 FROM itinerary_quotes WHERE request_id = 5);
 
 -- One in-progress draft for the customer (step 2 of 4).
 INSERT INTO itinerary_drafts (user_id, form_state, step) VALUES

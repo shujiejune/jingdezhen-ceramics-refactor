@@ -119,6 +119,14 @@ func (p paymentEnqueuer) EnqueuePaymentFinalize(ctx context.Context, orderID int
 	})
 }
 
+// EnqueueItineraryDepositFinalize enqueues the deposit-finalize variant (the
+// webhook/mock-seam drives itinerary quote sent→deposit_paid via the worker).
+func (p paymentEnqueuer) EnqueueItineraryDepositFinalize(ctx context.Context, quoteID int64, success bool, gateway, gatewayRef string) error {
+	return p.c.EnqueuePaymentFinalize(ctx, jobs.PaymentFinalizePayload{
+		ItineraryQuoteID: quoteID, Success: success, Gateway: gateway, GatewayRef: gatewayRef,
+	})
+}
+
 type orderEmailEnqueuer struct{ c *jobs.Client }
 
 func (e orderEmailEnqueuer) EnqueueEmailSend(ctx context.Context, to, subject, plainText, html string) error {
@@ -400,11 +408,17 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 	itineraryRepo := itinerary.NewRepository(dbPool)
 	itineraryService := itinerary.NewService(
 		itineraryRepo,
-		orderEmailEnqueuer{jobClient},    // EmailEnqueuer (24h-SLA ack)
-		userService,                       // UserFetcher (customer email)
+		orderEmailEnqueuer{jobClient},     // EmailEnqueuer (24h-SLA ack + quote-ready)
+		userService,                        // UserDirectory (customer email + ListStaffByRole)
 		itinConsentRecorder{consentService}, // ConsentRecorder (GDPR audit)
+		fxService,                          // CheckoutFX (quote CNY→presentment)
+		cfg.PaymentsMode,                   // mock|sandbox|live
 	)
 	itineraryHandler := itinerary.NewHandler(itineraryService)
+	// Quote-payment setters (post-construction, break the itinerary↔payment cycle).
+	itineraryService.SetQuotePaymentIntenter(paymentService)
+	itineraryService.SetQuoteRefunder(paymentService)
+	itineraryService.SetDepositFinalizeEnqueuer(paymentEnqueuer{jobClient}) // mock-mode auto-finalize seam
 
 	api.SetupRoutes(app, cfg.JWTSecret,
 		wsHandler, userHandler, notifHandler,
@@ -487,6 +501,14 @@ func runWorker(rootCtx context.Context, cfg config.Config) {
 	emailer := email.NewBrevoSender(cfg.BrevoAPIKey, cfg.BrevoSenderEmail, cfg.BrevoSenderName)
 
 	jobServer := jobs.NewServer(redisAddr)
+	// Worker-side itinerary service for deposit-finalize (MarkDepositPaid) + SLA
+	// breach scan. Reuses the same fxService + a fresh repo; no email/user deps
+	// needed in the worker (MarkDepositPaid only touches the repo; SLA email uses
+	// the planner list from the user repo below).
+	wItinRepo := itinerary.NewRepository(dbPool)
+	wItineraryService := itinerary.NewService(wItinRepo, nil, nil, nil, fxService, cfg.PaymentsMode)
+	wJobClient := jobs.NewClient(redisAddr) // worker-side enqueue (SLA email)
+	wItineraryService.SetDepositFinalizeEnqueuer(paymentEnqueuer{wJobClient})
 	jobServer.EmailSend = func(ctx context.Context, p jobs.EmailSendPayload) error {
 		return emailer.SendEmail(ctx, p.To, p.Subject, p.PlainText, p.HTML)
 	}
@@ -496,8 +518,23 @@ func runWorker(rootCtx context.Context, cfg config.Config) {
 	// webhook enqueues it in live mode, #6.)
 	jobServer.PaymentFinalize = func(ctx context.Context, p jobs.PaymentFinalizePayload) error {
 		if !p.Success {
-			log.Printf("worker.PaymentFinalize: order=%d reported failure (no-op for now)", p.OrderID)
+			log.Printf("worker.PaymentFinalize: order=%d quote=%d reported failure (no-op for now)", p.OrderID, p.ItineraryQuoteID)
 			return nil // cancel-on-failure lands with #6
+		}
+		// Dispatch by entity: an order payment → orderService.MarkPaid; an
+		// itinerary deposit → itineraryService.MarkDepositPaid. The webhook
+		// path sets exactly one of OrderID / ItineraryQuoteID.
+		if p.ItineraryQuoteID != 0 {
+			// Mock-mode seam: no webhook fires, so advance the pending payment
+			// row to 'succeeded' here (the live path's webhook does it via
+			// UpsertWebhook). Best-effort: a failure is logged, not fatal.
+			if p.GatewayRef != "" {
+				wPayRepo := payment.NewRepository(dbPool)
+				if err := wPayRepo.MarkSucceededByGatewayRef(ctx, p.GatewayRef); err != nil {
+					log.Printf("worker.PaymentFinalize.MarkSucceeded(quote=%d ref=%s): %v", p.ItineraryQuoteID, p.GatewayRef, err)
+				}
+			}
+			return wItineraryService.MarkDepositPaid(ctx, p.ItineraryQuoteID)
 		}
 		return orderService.MarkPaid(ctx, p.OrderID)
 	}
@@ -513,7 +550,8 @@ func runWorker(rootCtx context.Context, cfg config.Config) {
 	// Worker has no WS hub (only serve mode serves WebSockets); pass nil — the
 	// notification service is nil-safe (creates the row, skips the WS push).
 	wNotifService := notification.NewService(wNotifRepo, wUserRepo, nil)
-	wJobClient := jobs.NewClient(redisAddr) // for enqueuing low-stock emails
+	// wJobClient declared above (with wItineraryService). Same client for
+	// low-stock emails + SLA emails.
 	// The worker's MarkPaid enqueues stock:check to itself (asynq supports
 	// enqueue-from-worker). Same client as the emails.
 	orderService.SetStockCheckEnqueuer(orderStockCheckEnqueuer{wJobClient})
@@ -557,7 +595,7 @@ func runWorker(rootCtx context.Context, cfg config.Config) {
 	// processing request not yet notified, CAS-set sla_notified_at (exactly-once:
 	// only the winner notifies), then push a dashboard notification + email to
 	// every travel_planner. Best-effort: a single failure is logged + skipped.
-	wItinRepo := itinerary.NewRepository(dbPool)
+	// wItinRepo declared above (with wItineraryService).
 	jobServer.SLACheck = func(ctx context.Context) error {
 		breached, err := wItinRepo.ListBreached(ctx)
 		if err != nil {

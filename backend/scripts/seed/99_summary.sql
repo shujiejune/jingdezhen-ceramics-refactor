@@ -22,4 +22,6 @@ UNION ALL SELECT 'media_assets',          count(*) FROM media_assets
 UNION ALL SELECT 'product_media',          count(*) FROM product_media
 UNION ALL SELECT 'itinerary_requests',      count(*) FROM itinerary_requests
 UNION ALL SELECT 'itinerary_drafts',        count(*) FROM itinerary_drafts
-UNION ALL SELECT 'crm_notes',               count(*) FROM crm_notes;
+UNION ALL SELECT 'crm_notes',               count(*) FROM crm_notes
+UNION ALL SELECT 'option_rates',           count(*) FROM option_rates
+UNION ALL SELECT 'itinerary_quotes',       count(*) FROM itinerary_quotes;

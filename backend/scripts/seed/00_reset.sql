@@ -14,6 +14,11 @@
 BEGIN;
 
 TRUNCATE
+    crm_notes,
+    itinerary_quotes,
+    itinerary_requests,
+    itinerary_drafts,
+    option_rates,
     wishlists,
     skus,
     product_translations,

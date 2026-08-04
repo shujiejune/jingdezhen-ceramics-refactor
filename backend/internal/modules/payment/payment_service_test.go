@@ -48,6 +48,9 @@ func (f *fakeRepo) UpsertWebhook(_ context.Context, p *models.Payment) (bool, er
 }
 func (f *fakeRepo) MarkStatus(context.Context, int64, models.PaymentStatus, models.PaymentStatus) error { return nil }
 func (f *fakeRepo) SetRefunded(context.Context, int64) error { return nil }
+func (f *fakeRepo) GetByGatewayRef(context.Context, string) (*models.Payment, error) { return nil, models.ErrNotFound }
+func (f *fakeRepo) MarkSucceededByGatewayRef(context.Context, string) error { return nil }
+func (f *fakeRepo) GetSucceededByItineraryQuoteID(context.Context, int64) (*models.Payment, error) { return nil, models.ErrNotFound }
 
 // fakeEnqueuer records finalize jobs so the test asserts at-most-once enqueue.
 type fakeEnqueuer struct {
@@ -58,6 +61,12 @@ type fakeEnqueuer struct {
 func (e *fakeEnqueuer) EnqueuePaymentFinalize(_ context.Context, orderID int64, _ bool, _, _ string) error {
 	e.mu.Lock(); defer e.mu.Unlock()
 	e.calls = append(e.calls, orderID)
+	return nil
+}
+
+func (e *fakeEnqueuer) EnqueueItineraryDepositFinalize(_ context.Context, quoteID int64, _ bool, _, _ string) error {
+	e.mu.Lock(); defer e.mu.Unlock()
+	e.calls = append(e.calls, quoteID)
 	return nil
 }
 

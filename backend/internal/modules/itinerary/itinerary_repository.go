@@ -57,6 +57,20 @@ type RepositoryInterface interface {
 	// true iff this call won the race (the caller should notify); false means a
 	// concurrent cron already flagged it (skip the notification).
 	SetSLANotified(ctx context.Context, id int64) (bool, error)
+
+	// --- Quote builder + deposit (PRD §3.3.2, TDD §3.4 M3 #3) ---
+	ListOptionRates(ctx context.Context) ([]models.OptionRate, error)
+	GetOptionRatesByKeys(ctx context.Context, keys []string) (map[string]models.OptionRate, error)
+	// CreateQuote inserts OR replaces the active quote for a request (UNIQUE
+	// request_id; re-quote replaces). Returns the new row.
+	CreateQuote(ctx context.Context, q *models.ItineraryQuote) (*models.ItineraryQuote, error)
+	GetQuoteByRequestID(ctx context.Context, requestID int64) (*models.ItineraryQuote, error)
+	GetQuoteByID(ctx context.Context, quoteID int64) (*models.ItineraryQuote, error)
+	// MarkQuoteDepositPaid CAS-moves the quote sent→deposit_paid|fully_paid +
+	// sets paid_at. Returns true iff this call won (idempotent on replay).
+	MarkQuoteDepositPaid(ctx context.Context, quoteID int64, payFull bool) (bool, error)
+	// CancelQuote CAS-moves {sent,deposit_paid,fully_paid}→cancelled.
+	CancelQuote(ctx context.Context, quoteID int64) error
 }
 
 type Repository struct {
@@ -569,4 +583,164 @@ func joinStrings(ss []string, sep string) string {
 		s += sep + x
 	}
 	return s
+}
+
+// =============================================================================
+// Quote builder + deposit repository methods (PRD §3.3.2, TDD §3.4 M3 #3)
+// =============================================================================
+
+// quoteCols selects all itinerary_quotes columns. fx_rate_used is NUMERIC;
+// scanned into a string to preserve precision (matches orders' fx_rate_used
+// handling).
+const quoteCols = `
+	id, request_id, line_items, total_cny, currency, total_minor, deposit_minor,
+	fx_rate_used, status, sent_at, paid_at, created_at, updated_at `
+
+func (r *Repository) scanQuote(row pgx.Row) (*models.ItineraryQuote, error) {
+	var q models.ItineraryQuote
+	if err := row.Scan(
+		&q.ID, &q.RequestID, &q.LineItems, &q.TotalCNY, &q.Currency,
+		&q.TotalMinor, &q.DepositMinor, &q.FxRateUsed, &q.Status,
+		&q.SentAt, &q.PaidAt, &q.CreatedAt, &q.UpdatedAt,
+	); err != nil {
+		return nil, err
+	}
+	return &q, nil
+}
+
+func (r *Repository) ListOptionRates(ctx context.Context) ([]models.OptionRate, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT id, option_key, rate_cny, unit, display_label
+		FROM option_rates ORDER BY option_key`)
+	if err != nil {
+		return nil, fmt.Errorf("itinerary.ListOptionRates: %w", err)
+	}
+	defer rows.Close()
+	out := []models.OptionRate{}
+	for rows.Next() {
+		var o models.OptionRate
+		if err := rows.Scan(&o.ID, &o.OptionKey, &o.RateCNY, &o.Unit, &o.DisplayLabel); err != nil {
+			return nil, fmt.Errorf("itinerary.ListOptionRates.Scan: %w", err)
+		}
+		out = append(out, o)
+	}
+	return out, rows.Err()
+}
+
+func (r *Repository) GetOptionRatesByKeys(ctx context.Context, keys []string) (map[string]models.OptionRate, error) {
+	if len(keys) == 0 {
+		return map[string]models.OptionRate{}, nil
+	}
+	rows, err := r.db.Query(ctx, `
+		SELECT id, option_key, rate_cny, unit, display_label
+		FROM option_rates WHERE option_key = ANY($1)`, keys)
+	if err != nil {
+		return nil, fmt.Errorf("itinerary.GetOptionRatesByKeys: %w", err)
+	}
+	defer rows.Close()
+	out := map[string]models.OptionRate{}
+	for rows.Next() {
+		var o models.OptionRate
+		if err := rows.Scan(&o.ID, &o.OptionKey, &o.RateCNY, &o.Unit, &o.DisplayLabel); err != nil {
+			return nil, fmt.Errorf("itinerary.GetOptionRatesByKeys.Scan: %w", err)
+		}
+		out[o.OptionKey] = o
+	}
+	return out, rows.Err()
+}
+
+// CreateQuote inserts OR replaces the active quote (UNIQUE request_id; ON
+// CONFLICT DO UPDATE so a re-quote replaces the prior quote's totals). The
+// status resets to 'sent' + sent_at refreshed (a re-quote voids any prior
+// 'sent'-stage payment intent, which the gateway side handles via the
+// idempotency_key; the payment row from a prior sent quote is left in place —
+// a succeeded deposit blocks the re-quote in practice).
+func (r *Repository) CreateQuote(ctx context.Context, q *models.ItineraryQuote) (*models.ItineraryQuote, error) {
+	out, err := r.scanQuote(r.db.QueryRow(ctx, `
+		INSERT INTO itinerary_quotes (request_id, line_items, total_cny, currency,
+		                              total_minor, deposit_minor, fx_rate_used, status, sent_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, 'sent', NOW())
+		ON CONFLICT (request_id) DO UPDATE SET
+			line_items    = EXCLUDED.line_items,
+			total_cny     = EXCLUDED.total_cny,
+			currency      = EXCLUDED.currency,
+			total_minor   = EXCLUDED.total_minor,
+			deposit_minor = EXCLUDED.deposit_minor,
+			fx_rate_used  = EXCLUDED.fx_rate_used,
+			status        = 'sent',
+			sent_at       = NOW(),
+			paid_at       = NULL,
+			updated_at    = NOW()
+		RETURNING `+quoteCols,
+		q.RequestID, q.LineItems, q.TotalCNY, q.Currency,
+		q.TotalMinor, q.DepositMinor, q.FxRateUsed, // *string → numeric NULL-safe? see note
+	))
+	if err != nil {
+		return nil, fmt.Errorf("itinerary.CreateQuote: %w", err)
+	}
+	return out, nil
+}
+
+func (r *Repository) GetQuoteByRequestID(ctx context.Context, requestID int64) (*models.ItineraryQuote, error) {
+	q, err := r.scanQuote(r.db.QueryRow(ctx,
+		`SELECT`+quoteCols+`FROM itinerary_quotes WHERE request_id = $1`, requestID))
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, models.ErrNotFound
+		}
+		return nil, fmt.Errorf("itinerary.GetQuoteByRequestID: %w", err)
+	}
+	return q, nil
+}
+
+func (r *Repository) GetQuoteByID(ctx context.Context, quoteID int64) (*models.ItineraryQuote, error) {
+	q, err := r.scanQuote(r.db.QueryRow(ctx,
+		`SELECT`+quoteCols+`FROM itinerary_quotes WHERE id = $1`, quoteID))
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, models.ErrNotFound
+		}
+		return nil, fmt.Errorf("itinerary.GetQuoteByID: %w", err)
+	}
+	return q, nil
+}
+
+// MarkQuoteDepositPaid CAS-moves the quote sent→deposit_paid (or sent→
+// fully_paid if payFull) and sets paid_at. Returns true iff this call won the
+// CAS (a replayed webhook returns false → idempotent no-op for the caller).
+func (r *Repository) MarkQuoteDepositPaid(ctx context.Context, quoteID int64, payFull bool) (bool, error) {
+	to := "deposit_paid"
+	if payFull {
+		to = "fully_paid"
+	}
+	cmd, err := r.db.Exec(ctx, `
+		UPDATE itinerary_quotes
+		SET status = $2, paid_at = NOW(), updated_at = NOW()
+		WHERE id = $1 AND status = 'sent'`, quoteID, to)
+	if err != nil {
+		return false, fmt.Errorf("itinerary.MarkQuoteDepositPaid: %w", err)
+	}
+	return cmd.RowsAffected() == 1, nil
+}
+
+// CancelQuote CAS-moves {sent,deposit_paid,fully_paid}→cancelled (planner-
+// initiated refund flow).
+func (r *Repository) CancelQuote(ctx context.Context, quoteID int64) error {
+	cmd, err := r.db.Exec(ctx, `
+		UPDATE itinerary_quotes SET status = 'cancelled', updated_at = NOW()
+		WHERE id = $1 AND status IN ('sent','deposit_paid','fully_paid')`, quoteID)
+	if err != nil {
+		return fmt.Errorf("itinerary.CancelQuote: %w", err)
+	}
+	if cmd.RowsAffected() == 0 {
+		var exists bool
+		if err := r.db.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM itinerary_quotes WHERE id=$1)`, quoteID).Scan(&exists); err != nil {
+			return fmt.Errorf("itinerary.CancelQuote.probe: %w", err)
+		}
+		if !exists {
+			return models.ErrNotFound
+		}
+		return models.ErrConflict
+	}
+	return nil
 }

@@ -236,7 +236,9 @@ func SetupRoutes(
 		checkoutGroup.Post("/itineraries", itineraryHandler.Submit)
 		checkoutGroup.Get("/itineraries", itineraryHandler.ListMine)
 		checkoutGroup.Get("/itineraries/:id", itineraryHandler.GetMine)
+		checkoutGroup.Get("/itineraries/:id/quote", itineraryHandler.GetQuote)
 		checkoutGroup.Post("/itineraries/:id/cancel", itineraryHandler.CancelMine)
+		checkoutGroup.Post("/itineraries/:id/pay-deposit", itineraryHandler.PayDeposit)
 	}
 
 	/* --- Engage (Destinations & Local Lifestyle, public) --- */
@@ -313,9 +315,11 @@ func SetupRoutes(
 		// param, but explicit order avoids ambiguity in the route table).
 		adminItinRead.Get("/export", itineraryHandler.AdminExport)
 		adminItinRead.Get("/planners", itineraryHandler.AdminListPlanners)
+		adminItinRead.Get("/option-rates", itineraryHandler.AdminListOptionRates)
 		adminItinRead.Get("", itineraryHandler.AdminList)
 		adminItinRead.Get("/:id", itineraryHandler.AdminGet)
 		adminItinRead.Get("/:id/notes", itineraryHandler.AdminListNotes)
+		adminItinRead.Get("/:id/quote", itineraryHandler.AdminGetQuote)
 
 		adminItinWrite := adminGroup.Group("/itineraries")
 		adminItinWrite.Use(middleware.RequirePermission(models.PermItineraryWrite))
@@ -324,6 +328,9 @@ func SetupRoutes(
 		adminItinWrite.Post("/:id/cancel", itineraryHandler.AdminCancel)
 		adminItinWrite.Post("/:id/assign", itineraryHandler.AdminAssign)
 		adminItinWrite.Post("/:id/notes", itineraryHandler.AdminAddNote)
+		adminItinWrite.Post("/:id/quote", itineraryHandler.AdminSendQuote)
+		adminItinWrite.Post("/:id/confirm", itineraryHandler.AdminConfirm)
+		adminItinWrite.Post("/:id/refund-deposit", itineraryHandler.AdminRefundDeposit)
 		// Staff account & role management (Super Admin only in v1).
 		adminUsers := adminGroup.Group("/users")
 		adminUsers.Use(middleware.RequirePermission(models.PermUsersManage))

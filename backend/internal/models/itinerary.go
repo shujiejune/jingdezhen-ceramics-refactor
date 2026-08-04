@@ -212,3 +212,104 @@ type ItineraryNoteRequest struct {
 type ItineraryReasonRequest struct {
 	Reason string `json:"reason,omitempty" validate:"omitempty,max=500"`
 }
+
+// =============================================================================
+// Quote builder + deposit payment (PRD §3.3.2, TDD §3.4 M3 #3)
+//
+// A planner builds a quote from the mocked option_rates CMS table (CNY line
+// items → presentment via the FX pipeline + 30% deposit). The customer pays
+// the deposit through the SAME payment stack as e-commerce (TDD §3.4: "Itinerary
+// deposits reuse payments with order_id NULL + itinerary_quote_id"). The quote
+// lifecycle: sent →(deposit webhook)→ deposit_paid|fully_paid →(planner refund)→
+// cancelled. The request lifecycle rides along: processing→quoted→deposit_paid
+// →confirmed (or cancelled).
+//
+// Money is BIGINT minor units (TDD §7). Line items are priced in CNY; the
+// presentment total + deposit are FX-snapshotted at send time (like orders).
+// =============================================================================
+
+// OptionRate is one row of the mocked CMS rate table (PRD §3.3.2). The planner
+// picks option_keys + qtys; the service prices each from this table.
+type OptionRate struct {
+	ID           int64  `json:"id" db:"id"`
+	OptionKey    string `json:"option_key" db:"option_key"`
+	RateCNY      int64  `json:"rate_cny" db:"rate_cny"` // fen
+	Unit         string `json:"unit" db:"unit"`         // per_person|per_day|flat
+	DisplayLabel string `json:"display_label" db:"display_label"`
+}
+
+// QuoteStatus is the itinerary_quotes state machine.
+type QuoteStatus string
+
+const (
+	QuoteSent         QuoteStatus = "sent"
+	QuoteDepositPaid  QuoteStatus = "deposit_paid"
+	QuoteFullyPaid    QuoteStatus = "fully_paid"
+	QuoteCancelled    QuoteStatus = "cancelled"
+)
+
+// ItineraryQuote is one active quote for a request (UNIQUE request_id; a
+// re-quote replaces). Carries the immutable CNY line_items + the FX-snapshotted
+// presentment total + deposit.
+type ItineraryQuote struct {
+	ID           int64           `json:"id" db:"id"`
+	RequestID    int64           `json:"request_id" db:"request_id"`
+	LineItems    json.RawMessage `json:"line_items" db:"line_items"` // []QuoteLineItem
+	TotalCNY     int64           `json:"total_cny" db:"total_cny"`
+	Currency     string          `json:"currency" db:"currency"`
+	TotalMinor   int64           `json:"total_minor" db:"total_minor"`
+	DepositMinor int64           `json:"deposit_minor" db:"deposit_minor"`
+	FxRateUsed   *string         `json:"fx_rate_used,omitempty" db:"fx_rate_used"` // rendered from numeric
+	Status       QuoteStatus     `json:"status" db:"status"`
+	SentAt       time.Time       `json:"sent_at" db:"sent_at"`
+	PaidAt       *time.Time      `json:"paid_at,omitempty" db:"paid_at"`
+	CreatedAt    time.Time       `json:"created_at" db:"created_at"`
+	UpdatedAt    time.Time       `json:"updated_at" db:"updated_at"`
+}
+
+// QuoteLineItem is one priced line of a quote (stored in itinerary_quotes.
+// line_items JSONB). The planner supplies OptionKey + Qty; the service fills
+// RateCNY/Unit/Label/LineCNY from option_rates.
+type QuoteLineItem struct {
+	OptionKey string `json:"option_key"` // canonical key (matches option_rates.option_key)
+	Qty       int    `json:"qty"`        // per_person × (adults+children), per_day × duration_days, flat × 1
+	RateCNY   int64  `json:"rate_cny"`   // fen (snapshot from option_rates at send time)
+	Unit      string `json:"unit"`       // per_person|per_day|flat
+	Label     string `json:"label"`      // display_label snapshot
+	LineCNY   int64  `json:"line_cny"`   // rate_cny × qty (fen)
+}
+
+// --- Quote request DTOs ---
+
+// QuoteLineItemInput is the planner's selection for one line (option_key + qty).
+type QuoteLineItemInput struct {
+	OptionKey string `json:"option_key" validate:"required"`
+	Qty       int    `json:"qty" validate:"required,min=1"`
+}
+
+// SendQuoteRequest is the body for POST /admin/itineraries/:id/quote. The
+// planner picks option_keys + qtys + the presentment currency. PayFull=true
+// requests full payment upfront (PRD §3.3.2: "deposit or full amount").
+type SendQuoteRequest struct {
+	LineItems []QuoteLineItemInput `json:"line_items" validate:"required,min=1,dive"`
+	Currency  string               `json:"currency" validate:"required,oneof=USD EUR GBP"`
+	PayFull   bool                 `json:"pay_full"` // false → 30% deposit; true → full amount
+}
+
+// PayDepositRequest is the body for POST /itineraries/:id/pay-deposit (customer).
+// PayFull=true pays the full quoted amount (matches the quote's pay_full flag).
+type PayDepositRequest struct {
+	Gateway string `json:"gateway" validate:"required,oneof=airwallex paypal mock"`
+}
+
+// DepositPaidResponse is the customer-facing result of pay-deposit: the gateway
+// hosted checkout URL (empty in mock mode, which auto-finalizes).
+type DepositPaidResponse struct {
+	QuoteID   int64  `json:"quote_id"`
+	HostedURL string `json:"hosted_url,omitempty"`
+}
+
+// RefundDepositRequest is the optional body for POST /admin/itineraries/:id/refund-deposit.
+type RefundDepositRequest struct {
+	Reason string `json:"reason,omitempty" validate:"omitempty,max=500"`
+}

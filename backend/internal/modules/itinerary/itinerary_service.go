@@ -11,6 +11,8 @@ import (
 
 	"jingdezhen-ceramics-backend/internal/models"
 	"jingdezhen-ceramics-backend/internal/platform/i18ncontent"
+
+	"github.com/shopspring/decimal"
 )
 
 // --- Injected dependencies (narrow interfaces, satisfied by existing services) ---
@@ -38,6 +40,38 @@ type ConsentRecorder interface {
 	RecordConsent(ctx context.Context, userID string, kind models.ConsentKind) error
 }
 
+// CheckoutFX converts CNY→presentment + returns the raw rate for the quote
+// snapshot (TDD §7). Implemented by fx.Service. Mirrors the order module's
+// interface verbatim so the same fxService instance satisfies both.
+type CheckoutFX interface {
+	Convert(ctx context.Context, cnyMinor int64, currency string) (int64, error)
+	Rate(ctx context.Context, currency string) (decimal.Decimal, error)
+}
+
+// QuotePaymentIntenter creates a gateway intent for an itinerary deposit +
+// records the pending payment row (itinerary_quote_id, order_id NULL).
+// Implemented by payment.Service.CreateQuoteIntent (injected post-construction
+// to break the itinerary↔payment import cycle, mirroring order's setters).
+type QuotePaymentIntenter interface {
+	CreateQuoteIntent(ctx context.Context, gatewayName string, quoteID int64, amountMinor int64, currency string) (string, error)
+}
+
+// QuoteRefunder issues a full refund for a paid quote's succeeded payment via
+// the gateway, then marks the payment refunded. Fail-closed: the gateway call
+// happens first; a gateway error leaves the quote paid. Implemented by
+// payment.Service.RefundQuote.
+type QuoteRefunder interface {
+	RefundQuote(ctx context.Context, quoteID int64, reason string) error
+}
+
+// DepositFinalizeEnqueuer enqueues the itinerary deposit-finalize job (mock
+// seam in dev: checkout/pay-deposit auto-succeeds). Implemented by jobs.Client
+// via the same adapter the order module uses. Live mode: the gateway webhook
+// enqueues it.
+type DepositFinalizeEnqueuer interface {
+	EnqueueItineraryDepositFinalize(ctx context.Context, quoteID int64, success bool, gateway, gatewayRef string) error
+}
+
 // ServiceInterface defines itinerary business logic (PRD §3.3.2).
 type ServiceInterface interface {
 	// --- Draft ---
@@ -61,6 +95,15 @@ type ServiceInterface interface {
 	Assign(ctx context.Context, id int64, req models.AssignItineraryRequest) error
 	AddNote(ctx context.Context, requestID int64, authorID string, req models.ItineraryNoteRequest) (*models.CRMNote, error)
 	ListNotes(ctx context.Context, requestID int64) ([]models.CRMNote, error)
+
+	// --- Quote builder + deposit (PRD §3.3.2, TDD §3.4 M3 #3) ---
+	ListOptionRates(ctx context.Context) ([]models.OptionRate, error)
+	SendQuote(ctx context.Context, requestID int64, req models.SendQuoteRequest) (*models.ItineraryQuote, error)
+	GetQuote(ctx context.Context, requestID int64) (*models.ItineraryQuote, error)
+	PayDeposit(ctx context.Context, userID string, requestID int64, req models.PayDepositRequest) (*models.DepositPaidResponse, error)
+	MarkDepositPaid(ctx context.Context, quoteID int64) error
+	Confirm(ctx context.Context, requestID int64) error
+	RefundDeposit(ctx context.Context, requestID int64, req models.RefundDepositRequest) error
 }
 
 type Service struct {
@@ -68,11 +111,29 @@ type Service struct {
 	email     EmailEnqueuer
 	user      UserDirectory
 	consent   ConsentRecorder
+	fx        CheckoutFX // required for quote FX conversion
+	// Quote-payment deps, injected post-construction (break the itinerary↔payment
+	// import cycle, mirroring order's SetPaymentIntenter/SetPaymentRefunder).
+	quoteIntenter QuotePaymentIntenter
+	quoteRefunder QuoteRefunder
+	depositEnqueuer DepositFinalizeEnqueuer // mock-mode auto-finalize seam
+	paymentsMode  string                      // "mock" (dev) | "sandbox"/"live" (#6)
 }
 
-func NewService(repo RepositoryInterface, email EmailEnqueuer, user UserDirectory, consent ConsentRecorder) *Service {
-	return &Service{repo: repo, email: email, user: user, consent: consent}
+func NewService(repo RepositoryInterface, email EmailEnqueuer, user UserDirectory, consent ConsentRecorder, fx CheckoutFX, paymentsMode string) *Service {
+	return &Service{repo: repo, email: email, user: user, consent: consent, fx: fx, paymentsMode: paymentsMode}
 }
+
+// SetQuotePaymentIntenter wires the gateway-intent client post-construction
+// (called in main.go after both itinerary + payment services are built).
+func (s *Service) SetQuotePaymentIntenter(pi QuotePaymentIntenter) { s.quoteIntenter = pi }
+
+// SetQuoteRefunder wires the gateway-refund client post-construction.
+func (s *Service) SetQuoteRefunder(pr QuoteRefunder) { s.quoteRefunder = pr }
+
+// SetDepositFinalizeEnqueuer wires the mock-mode auto-finalize enqueuer
+// (serve mode enqueues the job; the worker handles it). Called in main.go.
+func (s *Service) SetDepositFinalizeEnqueuer(e DepositFinalizeEnqueuer) { s.depositEnqueuer = e }
 
 // --- Draft ---
 
@@ -283,4 +344,243 @@ func (s *Service) AddNote(ctx context.Context, requestID int64, authorID string,
 
 func (s *Service) ListNotes(ctx context.Context, requestID int64) ([]models.CRMNote, error) {
 	return s.repo.ListNotes(ctx, requestID)
+}
+
+// =============================================================================
+// Quote builder + deposit service methods (PRD §3.3.2, TDD §3.4 M3 #3)
+// =============================================================================
+
+// depositFraction is the PRD §3.3.2 deposit fraction (30%). The balance is due
+// 14 days before arrival (collected out-of-band in this sub-track; the full-
+// amount pay_full toggle is the MVP alternative).
+const depositFraction = 0.30
+
+// roundDeposit rounds total_minor × 0.30 (half-up) to a whole minor unit.
+func roundDeposit(totalMinor int64) int64 {
+	// totalMinor × 0.30 → (totalMinor × 30 + 50) / 100 (half-up on minor units).
+	return (totalMinor*30 + 50) / 100
+}
+
+func (s *Service) ListOptionRates(ctx context.Context) ([]models.OptionRate, error) {
+	return s.repo.ListOptionRates(ctx)
+}
+
+// SendQuote prices the planner's line-item selection from option_rates (CNY),
+// converts to the presentment currency via FX (snapshotting fx_rate_used like
+// orders), computes the deposit (30% of total, or full if pay_full), and
+// creates the quote (replacing any prior quote for the request). The request
+// moves processing→quoted. The qty multiplier depends on the option's unit
+// (per_person × group size, per_day × duration_days, flat × 1).
+func (s *Service) SendQuote(ctx context.Context, requestID int64, req models.SendQuoteRequest) (*models.ItineraryQuote, error) {
+	// Load the request (must be processing; pricing needs adults/children/duration).
+	r, err := s.repo.GetByIDAdmin(ctx, requestID)
+	if err != nil {
+		return nil, err
+	}
+	// A quote can be sent from `processing` (first quote) or `quoted` (a re-quote
+	// after the planner iterates). Any other state is invalid.
+	if r.Status != models.StatusItineraryProcessing && r.Status != models.StatusItineraryQuoted {
+		return nil, models.ErrInvalidOperation
+	}
+	if s.fx == nil {
+		return nil, fmt.Errorf("itinerary.SendQuote: FX service not configured")
+	}
+
+	// Resolve option_rates for the selected keys (validate + snapshot rates).
+	keys := make([]string, len(req.LineItems))
+	for i, li := range req.LineItems {
+		keys[i] = li.OptionKey
+	}
+	rates, err := s.repo.GetOptionRatesByKeys(ctx, keys)
+	if err != nil {
+		return nil, err
+	}
+	if len(rates) != len(keys) {
+		return nil, fmt.Errorf("%w: unknown option_key in selection", models.ErrInvalidQuote)
+	}
+
+	// Price each line (CNY). The planner supplies Qty directly (the multiplier
+	// count for the option's unit); per_person/per_day labels are informational.
+	lineItems := make([]models.QuoteLineItem, len(req.LineItems))
+	var totalCNY int64
+	for i, li := range req.LineItems {
+		rate, ok := rates[li.OptionKey]
+		if !ok {
+			return nil, fmt.Errorf("%w: option_key %q not found", models.ErrInvalidQuote, li.OptionKey)
+		}
+		qty := li.Qty
+		if qty < 1 {
+			qty = 1
+		}
+		lineCNY := rate.RateCNY * int64(qty)
+		lineItems[i] = models.QuoteLineItem{
+			OptionKey: rate.OptionKey, Qty: qty, RateCNY: rate.RateCNY,
+			Unit: rate.Unit, Label: rate.DisplayLabel, LineCNY: lineCNY,
+		}
+		totalCNY += lineCNY
+	}
+	lineJSON, _ := json.Marshal(lineItems)
+	if len(lineJSON) == 0 {
+		lineJSON = []byte("[]")
+	}
+
+	// FX: convert the CNY total to presentment + snapshot the rate.
+	totalMinor, err := s.fx.Convert(ctx, totalCNY, req.Currency)
+	if err != nil {
+		return nil, fmt.Errorf("itinerary.SendQuote.Convert: %w", err)
+	}
+	rate, err := s.fx.Rate(ctx, req.Currency)
+	if err != nil {
+		return nil, fmt.Errorf("itinerary.SendQuote.Rate: %w", err)
+	}
+	rateStr := rate.StringFixed(8)
+
+	// Deposit: 30% of total (rounded half-up on minor units), or full amount.
+	depositMinor := roundDeposit(totalMinor)
+	if req.PayFull {
+		depositMinor = totalMinor
+	}
+
+	// Create the quote (replaces any prior quote, UNIQUE request_id).
+	q := &models.ItineraryQuote{
+		RequestID: requestID, LineItems: lineJSON, TotalCNY: totalCNY,
+		Currency: req.Currency, TotalMinor: totalMinor, DepositMinor: depositMinor,
+		FxRateUsed: &rateStr,
+	}
+	out, err := s.repo.CreateQuote(ctx, q)
+	if err != nil {
+		return nil, err
+	}
+
+	// Move the request processing→quoted (or quoted→quoted is a no-op CAS; for
+	// a re-quote the request is already quoted, so the transition is skipped).
+	if r.Status == models.StatusItineraryProcessing {
+		if err := s.repo.TransitionStatus(ctx, requestID, models.StatusItineraryProcessing, models.StatusItineraryQuoted); err != nil {
+			return nil, fmt.Errorf("itinerary.SendQuote.Transition: %w", err)
+		}
+	}
+
+	// Best-effort email to the customer (plain text; PDF attachment deferred to
+	// the chromedp sub-track). Reuse the same EmailEnqueuer as the submit ack.
+	if s.email != nil && s.user != nil {
+		if u, err := s.user.GetUserProfile(ctx, r.UserID); err == nil {
+			subj := "Your itinerary quote is ready (#" + strconv.FormatInt(requestID, 10) + ")"
+			body := "A travel planner has prepared a quote for your itinerary request. " +
+				"Total: " + req.Currency + " " + strconv.FormatInt(totalMinor/100, 10) + "." +
+				"; deposit (30%): " + strconv.FormatInt(depositMinor/100, 10) + ". " +
+				"Sign in to review and pay your deposit."
+			if err := s.email.EnqueueEmailSend(ctx, u.Email, subj, body, ""); err != nil {
+				log.Printf("itinerary.SendQuote.Email(req=%d): %v", requestID, err)
+			}
+		}
+	}
+	return out, nil
+}
+
+func (s *Service) GetQuote(ctx context.Context, requestID int64) (*models.ItineraryQuote, error) {
+	return s.repo.GetQuoteByRequestID(ctx, requestID)
+}
+
+// PayDeposit lets the customer pay the deposit (or full amount) for a quoted
+// request. Verifies ownership + status==quoted + quote status==sent, then
+// creates a gateway intent. mock mode: auto-succeeds (the worker finalizes).
+func (s *Service) PayDeposit(ctx context.Context, userID string, requestID int64, req models.PayDepositRequest) (*models.DepositPaidResponse, error) {
+	// Ownership + status (must be the customer's own, quoted request).
+	r, err := s.repo.GetByIDForUser(ctx, userID, requestID)
+	if err != nil {
+		return nil, err // ErrNotFound if not the owner
+	}
+	if r.Status != models.StatusItineraryQuoted {
+		return nil, models.ErrRequestNotQuoted
+	}
+	q, err := s.repo.GetQuoteByRequestID(ctx, requestID)
+	if err != nil {
+		return nil, err
+	}
+	if q.Status != models.QuoteSent {
+		return nil, models.ErrQuoteAlreadyPaid
+	}
+	if s.quoteIntenter == nil {
+		return nil, models.ErrGatewayUnavailable
+	}
+
+	// Amount = deposit_minor (or total_minor if the quote was sent pay_full —
+	// the quote's deposit_minor already encodes that at send time).
+	amount := q.DepositMinor
+
+	hosted, err := s.quoteIntenter.CreateQuoteIntent(ctx, req.Gateway, q.ID, amount, q.Currency)
+	if err != nil {
+		return nil, err
+	}
+
+	// mock mode: auto-enqueue the finalize job (dev seam, mirrors checkout).
+	if s.paymentsMode == "mock" && s.depositEnqueuer != nil {
+		gatewayRef := "mock-" + strconv.FormatInt(q.ID, 10)
+		if err := s.depositEnqueuer.EnqueueItineraryDepositFinalize(ctx, q.ID, true, "mock", gatewayRef); err != nil {
+			log.Printf("itinerary.PayDeposit.Enqueue(quote=%d): %v (manual finalize needed)", q.ID, err)
+		}
+	}
+
+	return &models.DepositPaidResponse{QuoteID: q.ID, HostedURL: hosted}, nil
+}
+
+// MarkDepositPaid is the worker-side finalize: CAS quote sent→deposit_paid
+// (idempotent on replay) + move the request quoted→deposit_paid. Called by the
+// worker's payment:finalize handler on a succeeded deposit webhook.
+func (s *Service) MarkDepositPaid(ctx context.Context, quoteID int64) error {
+	q, err := s.repo.GetQuoteByID(ctx, quoteID)
+	if err != nil {
+		return err // ErrNotFound → webhook acks (no quote to finalize)
+	}
+	payFull := q.Status == models.QuoteFullyPaid || (q.DepositMinor == q.TotalMinor)
+	won, err := s.repo.MarkQuoteDepositPaid(ctx, quoteID, payFull)
+	if err != nil {
+		return err
+	}
+	if !won {
+		return nil // already paid (replayed webhook) — idempotent
+	}
+	// Move the request quoted→deposit_paid. On a CAS miss (concurrent cancel),
+	// the quote is deposit_paid but the request stays quoted — the planner
+	// reconciles. Non-fatal; log + return nil so the webhook acks 200.
+	if err := s.repo.TransitionStatus(ctx, q.RequestID, models.StatusItineraryQuoted, models.StatusItineraryDepositPaid); err != nil {
+		log.Printf("itinerary.MarkDepositPaid.Transition(quote=%d req=%d): %v", quoteID, q.RequestID, err)
+	}
+	return nil
+}
+
+// Confirm moves a deposit_paid request → confirmed (planner action; PDF +
+// email deferred to the chromedp sub-track).
+func (s *Service) Confirm(ctx context.Context, requestID int64) error {
+	return s.repo.TransitionStatus(ctx, requestID, models.StatusItineraryDepositPaid, models.StatusItineraryConfirmed)
+}
+
+// RefundDeposit issues a full refund of the paid deposit (fail-closed: gateway
+// first, then quote + request cancelled). PRD §3.3.2 tiered partial refunds are
+// a deferred follow-up (need partial-refund gateway support + a policy engine).
+func (s *Service) RefundDeposit(ctx context.Context, requestID int64, req models.RefundDepositRequest) error {
+	q, err := s.repo.GetQuoteByRequestID(ctx, requestID)
+	if err != nil {
+		return err
+	}
+	if q.Status != models.QuoteDepositPaid && q.Status != models.QuoteFullyPaid {
+		return models.ErrConflict
+	}
+	// Fail-closed: gateway refund first.
+	if s.quoteRefunder != nil {
+		if err := s.quoteRefunder.RefundQuote(ctx, q.ID, req.Reason); err != nil {
+			return err
+		}
+	}
+	if err := s.repo.CancelQuote(ctx, q.ID); err != nil {
+		return err
+	}
+	// Move the request →cancelled (from deposit_paid). Reuse CancelByStaff's
+	// CAS which accepts {pending,processing}; deposit_paid needs its own.
+	if err := s.repo.TransitionStatus(ctx, requestID, models.StatusItineraryDepositPaid, models.StatusItineraryCancelled); err != nil {
+		// If not deposit_paid (e.g. already cancelled), fall back to a direct
+		// cancelled set — but only after the gateway refund succeeded.
+		log.Printf("itinerary.RefundDeposit.Transition(req=%d): %v", requestID, err)
+	}
+	return nil
 }

@@ -406,3 +406,129 @@ func derefStr(s *string) string {
 	}
 	return *s
 }
+
+// =============================================================================
+// Quote builder + deposit handlers (PRD §3.3.2, TDD §3.4 M3 #3)
+// =============================================================================
+
+// --- Customer-facing ---
+
+// PayDeposit: POST /itineraries/:id/pay-deposit (signed-in customer).
+func (h *Handler) PayDeposit(c *fiber.Ctx) error {
+	userID, err := utils.GetUserIDFromContext(c)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(models.ErrorResponse{Message: "Authentication required"})
+	}
+	id, err := strconv.ParseInt(c.Params("id"), 10, 64)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(models.ErrorResponse{Message: "Invalid itinerary id"})
+	}
+	var req models.PayDepositRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(models.ErrorResponse{Message: "Invalid request body"})
+	}
+	if err := h.validate.Struct(req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(models.ErrorResponse{Message: "Validation failed: " + err.Error()})
+	}
+	out, err := h.service.PayDeposit(c.Context(), userID, id, req)
+	if err != nil {
+		return mapItinAdminErr(c, err, "PayDeposit")
+	}
+	return c.Status(fiber.StatusOK).JSON(out)
+}
+
+// GetQuote: GET /itineraries/:id/quote (customer reads their own quote).
+func (h *Handler) GetQuote(c *fiber.Ctx) error {
+	userID, err := utils.GetUserIDFromContext(c)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(models.ErrorResponse{Message: "Authentication required"})
+	}
+	id, err := strconv.ParseInt(c.Params("id"), 10, 64)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(models.ErrorResponse{Message: "Invalid itinerary id"})
+	}
+	// Verify ownership (GetByIDForUser scopes to the user) before reading the quote.
+	if _, err := h.service.GetMine(c.Context(), userID, id); err != nil {
+		return mapItinAdminErr(c, err, "GetQuote.Ownership")
+	}
+	q, err := h.service.GetQuote(c.Context(), id)
+	if err != nil {
+		return mapItinAdminErr(c, err, "GetQuote")
+	}
+	return c.Status(fiber.StatusOK).JSON(q)
+}
+
+// --- Planner-facing (admin) ---
+
+// AdminListOptionRates: GET /admin/itineraries/option-rates (the mocked CMS
+// rate table — the planner's price book).
+func (h *Handler) AdminListOptionRates(c *fiber.Ctx) error {
+	rates, err := h.service.ListOptionRates(c.Context())
+	if err != nil {
+		log.Printf("Handler.AdminListOptionRates: %v", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(models.ErrorResponse{Message: "Failed to list option rates"})
+	}
+	return c.Status(fiber.StatusOK).JSON(rates)
+}
+
+// AdminSendQuote: POST /admin/itineraries/:id/quote
+func (h *Handler) AdminSendQuote(c *fiber.Ctx) error {
+	id, err := strconv.ParseInt(c.Params("id"), 10, 64)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(models.ErrorResponse{Message: "Invalid itinerary id"})
+	}
+	var req models.SendQuoteRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(models.ErrorResponse{Message: "Invalid request body"})
+	}
+	if err := h.validate.Struct(req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(models.ErrorResponse{Message: "Validation failed: " + err.Error()})
+	}
+	q, err := h.service.SendQuote(c.Context(), id, req)
+	if err != nil {
+		return mapItinAdminErr(c, err, "AdminSendQuote")
+	}
+	return c.Status(fiber.StatusCreated).JSON(q)
+}
+
+// AdminGetQuote: GET /admin/itineraries/:id/quote
+func (h *Handler) AdminGetQuote(c *fiber.Ctx) error {
+	id, err := strconv.ParseInt(c.Params("id"), 10, 64)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(models.ErrorResponse{Message: "Invalid itinerary id"})
+	}
+	q, err := h.service.GetQuote(c.Context(), id)
+	if err != nil {
+		return mapItinAdminErr(c, err, "AdminGetQuote")
+	}
+	return c.Status(fiber.StatusOK).JSON(q)
+}
+
+// AdminConfirm: POST /admin/itineraries/:id/confirm (deposit_paid → confirmed)
+func (h *Handler) AdminConfirm(c *fiber.Ctx) error {
+	id, err := strconv.ParseInt(c.Params("id"), 10, 64)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(models.ErrorResponse{Message: "Invalid itinerary id"})
+	}
+	if err := h.service.Confirm(c.Context(), id); err != nil {
+		return mapItinAdminErr(c, err, "AdminConfirm")
+	}
+	return c.SendStatus(fiber.StatusNoContent)
+}
+
+// AdminRefundDeposit: POST /admin/itineraries/:id/refund-deposit (fail-closed)
+func (h *Handler) AdminRefundDeposit(c *fiber.Ctx) error {
+	id, err := strconv.ParseInt(c.Params("id"), 10, 64)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(models.ErrorResponse{Message: "Invalid itinerary id"})
+	}
+	var req models.RefundDepositRequest
+	_ = c.BodyParser(&req) // optional
+	if err := h.validate.Struct(req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(models.ErrorResponse{Message: "Validation failed: " + err.Error()})
+	}
+	if err := h.service.RefundDeposit(c.Context(), id, req); err != nil {
+		return mapItinAdminErr(c, err, "AdminRefundDeposit")
+	}
+	return c.SendStatus(fiber.StatusNoContent)
+}
