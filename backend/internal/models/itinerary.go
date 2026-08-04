@@ -263,6 +263,7 @@ type ItineraryQuote struct {
 	Status       QuoteStatus     `json:"status" db:"status"`
 	SentAt       time.Time       `json:"sent_at" db:"sent_at"`
 	PaidAt       *time.Time      `json:"paid_at,omitempty" db:"paid_at"`
+	PDFKey       *string         `json:"pdf_key,omitempty" db:"pdf_key"` // populated by the pdf:generate worker (TDD §12)
 	CreatedAt    time.Time       `json:"created_at" db:"created_at"`
 	UpdatedAt    time.Time       `json:"updated_at" db:"updated_at"`
 }

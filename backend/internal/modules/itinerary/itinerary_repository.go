@@ -71,6 +71,9 @@ type RepositoryInterface interface {
 	MarkQuoteDepositPaid(ctx context.Context, quoteID int64, payFull bool) (bool, error)
 	// CancelQuote CAS-moves {sent,deposit_paid,fully_paid}→cancelled.
 	CancelQuote(ctx context.Context, quoteID int64) error
+	// SetQuotePDFKey records the stored PDF oss_key after the worker renders it
+	// (TDD §12). Idempotent: re-renders overwrite. Mirrors certificate.SetPDFKey.
+	SetQuotePDFKey(ctx context.Context, quoteID int64, key string) error
 }
 
 type Repository struct {
@@ -594,14 +597,14 @@ func joinStrings(ss []string, sep string) string {
 // handling).
 const quoteCols = `
 	id, request_id, line_items, total_cny, currency, total_minor, deposit_minor,
-	fx_rate_used, status, sent_at, paid_at, created_at, updated_at `
+	fx_rate_used, status, sent_at, paid_at, pdf_key, created_at, updated_at `
 
 func (r *Repository) scanQuote(row pgx.Row) (*models.ItineraryQuote, error) {
 	var q models.ItineraryQuote
 	if err := row.Scan(
 		&q.ID, &q.RequestID, &q.LineItems, &q.TotalCNY, &q.Currency,
 		&q.TotalMinor, &q.DepositMinor, &q.FxRateUsed, &q.Status,
-		&q.SentAt, &q.PaidAt, &q.CreatedAt, &q.UpdatedAt,
+		&q.SentAt, &q.PaidAt, &q.PDFKey, &q.CreatedAt, &q.UpdatedAt,
 	); err != nil {
 		return nil, err
 	}
@@ -670,6 +673,7 @@ func (r *Repository) CreateQuote(ctx context.Context, q *models.ItineraryQuote) 
 			status        = 'sent',
 			sent_at       = NOW(),
 			paid_at       = NULL,
+			pdf_key       = NULL,
 			updated_at    = NOW()
 		RETURNING `+quoteCols,
 		q.RequestID, q.LineItems, q.TotalCNY, q.Currency,
@@ -741,6 +745,22 @@ func (r *Repository) CancelQuote(ctx context.Context, quoteID int64) error {
 			return models.ErrNotFound
 		}
 		return models.ErrConflict
+	}
+	return nil
+}
+
+// SetQuotePDFKey records the stored PDF oss_key after the worker renders it
+// (TDD §12). Idempotent: re-renders overwrite the prior key. Mirrors
+// certificate.SetPDFKey.
+func (r *Repository) SetQuotePDFKey(ctx context.Context, quoteID int64, key string) error {
+	cmd, err := r.db.Exec(ctx,
+		`UPDATE itinerary_quotes SET pdf_key = $2, updated_at = NOW() WHERE id = $1`,
+		quoteID, key)
+	if err != nil {
+		return fmt.Errorf("itinerary.SetQuotePDFKey: %w", err)
+	}
+	if cmd.RowsAffected() == 0 {
+		return models.ErrNotFound
 	}
 	return nil
 }

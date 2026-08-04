@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="{{.Locale}}">
+<head>
+<meta charset="utf-8">
+<title>Itinerary Quote — #{{.RequestID}}</title>
+<style>
+  @page { margin: 0; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Noto Sans", "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+    color: #1a1a1a;
+    margin: 0; padding: 0;
+    background: #ffffff;
+  }
+  .page {
+    width: 210mm; min-height: 297mm; /* A4 */
+    padding: 22mm 22mm 18mm;
+    display: flex; flex-direction: column;
+  }
+  .crest {
+    text-align: center;
+    font-size: 11pt;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: #4a7c6f; /* celadon */
+    border-bottom: 1.5px solid #4a7c6f;
+    padding-bottom: 5mm;
+    margin-bottom: 10mm;
+  }
+  h1 {
+    font-size: 20pt;
+    font-weight: 600;
+    margin: 0 0 2mm;
+    color: #1a1a1a;
+  }
+  .meta {
+    font-size: 9pt;
+    color: #777;
+    margin-bottom: 10mm;
+  }
+  .meta .ref { color: #4a7c6f; font-weight: 600; }
+  h2 {
+    font-size: 11pt;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: #4a7c6f;
+    border-bottom: 1px solid #e0e0e0;
+    padding-bottom: 1.5mm;
+    margin: 7mm 0 3mm;
+  }
+  .trip-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3mm 8mm;
+    font-size: 10pt;
+  }
+  .trip-grid .label {
+    color: #777;
+    font-size: 8.5pt;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.5mm;
+  }
+  .trip-grid .value {
+    font-size: 10.5pt;
+    font-weight: 500;
+  }
+  .notes {
+    font-size: 10pt;
+    line-height: 1.55;
+    color: #444;
+    background: #f8f8f5;
+    border-left: 3px solid #4a7c6f;
+    padding: 3mm 4mm;
+    margin: 3mm 0;
+  }
+  table.items {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 10pt;
+    margin: 2mm 0;
+  }
+  table.items th {
+    text-align: left;
+    font-size: 8.5pt;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #777;
+    border-bottom: 1.5px solid #4a7c6f;
+    padding: 2mm 3mm;
+  }
+  table.items td {
+    padding: 2.5mm 3mm;
+    border-bottom: 1px solid #eee;
+  }
+  table.items td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  table.items tr:last-child td { border-bottom: none; }
+  .totals {
+    margin-left: auto;
+    width: 60%;
+    font-size: 10pt;
+    margin-top: 4mm;
+  }
+  .totals .row {
+    display: flex;
+    justify-content: space-between;
+    padding: 1.5mm 3mm;
+  }
+  .totals .row.grand {
+    border-top: 1.5px solid #4a7c6f;
+    margin-top: 2mm;
+    padding-top: 3mm;
+    font-size: 13pt;
+    font-weight: 600;
+    color: #1a1a1a;
+  }
+  .totals .row.deposit { color: #4a7c6f; font-weight: 600; }
+  .totals .row .v { font-variant-numeric: tabular-nums; }
+  .fx-note {
+    font-size: 8.5pt;
+    color: #999;
+    text-align: right;
+    margin-top: 2mm;
+  }
+  .footer {
+    margin-top: auto;
+    padding-top: 8mm;
+    border-top: 1px solid #ddd;
+    font-size: 8.5pt;
+    color: #777;
+    line-height: 1.5;
+  }
+  .footer .disclaimer { font-style: italic; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="crest">Jingdezhen Ceramics · Custom Itinerary</div>
+
+  <h1>Itinerary Quote</h1>
+  <div class="meta">
+    Reference <span class="ref">#{{.RequestID}}</span> ·
+    Issued {{.SentAt}} ·
+    Status: {{.QuoteStatus}}
+  </div>
+
+  <h2>Trip Details</h2>
+  <div class="trip-grid">
+    <div>
+      <div class="label">Arrival</div>
+      <div class="value">{{.ArrivalDate}}</div>
+    </div>
+    <div>
+      <div class="label">Duration</div>
+      <div class="value">{{.DurationDays}} days{{if .Flexible}} (flexible){{end}}</div>
+    </div>
+    <div>
+      <div class="label">Travelers</div>
+      <div class="value">{{.Adults}} adults{{if .Children}}, {{.Children}} children{{end}}</div>
+    </div>
+    <div>
+      <div class="label">Pace</div>
+      <div class="value">{{.Pace}}</div>
+    </div>
+    <div>
+      <div class="label">Interests</div>
+      <div class="value">{{.Interests}}</div>
+    </div>
+    <div>
+      <div class="label">Services</div>
+      <div class="value">{{.ServicesSummary}}</div>
+    </div>
+  </div>
+
+  {{if .Notes}}
+  <div class="notes">{{.Notes}}</div>
+  {{end}}
+
+  <h2>Priced Itinerary</h2>
+  <table class="items">
+    <thead>
+      <tr>
+        <th>Service</th>
+        <th class="num">Qty</th>
+        <th>Unit</th>
+        <th class="num">Rate (¥)</th>
+        <th class="num">Line (¥)</th>
+      </tr>
+    </thead>
+    <tbody>
+    {{range .LineItems}}
+      <tr>
+        <td>{{.Label}}</td>
+        <td class="num">{{.Qty}}</td>
+        <td>{{.Unit}}</td>
+        <td class="num">{{.RateCNYMajor}}</td>
+        <td class="num">{{.LineCNYMajor}}</td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table>
+
+  <div class="totals">
+    <div class="row">
+      <span>Subtotal (CNY)</span>
+      <span class="v">¥{{.TotalCNYMajor}}</span>
+    </div>
+    <div class="row">
+      <span>Total ({{.Currency}})</span>
+      <span class="v">{{.CurrencySymbol}} {{.TotalMinorMajor}}</span>
+    </div>
+    <div class="row deposit">
+      <span>Deposit due (30%)</span>
+      <span class="v">{{.CurrencySymbol}} {{.DepositMinorMajor}}</span>
+    </div>
+    <div class="row grand">
+      <span>Balance on confirmation</span>
+      <span class="v">{{.CurrencySymbol}} {{.BalanceMinorMajor}}</span>
+    </div>
+  </div>
+  <div class="fx-note">
+    FX rate {{.Currency}}/CNY {{.FxRateUsed}} (snapshot at send). Prices in CNY are
+    authoritative; presentment amounts are indicative.
+  </div>
+
+  <div class="footer">
+    This quote is valid for 14 days. A 30% deposit secures your booking; the
+    balance is due 14 days before arrival. Refund tiers are per our cancellation
+    policy. Scan or visit the platform to accept this quote and pay your deposit.
+    <div class="disclaimer">Generated by the Jingdezhen Ceramics platform · {{.SentAt}}</div>
+  </div>
+</div>
+</body>
+</html>

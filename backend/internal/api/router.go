@@ -238,6 +238,7 @@ func SetupRoutes(
 		checkoutGroup.Get("/itineraries", itineraryHandler.ListMine)
 		checkoutGroup.Get("/itineraries/:id", itineraryHandler.GetMine)
 		checkoutGroup.Get("/itineraries/:id/quote", itineraryHandler.GetQuote)
+		checkoutGroup.Get("/itineraries/:id/quote/pdf", itineraryHandler.QuotePDFDownload)
 		checkoutGroup.Post("/itineraries/:id/cancel", itineraryHandler.CancelMine)
 		checkoutGroup.Post("/itineraries/:id/pay-deposit", itineraryHandler.PayDeposit)
 	}
@@ -321,6 +322,7 @@ func SetupRoutes(
 		adminItinRead.Get("/:id", itineraryHandler.AdminGet)
 		adminItinRead.Get("/:id/notes", itineraryHandler.AdminListNotes)
 		adminItinRead.Get("/:id/quote", itineraryHandler.AdminGetQuote)
+		adminItinRead.Get("/:id/quote/pdf", itineraryHandler.AdminQuotePDFDownload)
 
 		adminItinWrite := adminGroup.Group("/itineraries")
 		adminItinWrite.Use(middleware.RequirePermission(models.PermItineraryWrite))

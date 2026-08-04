@@ -72,6 +72,14 @@ type DepositFinalizeEnqueuer interface {
 	EnqueueItineraryDepositFinalize(ctx context.Context, quoteID int64, success bool, gateway, gatewayRef string) error
 }
 
+// PDFEnqueuer enqueues a pdf:generate job for a freshly sent itinerary quote
+// (TDD §12, M3 #4). Narrow interface so the itinerary module doesn't import
+// the jobs package. Implemented by the same jobs.Client adapter as the
+// certificate module. nil → no PDF job enqueued (worker-side service).
+type PDFEnqueuer interface {
+	EnqueuePDFGenerate(ctx context.Context, kind string, entityID int64, locale string) error
+}
+
 // ServiceInterface defines itinerary business logic (PRD §3.3.2).
 type ServiceInterface interface {
 	// --- Draft ---
@@ -117,6 +125,7 @@ type Service struct {
 	quoteIntenter QuotePaymentIntenter
 	quoteRefunder QuoteRefunder
 	depositEnqueuer DepositFinalizeEnqueuer // mock-mode auto-finalize seam
+	pdf          PDFEnqueuer             // optional; nil → no PDF job (worker)
 	paymentsMode  string                      // "mock" (dev) | "sandbox"/"live" (#6)
 }
 
@@ -134,6 +143,10 @@ func (s *Service) SetQuoteRefunder(pr QuoteRefunder) { s.quoteRefunder = pr }
 // SetDepositFinalizeEnqueuer wires the mock-mode auto-finalize enqueuer
 // (serve mode enqueues the job; the worker handles it). Called in main.go.
 func (s *Service) SetDepositFinalizeEnqueuer(e DepositFinalizeEnqueuer) { s.depositEnqueuer = e }
+
+// SetPDFEnqueuer wires the pdf:generate enqueuer post-construction (TDD §12).
+// Called in main.go; the worker-side service has no enqueuer (pdf stays NULL).
+func (s *Service) SetPDFEnqueuer(e PDFEnqueuer) { s.pdf = e }
 
 // --- Draft ---
 
@@ -460,8 +473,20 @@ func (s *Service) SendQuote(ctx context.Context, requestID int64, req models.Sen
 		}
 	}
 
-	// Best-effort email to the customer (plain text; PDF attachment deferred to
-	// the chromedp sub-track). Reuse the same EmailEnqueuer as the submit ack.
+	// Best-effort: enqueue the itinerary-quote PDF render (TDD §12, M3 #4). The
+	// worker renders via chromedp + stores via the storage adapter, populating
+	// pdf_key. A failure is logged, never blocks the quote — the quote exists
+	// immediately; the PDF can be regenerated later. The render snapshots the
+	// quote + request at send time (a re-quote clears pdf_key in CreateQuote's
+	// ON CONFLICT, so the new render overwrites the stale PDF).
+	if s.pdf != nil {
+		if err := s.pdf.EnqueuePDFGenerate(ctx, "itinerary_quote", out.ID, r.Locale); err != nil {
+			log.Printf("itinerary.SendQuote.EnqueuePDF(quote=%d): %v", out.ID, err)
+		}
+	}
+
+	// Best-effort email to the customer (plain text; the PDF is delivered via
+	// the download endpoint + the pdf:generate job above).
 	if s.email != nil && s.user != nil {
 		if u, err := s.user.GetUserProfile(ctx, r.UserID); err == nil {
 			subj := "Your itinerary quote is ready (#" + strconv.FormatInt(requestID, 10) + ")"

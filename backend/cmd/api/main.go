@@ -161,11 +161,12 @@ func (r itinConsentRecorder) RecordConsent(ctx context.Context, userID string, k
 	return err
 }
 
-// certPDFEnqueuer adapts jobs.Client → certificate.PDFEnqueuer (serve mode
-// enqueues pdf:generate at cert issue/regenerate; the worker renders).
-type certPDFEnqueuer struct{ c *jobs.Client }
+// pdfEnqueuer adapts jobs.Client → the PDFEnqueuer interface (cert +
+// itinerary both implement it). Serve mode enqueues pdf:generate at cert
+// issue/regenerate + itinerary quote send; the worker renders.
+type pdfEnqueuer struct{ c *jobs.Client }
 
-func (e certPDFEnqueuer) EnqueuePDFGenerate(ctx context.Context, kind string, entityID int64, locale string) error {
+func (e pdfEnqueuer) EnqueuePDFGenerate(ctx context.Context, kind string, entityID int64, locale string) error {
 	return e.c.EnqueuePDFGenerate(ctx, jobs.PDFGeneratePayload{Kind: kind, EntityID: entityID, Locale: locale})
 }
 
@@ -409,7 +410,7 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 	// Certificate handler (needs storageStore for PDFDownload → public URL) +
 	// the PDF-enqueue seam (TDD §12: issue/regenerate enqueues pdf:generate).
 	certificateHandler := certificate.NewHandler(certService, storageStore)
-	certService.SetPDFEnqueuer(certPDFEnqueuer{jobClient})
+	certService.SetPDFEnqueuer(pdfEnqueuer{jobClient})
 
 	consentRepo := consent.NewRepository(dbPool)
 	consentService := consent.NewService(consentRepo, []byte(cfg.ConsentHMACKey))
@@ -432,11 +433,12 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 		fxService,                          // CheckoutFX (quote CNY→presentment)
 		cfg.PaymentsMode,                   // mock|sandbox|live
 	)
-	itineraryHandler := itinerary.NewHandler(itineraryService)
+	itineraryHandler := itinerary.NewHandler(itineraryService, storageStore)
 	// Quote-payment setters (post-construction, break the itinerary↔payment cycle).
 	itineraryService.SetQuotePaymentIntenter(paymentService)
 	itineraryService.SetQuoteRefunder(paymentService)
 	itineraryService.SetDepositFinalizeEnqueuer(paymentEnqueuer{jobClient}) // mock-mode auto-finalize seam
+	itineraryService.SetPDFEnqueuer(pdfEnqueuer{jobClient})                // quote-send PDF render
 
 	api.SetupRoutes(app, cfg.JWTSecret,
 		wsHandler, userHandler, notifHandler,
@@ -674,6 +676,8 @@ func runWorker(rootCtx context.Context, cfg config.Config) {
 		switch p.Kind {
 		case "certificate":
 			return renderCertificatePDF(ctx, p, wCertRepo, newWorkerStore(cfg), pdfGenerator, cfg.PDFBaseURL)
+		case "itinerary_quote":
+			return renderItineraryQuotePDF(ctx, p, wItinRepo, newWorkerStore(cfg), pdfGenerator)
 		default:
 			log.Printf("worker.PDFGenerate: unknown kind %q", p.Kind)
 			return nil // don't retry an unknown kind
@@ -783,4 +787,57 @@ func newWorkerStore(cfg config.Config) storage.Store {
 		}
 		return ls
 	}
+}
+
+// renderItineraryQuotePDF loads a quote + its request (trip details), renders
+// the branded itinerary-quote HTML via pdftmpl, prints to PDF via chromedp,
+// stores the bytes via the storage adapter, and records the resulting key on
+// the quote row (TDD §12, M3 #4). Best-effort: a NoopGenerator (local mode)
+// returns ErrPDFUnavailable → the worker skips storage + pdf_key stays NULL
+// (the download endpoints 404 'PDF not yet generated').
+func renderItineraryQuotePDF(ctx context.Context, p jobs.PDFGeneratePayload,
+	itinRepo itinerary.RepositoryInterface, store storage.Store,
+	gen pdf.Generator) error {
+	q, err := itinRepo.GetQuoteByID(ctx, p.EntityID)
+	if err != nil {
+		return fmt.Errorf("worker.PDFGenerate.GetQuoteByID(quote=%d): %w", p.EntityID, err)
+	}
+	// Load the request (trip details) for the template. GetByIDAdmin JOINs the
+	// customer fields the template doesn't need, but it's the canonical loader
+	// + scanAdminRow tolerates a NULL assigned_to.
+	req, err := itinRepo.GetByIDAdmin(ctx, q.RequestID)
+	if err != nil {
+		return fmt.Errorf("worker.PDFGenerate.GetByIDAdmin(req=%d): %w", q.RequestID, err)
+	}
+	locale := p.Locale
+	if locale == "" {
+		locale = req.Locale
+	}
+	if locale == "" {
+		locale = "en-US"
+	}
+	html, err := pdftmpl.RenderItineraryQuote(req, q, locale)
+	if err != nil {
+		return fmt.Errorf("worker.PDFGenerate.RenderItineraryQuote(quote=%d): %w", p.EntityID, err)
+	}
+	pdfBytes, err := gen.Render(ctx, pdf.RenderRequest{HTML: html, PaperFormat: "A4"})
+	if err != nil {
+		if errors.Is(err, pdf.ErrPDFUnavailable) {
+			// Local mode: no sidecar. Skip storage; pdf_key stays NULL.
+			log.Printf("worker.PDFGenerate: local mode, skipping itinerary_quote=%d", p.EntityID)
+			return nil
+		}
+		return fmt.Errorf("worker.PDFGenerate.Render(quote=%d): %w", p.EntityID, err)
+	}
+	// Store the PDF. Key mirrors the cert convention under pdf/itineraries/.
+	// Keyed on request_id (one active quote per request → one PDF per request).
+	key := fmt.Sprintf("pdf/itineraries/%d.pdf", q.RequestID)
+	if err := store.Put(ctx, key, bytes.NewReader(pdfBytes), "application/pdf"); err != nil {
+		return fmt.Errorf("worker.PDFGenerate.Put(quote=%d): %w", p.EntityID, err)
+	}
+	if err := itinRepo.SetQuotePDFKey(ctx, p.EntityID, key); err != nil {
+		return fmt.Errorf("worker.PDFGenerate.SetQuotePDFKey(quote=%d): %w", p.EntityID, err)
+	}
+	log.Printf("worker.PDFGenerate: rendered itinerary_quote=%d → %s (%d bytes)", p.EntityID, key, len(pdfBytes))
+	return nil
 }

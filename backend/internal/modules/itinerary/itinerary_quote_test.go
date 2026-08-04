@@ -297,3 +297,118 @@ func TestPayDeposit_OwnershipAndStatus(t *testing.T) {
 // keep decimal referenced (the fx service uses it; this guards against an
 // unused-import false positive if the helper signatures change).
 var _ = decimal.Zero
+
+// pdfEnqueuerCapture records the last EnqueuePDFGenerate call (kind, entityID,
+// locale) so a test can assert the quote-send path enqueues the right job.
+type pdfEnqueuerCapture struct {
+	called   bool
+	kind     string
+	entityID int64
+	locale   string
+}
+
+func (m *pdfEnqueuerCapture) EnqueuePDFGenerate(ctx context.Context, kind string, entityID int64, locale string) error {
+	m.called = true
+	m.kind = kind
+	m.entityID = entityID
+	m.locale = locale
+	return nil
+}
+
+// TestSendQuote_EnqueuesPDF verifies SendQuote enqueues a pdf:generate job
+// for the newly created quote with kind="itinerary_quote" + the request's
+// locale (TDD §12, M3 #4). Best-effort: a nil enqueuer must not panic.
+func TestSendQuote_EnqueuesPDF(t *testing.T) {
+	pool := testutil.NewDBPool(t)
+	ctx := context.Background()
+	repo := itinerary.NewRepository(pool)
+	uid := seedUser(t, pool, "q-pdf@t.test")
+	seedFXRate(t, pool, "USD", "7.09832850")
+	seedOptionRate(t, pool, "hotel-comfort", 40000, "per_person", "Comfort hotel")
+	fxs := newFXService(t, pool)
+	svc := itinerary.NewService(repo, nil, nil, nil, fxs, "mock")
+	capture := &pdfEnqueuerCapture{}
+	svc.SetPDFEnqueuer(capture)
+
+	reqID := seedProcessingRequest(t, pool, uid)
+	q, err := svc.SendQuote(ctx, reqID, models.SendQuoteRequest{
+		LineItems: []models.QuoteLineItemInput{{OptionKey: "hotel-comfort", Qty: 2}},
+		Currency:  "USD",
+	})
+	require.NoError(t, err)
+
+	require.True(t, capture.called, "SendQuote should enqueue a pdf:generate job")
+	require.Equal(t, "itinerary_quote", capture.kind)
+	require.Equal(t, q.ID, capture.entityID, "entityID should be the new quote ID")
+	require.Equal(t, "en-US", capture.locale, "locale should come from the request")
+}
+
+// TestSendQuote_NilPDFEnqueuerNoPanic verifies a nil enqueuer (the worker-side
+// service, or a test that doesn't wire one) doesn't panic SendQuote.
+func TestSendQuote_NilPDFEnqueuerNoPanic(t *testing.T) {
+	pool := testutil.NewDBPool(t)
+	ctx := context.Background()
+	repo := itinerary.NewRepository(pool)
+	uid := seedUser(t, pool, "q-pdf-nil@t.test")
+	seedFXRate(t, pool, "USD", "7.09832850")
+	seedOptionRate(t, pool, "hotel-comfort", 40000, "per_person", "Comfort hotel")
+	fxs := newFXService(t, pool)
+	svc := itinerary.NewService(repo, nil, nil, nil, fxs, "mock") // no SetPDFEnqueuer
+	reqID := seedProcessingRequest(t, pool, uid)
+	_, err := svc.SendQuote(ctx, reqID, models.SendQuoteRequest{
+		LineItems: []models.QuoteLineItemInput{{OptionKey: "hotel-comfort", Qty: 2}},
+		Currency:  "USD",
+	})
+	require.NoError(t, err)
+}
+
+// TestSetQuotePDFKey_Persists verifies the repo round-trips pdf_key: NULL on
+// create, set by SetQuotePDFKey, cleared on re-quote (ON CONFLICT).
+func TestSetQuotePDFKey_Persists(t *testing.T) {
+	pool := testutil.NewDBPool(t)
+	ctx := context.Background()
+	repo := itinerary.NewRepository(pool)
+	uid := seedUser(t, pool, "q-pdfkey@t.test")
+	seedFXRate(t, pool, "USD", "7.09832850")
+	seedOptionRate(t, pool, "hotel-comfort", 40000, "per_person", "Comfort hotel")
+	fxs := newFXService(t, pool)
+	svc := itinerary.NewService(repo, nil, nil, nil, fxs, "mock")
+
+	reqID := seedProcessingRequest(t, pool, uid)
+	q, err := svc.SendQuote(ctx, reqID, models.SendQuoteRequest{
+		LineItems: []models.QuoteLineItemInput{{OptionKey: "hotel-comfort", Qty: 2}},
+		Currency:  "USD",
+	})
+	require.NoError(t, err)
+
+	// pdf_key starts NULL.
+	reloaded, err := repo.GetQuoteByID(ctx, q.ID)
+	require.NoError(t, err)
+	require.Nil(t, reloaded.PDFKey)
+
+	// Set it (worker render path).
+	require.NoError(t, repo.SetQuotePDFKey(ctx, q.ID, "pdf/itineraries/42.pdf"))
+	reloaded, err = repo.GetQuoteByID(ctx, q.ID)
+	require.NoError(t, err)
+	require.NotNil(t, reloaded.PDFKey)
+	require.Equal(t, "pdf/itineraries/42.pdf", *reloaded.PDFKey)
+
+	// Re-quote clears pdf_key (ON CONFLICT ... pdf_key = NULL).
+	_, err = svc.SendQuote(ctx, reqID, models.SendQuoteRequest{
+		LineItems: []models.QuoteLineItemInput{{OptionKey: "hotel-comfort", Qty: 3}},
+		Currency:  "USD",
+	})
+	require.NoError(t, err)
+	reloaded2, err := repo.GetQuoteByRequestID(ctx, reqID)
+	require.NoError(t, err)
+	require.Nil(t, reloaded2.PDFKey, "re-quote must clear the stale pdf_key")
+}
+
+// TestSetQuotePDFKey_NotFound verifies SetQuotePDFKey on a missing quote →
+// ErrNotFound (mirrors the cert repo's SetPDFKey contract).
+func TestSetQuotePDFKey_NotFound(t *testing.T) {
+	pool := testutil.NewDBPool(t)
+	repo := itinerary.NewRepository(pool)
+	err := repo.SetQuotePDFKey(context.Background(), 999999, "pdf/itineraries/x.pdf")
+	require.ErrorIs(t, err, models.ErrNotFound)
+}

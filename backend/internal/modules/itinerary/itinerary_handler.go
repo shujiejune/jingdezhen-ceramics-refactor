@@ -4,6 +4,7 @@ import (
 	"encoding/csv"
 	"errors"
 	"jingdezhen-ceramics-backend/internal/models"
+	"jingdezhen-ceramics-backend/pkg/adapters/storage"
 	"jingdezhen-ceramics-backend/pkg/utils"
 	"log"
 	"strconv"
@@ -16,11 +17,12 @@ import (
 // Handler handles HTTP requests for the itinerary wizard (PRD §3.3.2, TDD §5.2).
 type Handler struct {
 	service  ServiceInterface
+	store    storage.Store // resolves quote pdf_key → public URL (local path or CDN)
 	validate *validator.Validate
 }
 
-func NewHandler(service ServiceInterface) *Handler {
-	return &Handler{service: service, validate: validator.New()}
+func NewHandler(service ServiceInterface, store storage.Store) *Handler {
+	return &Handler{service: service, store: store, validate: validator.New()}
 }
 
 // requestLocale returns ?locale= or falls back to Accept-Language (mirrors order).
@@ -502,6 +504,60 @@ func (h *Handler) AdminGetQuote(c *fiber.Ctx) error {
 		return mapItinAdminErr(c, err, "AdminGetQuote")
 	}
 	return c.Status(fiber.StatusOK).JSON(q)
+}
+
+// QuotePDFDownload: GET /itineraries/:id/quote/pdf (signed-in customer).
+// Serves the pre-rendered itinerary-quote PDF. Ownership-checked (mirrors
+// GetQuote). 404 "PDF not yet generated" when pdf_key is NULL (local mode or
+// render pending). ?download=1 forces a Content-Disposition: attachment.
+func (h *Handler) QuotePDFDownload(c *fiber.Ctx) error {
+	userID, err := utils.GetUserIDFromContext(c)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(models.ErrorResponse{Message: "Authentication required"})
+	}
+	id, err := strconv.ParseInt(c.Params("id"), 10, 64)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(models.ErrorResponse{Message: "Invalid itinerary id"})
+	}
+	// Verify ownership (GetMine scopes to the user) before reading the quote.
+	if _, err := h.service.GetMine(c.Context(), userID, id); err != nil {
+		return mapItinAdminErr(c, err, "QuotePDFDownload.Ownership")
+	}
+	q, err := h.service.GetQuote(c.Context(), id)
+	if err != nil {
+		return mapItinAdminErr(c, err, "QuotePDFDownload")
+	}
+	return h.serveQuotePDF(c, q)
+}
+
+// AdminQuotePDFDownload: GET /admin/itineraries/:id/quote/pdf (planner).
+// No ownership check (planner scope). Same 404 + ?download=1 behavior.
+func (h *Handler) AdminQuotePDFDownload(c *fiber.Ctx) error {
+	id, err := strconv.ParseInt(c.Params("id"), 10, 64)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(models.ErrorResponse{Message: "Invalid itinerary id"})
+	}
+	q, err := h.service.GetQuote(c.Context(), id)
+	if err != nil {
+		return mapItinAdminErr(c, err, "AdminQuotePDFDownload")
+	}
+	return h.serveQuotePDF(c, q)
+}
+
+// serveQuotePDF resolves a quote's pdf_key to its public URL + redirects. The
+// filename mirrors the cert convention: itinerary-<request_id>.pdf.
+func (h *Handler) serveQuotePDF(c *fiber.Ctx, q *models.ItineraryQuote) error {
+	if q.PDFKey == nil || *q.PDFKey == "" {
+		return c.Status(fiber.StatusNotFound).JSON(models.ErrorResponse{Message: "PDF not yet generated"})
+	}
+	url := h.store.PublicURL(*q.PDFKey)
+	fname := "itinerary-" + strconv.FormatInt(q.RequestID, 10) + ".pdf"
+	if c.Query("download") == "1" {
+		c.Set("Content-Disposition", `attachment; filename="`+fname+`"`)
+	} else {
+		c.Set("Content-Disposition", `inline; filename="`+fname+`"`)
+	}
+	return c.Redirect(url, fiber.StatusFound)
 }
 
 // AdminConfirm: POST /admin/itineraries/:id/confirm (deposit_paid → confirmed)
