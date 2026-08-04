@@ -68,6 +68,16 @@ type StockCheckPayload struct {
 	SkuIDs  []int64 `json:"sku_ids"`
 }
 
+// PDFGeneratePayload is the body for TypePDFGenerate (TDD §12). Enqueued by the
+// certificate service at issue/regenerate (and the itinerary quote service at
+// confirm). The worker renders the doc via the chromedp adapter + stores the
+// result via the storage adapter, populating the entity's pdf_key.
+type PDFGeneratePayload struct {
+	Kind     string `json:"kind"`      // "certificate" | "itinerary_quote"
+	EntityID int64  `json:"entity_id"` // cert id or quote id
+	Locale   string `json:"locale,omitempty"`
+}
+
 // --- Enqueue helpers (used by the `serve` mode) -----------------------------
 
 // Client wraps asynq.Client for enqueuing jobs. Services depend on this to
@@ -120,6 +130,13 @@ func (c *Client) EnqueueStockCheck(ctx context.Context, p StockCheckPayload) err
 	return c.enqueue(ctx, TypeStockCheck, p, asynq.MaxRetry(5))
 }
 
+// EnqueuePDFGenerate enqueues a PDF render (TDD §12). Retried ×5 — a flaky
+// chromedp sidecar shouldn't lose the doc; the render is idempotent (overwrites
+// the prior pdf_key).
+func (c *Client) EnqueuePDFGenerate(ctx context.Context, p PDFGeneratePayload) error {
+	return c.enqueue(ctx, TypePDFGenerate, p, asynq.MaxRetry(5))
+}
+
 // --- Server / worker (the `worker` mode) -------------------------------------
 
 // Server wraps the Asynq server + mux with the platform's job types.
@@ -147,7 +164,7 @@ type Server struct {
 	SLACheck        func(context.Context) error
 	AnalyticsRollup func(context.Context) error
 	MediaTranscode  func(context.Context) error
-	PDFGenerate     func(context.Context) error
+	PDFGenerate     func(context.Context, PDFGeneratePayload) error
 	SitemapRebuild  func(context.Context) error
 	StockCheck      func(context.Context, StockCheckPayload) error
 }
@@ -195,8 +212,15 @@ func (s *Server) Run(ctx context.Context) error {
 	s.mux.HandleFunc(TypeMediaTranscode, func(_ context.Context, _ *asynq.Task) error {
 		return runNoop(s.MediaTranscode, "media:transcode")
 	})
-	s.mux.HandleFunc(TypePDFGenerate, func(_ context.Context, _ *asynq.Task) error {
-		return runNoop(s.PDFGenerate, "pdf:generate")
+	s.mux.HandleFunc(TypePDFGenerate, func(_ context.Context, t *asynq.Task) error {
+		var p PDFGeneratePayload
+		if err := json.Unmarshal(t.Payload(), &p); err != nil {
+			return fmt.Errorf("jobs: unmarshal %s: %w", TypePDFGenerate, err)
+		}
+		if s.PDFGenerate == nil {
+			return nil // no-op when not wired (e.g. serve mode)
+		}
+		return s.PDFGenerate(context.Background(), p)
 	})
 	s.mux.HandleFunc(TypeSitemapRebuild, func(_ context.Context, _ *asynq.Task) error {
 		return runNoop(s.SitemapRebuild, "sitemap:rebuild")

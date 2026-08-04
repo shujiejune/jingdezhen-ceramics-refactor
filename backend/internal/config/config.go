@@ -77,6 +77,18 @@ type Config struct {
 	StoragePublicBaseURL string `mapstructure:"STORAGE_PUBLIC_BASE_URL"` // e.g. /media or https://cdn...com
 	OSSPublicBaseURL   string `mapstructure:"OSS_PUBLIC_BASE_URL"`   // CDN domain override (empty = bucket URL)
 
+	// --- PDF adapter (TDD §12: chromedp HTML→PDF) ---
+	// PDF_MODE=local (dev default): NoopGenerator returns ErrPDFUnavailable so the
+	//   worker skips storage + pdf_key stays NULL (the download endpoint 404s).
+	//   Dev + tests never need the sidecar. "chromedp": ChromedpGenerator connects
+	//   to a headless-shell sidecar at CHROMEDP_URL (ws://chromedp:9222) over the
+	//   DevTools remote protocol. PDF_BASE_URL is the origin the sidecar fetches
+	//   <img> assets from (e.g. the QR at GET /certificates/:code/qr), reachable
+	//   over the compose network — http://api:<port> inside compose.
+	PDFMode     string `mapstructure:"PDF_MODE"`      // local | chromedp
+	ChromedpURL string `mapstructure:"CHROMEDP_URL"`  // ws://chromedp:9222
+	PDFBaseURL  string `mapstructure:"PDF_BASE_URL"` // http://api:1323 (asset origin)
+
 	// --- FX pipeline (TDD §7, PRD §3.2.3) ---
 	// ECB_API_URL empty => fixture rates in dev (TDD §4.1). FX_MARKUP_BPS is
 	// basis points (200 = 2%); will move to a CMS settings table post-MVP.
@@ -124,5 +136,9 @@ func init() {
 	viper.SetDefault("STORAGE_MODE", "local")
 	viper.SetDefault("STORAGE_LOCAL_DIR", "./_media")
 	viper.SetDefault("STORAGE_PUBLIC_BASE_URL", "/media")
+
+	// PDF adapter (TDD §12). Dev default = local (noop) so the sidecar isn't
+	// required to run the app or tests.
+	viper.SetDefault("PDF_MODE", "local")
 	viper.SetDefault("OSS_PUBLIC_BASE_URL", "") // empty = bucket URL
 }

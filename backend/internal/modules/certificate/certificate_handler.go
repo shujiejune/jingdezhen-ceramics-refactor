@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"jingdezhen-ceramics-backend/internal/models"
+	"jingdezhen-ceramics-backend/pkg/adapters/storage"
 	"jingdezhen-ceramics-backend/pkg/utils"
 	"log"
 	"strconv"
@@ -16,11 +17,12 @@ import (
 // Handler handles certificate endpoints (PRD §3.2.1).
 type Handler struct {
 	service  ServiceInterface
+	store    storage.Store // resolves pdf_key → public URL (local path or CDN)
 	validate *validator.Validate
 }
 
-func NewHandler(service ServiceInterface) *Handler {
-	return &Handler{service: service, validate: validator.New()}
+func NewHandler(service ServiceInterface, store storage.Store) *Handler {
+	return &Handler{service: service, store: store, validate: validator.New()}
 }
 
 func requestLocale(c *fiber.Ctx) string {
@@ -87,6 +89,42 @@ func (h *Handler) QRCode(c *fiber.Ctx) error {
 }
 
 // --- Admin ---
+
+// PDFDownload: GET /certificates/:code/pdf (public, no auth — PRD §3.2.1).
+// Serves the pre-rendered certificate PDF. The PDF is generated asynchronously
+// (pdf:generate job at issue/regenerate) + stored via the storage adapter; this
+// endpoint resolves the stored pdf_key to its public URL (CDN or local path).
+// ?download=1 forces a Content-Disposition: attachment (otherwise inline).
+//
+// 404 + a clear message when pdf_key is NULL: in local mode (NoopGenerator)
+// no PDF is ever generated, so the endpoint 404s gracefully; the QR + JSON
+// cert endpoints still work. A planner can trigger regeneration in chromedp
+// mode to (re)render.
+func (h *Handler) PDFDownload(c *fiber.Ctx) error {
+	code := c.Params("code")
+	if code == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(models.ErrorResponse{Message: "Certificate code is required"})
+	}
+	cert, err := h.service.GetByCode(c.Context(), code, "en-US")
+	if err != nil {
+		if errors.Is(err, models.ErrNotFound) {
+			return c.Status(fiber.StatusNotFound).JSON(models.ErrorResponse{Message: "Certificate not found"})
+		}
+		log.Printf("Handler.PDFDownload: %v", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(models.ErrorResponse{Message: "Failed to retrieve certificate"})
+	}
+	if cert.PDFKey == nil || *cert.PDFKey == "" {
+		return c.Status(fiber.StatusNotFound).JSON(models.ErrorResponse{Message: "PDF not yet generated"})
+	}
+	url := h.store.PublicURL(*cert.PDFKey)
+	if c.Query("download") == "1" {
+		c.Set("Content-Disposition", `attachment; filename="JDZ-`+code+`.pdf"`)
+	} else {
+		c.Set("Content-Disposition", `inline; filename="JDZ-`+code+`.pdf"`)
+	}
+	// Redirect to the storage URL (CDN in OSS mode; local static path in dev).
+	return c.Redirect(url, fiber.StatusFound)
+}
 
 func (h *Handler) ListCertificates(c *fiber.Ctx) error {
 	page, limit := utils.GetPageLimit(c)

@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/url"
@@ -32,11 +34,13 @@ import (
 	"jingdezhen-ceramics-backend/internal/modules/certificate"
 	"jingdezhen-ceramics-backend/internal/modules/media"
 	"jingdezhen-ceramics-backend/internal/modules/itinerary"
+	"jingdezhen-ceramics-backend/pkg/adapters/pdf"
 	"jingdezhen-ceramics-backend/pkg/adapters/payments"
 	"jingdezhen-ceramics-backend/pkg/adapters/certchain"
 	"jingdezhen-ceramics-backend/pkg/adapters/storage"
 	"jingdezhen-ceramics-backend/internal/platform/fx"
 	"jingdezhen-ceramics-backend/internal/platform/jobs"
+	"jingdezhen-ceramics-backend/internal/platform/pdftmpl"
 	platformredis "jingdezhen-ceramics-backend/internal/platform/redis"
 	"jingdezhen-ceramics-backend/internal/ws"
 	"jingdezhen-ceramics-backend/pkg/email"
@@ -155,6 +159,14 @@ func (r itinConsentRecorder) RecordConsent(ctx context.Context, userID string, k
 		Kind: kind, DocVersion: "v1", Granted: true,
 	})
 	return err
+}
+
+// certPDFEnqueuer adapts jobs.Client → certificate.PDFEnqueuer (serve mode
+// enqueues pdf:generate at cert issue/regenerate; the worker renders).
+type certPDFEnqueuer struct{ c *jobs.Client }
+
+func (e certPDFEnqueuer) EnqueuePDFGenerate(ctx context.Context, kind string, entityID int64, locale string) error {
+	return e.c.EnqueuePDFGenerate(ctx, jobs.PDFGeneratePayload{Kind: kind, EntityID: entityID, Locale: locale})
 }
 
 // --- serve mode (API + WebSocket) --------------------------------------------
@@ -367,7 +379,8 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 	productService.SetCertificateIssuer(certService) // auto-issue at create
 	orderService.SetProvenanceRecorder(certService)  // `sold` at MarkPaid
 	orderService.SetStockCheckEnqueuer(orderStockCheckEnqueuer{jobClient}) // low-stock alert at MarkPaid
-	certificateHandler := certificate.NewHandler(certService)
+	// Certificate handler is constructed after the media/storage section below
+	// (it needs storageStore to resolve pdf_key → public URL in PDFDownload).
 
 	// --- Media assets + product gallery (TDD §3.4 line 127/143, PRD §3.2.1) ---
 	// STORAGE_MODE=local (dev): LocalStore writes to a local dir served via a
@@ -392,6 +405,11 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 	mediaService := media.NewService(mediaRepo, storageStore)
 	mediaHandler := media.NewHandler(mediaService, storageStore)
 	productService.SetGalleryLoader(mediaService) // surface gallery on product detail
+
+	// Certificate handler (needs storageStore for PDFDownload → public URL) +
+	// the PDF-enqueue seam (TDD §12: issue/regenerate enqueues pdf:generate).
+	certificateHandler := certificate.NewHandler(certService, storageStore)
+	certService.SetPDFEnqueuer(certPDFEnqueuer{jobClient})
 
 	consentRepo := consent.NewRepository(dbPool)
 	consentService := consent.NewService(consentRepo, []byte(cfg.ConsentHMACKey))
@@ -509,6 +527,14 @@ func runWorker(rootCtx context.Context, cfg config.Config) {
 	wItineraryService := itinerary.NewService(wItinRepo, nil, nil, nil, fxService, cfg.PaymentsMode)
 	wJobClient := jobs.NewClient(redisAddr) // worker-side enqueue (SLA email)
 	wItineraryService.SetDepositFinalizeEnqueuer(paymentEnqueuer{wJobClient})
+
+	// PDF generator (TDD §12). local=Noop (dev, returns ErrPDFUnavailable →
+	// worker skips storage); chromedp=remote-allocator to a headless-shell sidecar.
+	var pdfGenerator pdf.Generator = pdf.NewNoopGenerator()
+	if cfg.PDFMode == "chromedp" {
+		pdfGenerator = pdf.NewChromedpGenerator(cfg.ChromedpURL)
+	}
+
 	jobServer.EmailSend = func(ctx context.Context, p jobs.EmailSendPayload) error {
 		return emailer.SendEmail(ctx, p.To, p.Subject, p.PlainText, p.HTML)
 	}
@@ -639,6 +665,21 @@ func runWorker(rootCtx context.Context, cfg config.Config) {
 		}
 		return nil
 	}
+
+	// pdf:generate (TDD §12 + line 231). Renders a doc via chromedp + stores
+	// via the storage adapter, populating the entity's pdf_key. Best-effort:
+	// a render failure is logged + the job retries (asynq MaxRetry 5). The
+	// NoopGenerator (local mode) returns ErrPDFUnavailable → skip storage.
+	jobServer.PDFGenerate = func(ctx context.Context, p jobs.PDFGeneratePayload) error {
+		switch p.Kind {
+		case "certificate":
+			return renderCertificatePDF(ctx, p, wCertRepo, newWorkerStore(cfg), pdfGenerator, cfg.PDFBaseURL)
+		default:
+			log.Printf("worker.PDFGenerate: unknown kind %q", p.Kind)
+			return nil // don't retry an unknown kind
+		}
+	}
+
 	jobScheduler := jobs.NewScheduler(redisAddr)
 
 	// Feature modules will assign real handlers here, e.g.:
@@ -667,4 +708,79 @@ func runWorker(rootCtx context.Context, cfg config.Config) {
 	}
 
 	log.Println("Worker exiting")
+}
+
+// renderCertificatePDF loads a certificate (locale-joined for the template),
+// renders the HTML via pdftmpl, prints to PDF via the generator, stores the
+// bytes via the storage adapter, and records the resulting key on the cert row
+// (TDD §12). Best-effort: a NoopGenerator (local mode) returns ErrPDFUnavailable
+// → the worker skips storage + pdf_key stays NULL (the download endpoint 404s).
+func renderCertificatePDF(ctx context.Context, p jobs.PDFGeneratePayload,
+	certRepo certificate.RepositoryInterface, store storage.Store,
+	gen pdf.Generator, baseURL string) error {
+	cert, err := certRepo.GetByID(ctx, p.EntityID)
+	if err != nil {
+		return fmt.Errorf("worker.PDFGenerate.GetByID(cert=%d): %w", p.EntityID, err)
+	}
+	// Load the locale-joined display fields (product title, artist) for the
+	// template. GetByCode joins; GetByID does not — re-read via GetByCode.
+	locale := p.Locale
+	if locale == "" {
+		locale = "en-US"
+	}
+	display, err := certRepo.GetByCode(ctx, cert.CertCode, locale)
+	if err != nil {
+		return fmt.Errorf("worker.PDFGenerate.GetByCode(cert=%d): %w", p.EntityID, err)
+	}
+	// The QR <img> URL the sidecar fetches at render time (over the compose
+	// network → the api container). Falls back to the public base if unset.
+	apiBase := baseURL
+	if apiBase == "" {
+		apiBase = "http://localhost:1323"
+	}
+	qrURL := apiBase + "/certificates/" + cert.CertCode + "/qr"
+	html, err := pdftmpl.RenderCertificate(display, apiBase, qrURL, locale)
+	if err != nil {
+		return fmt.Errorf("worker.PDFGenerate.RenderHTML(cert=%d): %w", p.EntityID, err)
+	}
+	pdfBytes, err := gen.Render(ctx, pdf.RenderRequest{
+		HTML: html, PaperFormat: "A4",
+	})
+	if err != nil {
+		if errors.Is(err, pdf.ErrPDFUnavailable) {
+			// Local mode: no sidecar. Skip storage; pdf_key stays NULL.
+			log.Printf("worker.PDFGenerate: local mode, skipping cert=%d", p.EntityID)
+			return nil
+		}
+		return fmt.Errorf("worker.PDFGenerate.Render(cert=%d): %w", p.EntityID, err)
+	}
+	// Store the PDF. Key mirrors the media convention but under pdf/.
+	key := fmt.Sprintf("pdf/certificates/%s.pdf", cert.CertCode)
+	if err := store.Put(ctx, key, bytes.NewReader(pdfBytes), "application/pdf"); err != nil {
+		return fmt.Errorf("worker.PDFGenerate.Put(cert=%d): %w", p.EntityID, err)
+	}
+	if err := certRepo.SetPDFKey(ctx, p.EntityID, key); err != nil {
+		return fmt.Errorf("worker.PDFGenerate.SetPDFKey(cert=%d): %w", p.EntityID, err)
+	}
+	log.Printf("worker.PDFGenerate: rendered cert=%d → %s (%d bytes)", p.EntityID, key, len(pdfBytes))
+	return nil
+}
+
+// newWorkerStore builds a storage.Store for the worker scope (the serve scope
+// builds its own in runServe). The worker only needs Put (render → store) +
+// PublicURL (no presign/upload-handler path). Reuses the same env-flip.
+func newWorkerStore(cfg config.Config) storage.Store {
+	switch cfg.StorageMode {
+	case "oss":
+		return storage.NewOSSStore(
+			cfg.OSSAccessKeyID, cfg.OSSAccessKeySecret, cfg.OSSBucket,
+			cfg.OSSEndpoint, cfg.OSSPublicBaseURL,
+		)
+	default: // "local"
+		ls, err := storage.NewLocalStore(cfg.StorageLocalDir, cfg.StoragePublicBaseURL)
+		if err != nil {
+			log.Printf("worker.newWorkerStore: local store unavailable (%v); PDF Put will fail", err)
+		}
+		return ls
+	}
 }

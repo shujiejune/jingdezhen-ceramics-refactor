@@ -70,6 +70,13 @@ services:
       - OSS_REGION=${OSS_REGION:-cn-hongkong}
       - CONSENT_HMAC_KEY=${CONSENT_HMAC_KEY}
       - TWO_FA_ENCRYPTION_KEY=${TWO_FA_ENCRYPTION_KEY}
+      # PDF engine (TDD §12). local=Noop (dev default, no sidecar needed);
+      # chromedp=connect to the headless-shell sidecar. PDF_BASE_URL is the
+      # origin the sidecar fetches <img> assets (the QR) from — the api
+      # container over the compose network.
+      - PDF_MODE=${PDF_MODE:-local}
+      - CHROMEDP_URL=ws://chromedp:9222
+      - PDF_BASE_URL=http://api:${SERVER_PORT}
     depends_on:
       db:
         condition: service_healthy
@@ -109,6 +116,15 @@ services:
       interval: 2s
       timeout: 5s
       retries: 5
+
+  # chromedp headless-shell sidecar (TDD §12: PDF engine). The worker connects
+  # via the DevTools remote protocol (ws://chromedp:9222) — the Go binary never
+  # bundles Chromium. No host port: only the worker reaches it. Only needed when
+  # PDF_MODE=chromedp; in local mode (dev default) the worker uses NoopGenerator.
+  chromedp:
+    image: chromedp/headless-shell:latest
+    container_name: jdz-chromedp
+    restart: always
 
 volumes:
   postgres_db_data:

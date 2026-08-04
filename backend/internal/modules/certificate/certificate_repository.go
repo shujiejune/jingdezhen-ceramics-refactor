@@ -25,6 +25,9 @@ type RepositoryInterface interface {
 	GetByProductID(ctx context.Context, productID int64) (*models.Certificate, error)
 	// GetByID loads a certificate by id (admin).
 	GetByID(ctx context.Context, id int64) (*models.Certificate, error)
+	// SetPDFKey records the stored PDF oss_key after the worker renders it
+	// (TDD §12). Idempotent: re-renders overwrite the prior key.
+	SetPDFKey(ctx context.Context, certID int64, key string) error
 	// ListAdmin paginates all certificates (admin).
 	ListAdmin(ctx context.Context, page, limit int) ([]models.Certificate, int, error)
 	// RegenerateCode issues a new cert_code for an existing certificate + a
@@ -211,6 +214,19 @@ func (r *Repository) GetByID(ctx context.Context, id int64) (*models.Certificate
 		return nil, fmt.Errorf("certificate.GetByID: %w", err)
 	}
 	return c, nil
+}
+
+// SetPDFKey records the stored PDF oss_key after the worker renders it (TDD §12).
+// Idempotent: a re-render (e.g. Regenerate) overwrites the prior key.
+func (r *Repository) SetPDFKey(ctx context.Context, certID int64, key string) error {
+	cmd, err := r.db.Exec(ctx, `UPDATE certificates SET pdf_key=$2, updated_at=NOW() WHERE id=$1`, certID, key)
+	if err != nil {
+		return fmt.Errorf("certificate.SetPDFKey: %w", err)
+	}
+	if cmd.RowsAffected() == 0 {
+		return models.ErrNotFound
+	}
+	return nil
 }
 
 func (r *Repository) ListAdmin(ctx context.Context, page, limit int) ([]models.Certificate, int, error) {

@@ -188,6 +188,7 @@ func SetupRoutes(
 	   on-demand (no OSS storage needed). */
 	app.Get("/certificates/:code", certificateHandler.GetByCode)
 	app.Get("/certificates/:code/qr", certificateHandler.QRCode)
+	app.Get("/certificates/:code/pdf", certificateHandler.PDFDownload)
 
 	/* --- Wishlist (Protected) — PRD §3.5 --- */
 	/* Favorites are keyed on SKU (the purchasable unit). A customer favorites a

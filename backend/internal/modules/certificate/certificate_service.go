@@ -14,6 +14,14 @@ import (
 // SaleItemSnapshot has moved to internal/models so order + certificate share
 // it without an import edge.
 
+// PDFEnqueuer enqueues a pdf:generate job for a freshly issued/regenerated
+// certificate (TDD §12). Narrow interface so the cert module doesn't import
+// the jobs package (mirrors the order/itinerary enqueuer pattern). Implemented
+// by a jobs.Client adapter in main.go.
+type PDFEnqueuer interface {
+	EnqueuePDFGenerate(ctx context.Context, kind string, entityID int64, locale string) error
+}
+
 // ServiceInterface defines certificate business logic.
 type ServiceInterface interface {
 	// IssueForProduct auto-generates a certificate for a product (PRD §3.2.1:
@@ -38,11 +46,17 @@ type ServiceInterface interface {
 type Service struct {
 	repo  RepositoryInterface
 	chain certchain.Chain
+	pdf   PDFEnqueuer // optional; nil → no PDF job enqueued (worker without the enqueuer)
 }
 
-func NewService(repo RepositoryInterface, chain certchain.Chain) ServiceInterface {
+func NewService(repo RepositoryInterface, chain certchain.Chain) *Service {
 	return &Service{repo: repo, chain: chain}
 }
+
+// SetPDFEnqueuer wires the pdf:generate enqueuer post-construction (the cert
+// service is built in both serve + worker scope; only serve enqueues, the
+// worker renders). Mirrors the order/itinerary setter pattern.
+func (s *Service) SetPDFEnqueuer(e PDFEnqueuer) { s.pdf = e }
 
 func (s *Service) IssueForProduct(ctx context.Context, productID int64) error {
 	code, err := s.repo.NextCode(ctx)
@@ -55,13 +69,23 @@ func (s *Service) IssueForProduct(ctx context.Context, productID int64) error {
 	if _, err := s.chain.RegisterCreation(ctx, code, productID, detail); err != nil {
 		return fmt.Errorf("certificate.IssueForProduct.Chain: %w", err)
 	}
-	if _, err := s.repo.Issue(ctx, productID, code); err != nil {
+	cert, err := s.repo.Issue(ctx, productID, code)
+	if err != nil {
 		// ErrConflict = a cert already exists for the product (idempotent re-call);
 		// surface as a no-op success so the caller's best-effort wrapper is happy.
 		if errors.Is(err, models.ErrConflict) {
 			return nil
 		}
 		return fmt.Errorf("certificate.IssueForProduct.Issue: %w", err)
+	}
+	// Best-effort: enqueue the PDF render (TDD §12). The worker renders via
+	// chromedp + stores via the storage adapter, populating pdf_key. A failure
+	// is logged, never blocks issuance — the cert exists immediately; the PDF
+	// can be regenerated later. Default locale en-US (the cert is locale-neutral).
+	if s.pdf != nil {
+		if err := s.pdf.EnqueuePDFGenerate(ctx, "certificate", cert.ID, "en-US"); err != nil {
+			log.Printf("certificate.IssueForProduct.EnqueuePDF(cert=%d): %v", cert.ID, err)
+		}
 	}
 	return nil
 }
@@ -104,7 +128,17 @@ func (s *Service) GetByID(ctx context.Context, id int64) (*models.Certificate, e
 }
 
 func (s *Service) Regenerate(ctx context.Context, id int64) (string, error) {
-	return s.repo.RegenerateCode(ctx, id)
+	code, err := s.repo.RegenerateCode(ctx, id)
+	if err != nil {
+		return "", err
+	}
+	// Re-enqueue the PDF render to replace the prior pdf_key (best-effort).
+	if s.pdf != nil {
+		if err := s.pdf.EnqueuePDFGenerate(ctx, "certificate", id, "en-US"); err != nil {
+			log.Printf("certificate.Regenerate.EnqueuePDF(cert=%d): %v", id, err)
+		}
+	}
+	return code, nil
 }
 
 func (s *Service) RecordSale(ctx context.Context, orderID int64, items []models.SaleItemSnapshot) error {
