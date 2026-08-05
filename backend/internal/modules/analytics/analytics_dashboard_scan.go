@@ -146,7 +146,7 @@ func scanDailyFunnelItin(ctx context.Context, r *Repository, q string, from, to 
 // `to` (exclusive) in UTC days, filling absent days with zeros.
 func zeroFillTraffic(from, to time.Time, m map[string][3]int64) []models.DailyPoint {
 	var out []models.DailyPoint
-	for d := from.UTC(); !d.Before(to.UTC()); d = d.AddDate(0, 0, 1) {
+	for d := from.UTC(); d.Before(to.UTC()); d = d.AddDate(0, 0, 1) {
 		k := dateDay(d)
 		v := m[k]
 		out = append(out, models.DailyPoint{
@@ -161,7 +161,7 @@ func zeroFillTraffic(from, to time.Time, m map[string][3]int64) []models.DailyPo
 
 func zeroFillSales(from, to time.Time, m map[string][2]int64) []models.SalesDailyPoint {
 	var out []models.SalesDailyPoint
-	for d := from.UTC(); !d.Before(to.UTC()); d = d.AddDate(0, 0, 1) {
+	for d := from.UTC(); d.Before(to.UTC()); d = d.AddDate(0, 0, 1) {
 		k := dateDay(d)
 		v := m[k]
 		out = append(out, models.SalesDailyPoint{Date: k, GMVCny: v[0], Orders: v[1]})
@@ -171,7 +171,7 @@ func zeroFillSales(from, to time.Time, m map[string][2]int64) []models.SalesDail
 
 func zeroFillFunnel(from, to time.Time, views, submitted, confirmed map[string]int64) []models.FunnelDailyPoint {
 	var out []models.FunnelDailyPoint
-	for d := from.UTC(); !d.Before(to.UTC()); d = d.AddDate(0, 0, 1) {
+	for d := from.UTC(); d.Before(to.UTC()); d = d.AddDate(0, 0, 1) {
 		k := dateDay(d)
 		out = append(out, models.FunnelDailyPoint{
 			Date:      k,

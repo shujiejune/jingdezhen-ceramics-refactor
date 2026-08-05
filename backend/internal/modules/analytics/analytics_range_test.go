@@ -102,3 +102,21 @@ func TestPct(t *testing.T) {
 	assert.Equal(t, 100.0, pct(2, 2))
 	assert.Equal(t, 0.0, pct(5, 0))
 }
+
+// TestZeroFill_LoopDirection guards against the inverted-loop-condition bug
+// (the loop must iterate while d < to, not while d >= to). No Docker needed.
+func TestZeroFill_LoopDirection(t *testing.T) {
+	from := time.Date(2026, 8, 1, 0, 0, 0, 0, time.UTC)
+	to := time.Date(2026, 8, 4, 0, 0, 0, 0, time.UTC) // 3 days
+
+	traffic := zeroFillTraffic(from, to, nil)
+	assert.Len(t, traffic, 3)
+	assert.Equal(t, "2026-08-01", traffic[0].Date)
+	assert.Equal(t, "2026-08-03", traffic[2].Date)
+
+	sales := zeroFillSales(from, to, nil)
+	assert.Len(t, sales, 3)
+
+	funnel := zeroFillFunnel(from, to, nil, nil, nil)
+	assert.Len(t, funnel, 3)
+}
