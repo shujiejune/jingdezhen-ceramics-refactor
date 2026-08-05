@@ -36,6 +36,7 @@ func dashDB(t *testing.T) (*pgxpool.Pool, time.Time, time.Time) {
 	t.Helper()
 	db := testutil.NewDBPool(t)
 	ctx := context.Background()
+	uid := seedCustomerUUID(t, db) // one customer for all orders + itinerary
 
 	// --- seed products, skus, artists (minimal columns) ---
 	_, err := db.Exec(ctx, `
@@ -73,7 +74,7 @@ func dashDB(t *testing.T) (*pgxpool.Pool, time.Time, time.Time) {
 		VALUES (1, $1, 'paid', 'USD', 1400, 100, 1500, 1000, 70, 1070,
 			'{"country":"US"}'::jsonb, $2, $2);
 		INSERT INTO order_items (order_id, sku_id, qty, unit_price_minor, unit_price_cny)
-		VALUES (1, 1, 2, 700, 500);`, seedCustomerUUID(t, db), time.Date(2026, 8, 1, 12, 0, 0, 0, time.UTC))
+		VALUES (1, 1, 2, 700, 500);`, uid, time.Date(2026, 8, 1, 12, 0, 0, 0, time.UTC))
 	require.NoError(t, err)
 
 	// Day2: cancelled (excluded from GMV).
@@ -81,7 +82,7 @@ func dashDB(t *testing.T) (*pgxpool.Pool, time.Time, time.Time) {
 		INSERT INTO orders (id, user_id, status, currency, subtotal_minor, shipping_minor, total_minor,
 		                    subtotal_cny, shipping_cny, total_cny, address, placed_at, cancelled_at)
 		VALUES (2, $1, 'cancelled', 'EUR', 2800, 0, 2800, 2000, 0, 2000,
-			'{"country":"DE"}'::jsonb, $2, $2);`, seedCustomerUUID(t, db), time.Date(2026, 8, 2, 12, 0, 0, 0, time.UTC))
+			'{"country":"DE"}'::jsonb, $2, $2);`, uid, time.Date(2026, 8, 2, 12, 0, 0, 0, time.UTC))
 	require.NoError(t, err)
 
 	// Day3: completed, USD, country US, subtotal_cny=4000, item sku2×1 @4000.
@@ -91,7 +92,7 @@ func dashDB(t *testing.T) (*pgxpool.Pool, time.Time, time.Time) {
 		VALUES (3, $1, 'completed', 'USD', 5600, 0, 5600, 4000, 0, 4000,
 			'{"country":"US"}'::jsonb, $2, $2);
 		INSERT INTO order_items (order_id, sku_id, qty, unit_price_minor, unit_price_cny)
-		VALUES (3, 2, 1, 5600, 4000);`, seedCustomerUUID(t, db), time.Date(2026, 8, 3, 12, 0, 0, 0, time.UTC))
+		VALUES (3, 2, 1, 5600, 4000);`, uid, time.Date(2026, 8, 3, 12, 0, 0, 0, time.UTC))
 	require.NoError(t, err)
 
 	// --- itinerary_requests (day1 submitted+confirmed, day2 submitted) ---
@@ -102,7 +103,7 @@ func dashDB(t *testing.T) (*pgxpool.Pool, time.Time, time.Time) {
 			'{"channel":"email"}'::jsonb, 'en-US', $2, $2),
 			($1, 'pending', 2, 1, 'relaxed', '[]'::jsonb, '{}'::jsonb, '{}'::jsonb,
 			'{"channel":"email"}'::jsonb, 'zh-CN', $3, $3);`,
-		seedCustomerUUID(t, db),
+		uid,
 		time.Date(2026, 8, 1, 12, 0, 0, 0, time.UTC),
 		time.Date(2026, 8, 2, 12, 0, 0, 0, time.UTC))
 	require.NoError(t, err)
@@ -112,13 +113,15 @@ func dashDB(t *testing.T) (*pgxpool.Pool, time.Time, time.Time) {
 	return db, from, to
 }
 
-// seedCustomerUUID creates a minimal user row (orders/itinerary FK) + returns its UUID.
+// seedCustomerUUID creates a minimal customer user row (orders/itinerary FK) +
+// returns its UUID. Customers are users WITHOUT a user_roles row (per the RBAC
+// design — migration 000002). No `role` column on users.
 func seedCustomerUUID(t *testing.T, db *pgxpool.Pool) string {
 	t.Helper()
 	var id string
 	err := db.QueryRow(context.Background(), `
-		INSERT INTO users (email, password_hash, role, is_active)
-		VALUES ('dash-test@jingdezhen.test', 'x', 'customer', true)
+		INSERT INTO users (nickname, email, password_hash, is_active, auth_provider)
+		VALUES ('Dash Test', 'dash-test@jingdezhen.test', 'x', true, 'email')
 		RETURNING id::text`).Scan(&id)
 	require.NoError(t, err)
 	return id
