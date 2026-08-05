@@ -15,6 +15,423 @@
     },
     "basePath": "/",
     "paths": {
+        "/cart": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns the signed-in user's cart, enriched with display info\nfor the requested locale. Optional ?currency= adds presentment\ntotals + per-line presentment prices (USD/EUR/GBP; FX-snapshotted).\nStock is advisory at this stage (authoritative decrement at checkout).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cart"
+                ],
+                "summary": "Get the current user's cart",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer \u003caccess_token\u003e",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "default": "\"en-US\"",
+                        "description": "BCP 47 locale (e.g. en-US). Overrides Accept-Language.",
+                        "name": "locale",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Presentment currency (USD/EUR/GBP). Adds presentment totals + per-line prices.",
+                        "name": "currency",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.Cart"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/cart/items": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Adds a SKU to the cart. POST is additive: the existing qty for\nthis SKU is incremented by qty (defaults to 1). A qty exceeding\navailable stock returns 409 (advisory; authoritative decrement\nis at checkout).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cart"
+                ],
+                "summary": "Add an item to the cart",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer \u003caccess_token\u003e",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "Item to add (qty optional, defaults to 1)",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.AddCartItemRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created (empty body)"
+                    },
+                    "400": {
+                        "description": "Invalid body / validation / qty \u003c 1",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "SKU not in cart or does not exist",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Quantity exceeds available stock",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Removes all listed SKUs from the cart. Returns the count removed.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cart"
+                ],
+                "summary": "Bulk-remove items from the cart",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer \u003caccess_token\u003e",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "SKU IDs to remove (min 1)",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.BulkRemoveRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "{\"removed\": \u003ccount\u003e}",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid body / validation (min 1 SKU ID)",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/cart/items/{sku_id}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Removes a SKU from the cart entirely (not a decrement).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cart"
+                ],
+                "summary": "Remove an item from the cart",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer \u003caccess_token\u003e",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "SKU ID",
+                        "name": "sku_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content (empty body)"
+                    },
+                    "400": {
+                        "description": "Invalid SKU ID",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "SKU not in cart or does not exist",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Sets the quantity for a SKU in the cart to exactly qty (absolute,\nnot additive). A qty exceeding available stock returns 409.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cart"
+                ],
+                "summary": "Set a cart item's quantity",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer \u003caccess_token\u003e",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "SKU ID",
+                        "name": "sku_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "New quantity (absolute set, must be \u003e= 1)",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.UpdateCartItemRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content (empty body)"
+                    },
+                    "400": {
+                        "description": "Invalid SKU ID / body / validation / qty \u003c 1",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "SKU not in cart or does not exist",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Quantity exceeds available stock",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/cart/merge": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Merges a guest localStorage cart (posted on login) into the\nsigned-in user's server cart. Each guest item is upserted\nadditively, capped at the SKU's stock. Returns the merged cart\n(same shape as GET /cart). Optional ?currency= adds presentment.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cart"
+                ],
+                "summary": "Merge a guest cart into the server cart",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer \u003caccess_token\u003e",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "default": "\"en-US\"",
+                        "description": "BCP 47 locale (e.g. en-US). Overrides Accept-Language.",
+                        "name": "locale",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Presentment currency (USD/EUR/GBP).",
+                        "name": "currency",
+                        "in": "query"
+                    },
+                    {
+                        "description": "Guest cart items to merge",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.MergeCartRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.Cart"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid body / validation",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/catalog/categories": {
             "get": {
                 "description": "Distinct categories across published products (bare strings for MVP).",
@@ -236,6 +653,123 @@
         }
     },
     "definitions": {
+        "jingdezhen-ceramics-backend_internal_models.AddCartItemRequest": {
+            "type": "object",
+            "required": [
+                "sku_id"
+            ],
+            "properties": {
+                "qty": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "sku_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "jingdezhen-ceramics-backend_internal_models.BulkRemoveRequest": {
+            "type": "object",
+            "required": [
+                "sku_ids"
+            ],
+            "properties": {
+                "sku_ids": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "integer"
+                    }
+                }
+            }
+        },
+        "jingdezhen-ceramics-backend_internal_models.Cart": {
+            "type": "object",
+            "properties": {
+                "currency": {
+                    "description": "ISO 4217 (when ?currency=)",
+                    "type": "string"
+                },
+                "item_count": {
+                    "description": "sum of distinct SKUs (not sum of qty)",
+                    "type": "integer"
+                },
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.CartItem"
+                    }
+                },
+                "total": {
+                    "description": "presentment minor units (when ?currency=)",
+                    "type": "integer"
+                },
+                "total_cny": {
+                    "description": "sum of line_total_cny, minor units (fen)",
+                    "type": "integer"
+                }
+            }
+        },
+        "jingdezhen-ceramics-backend_internal_models.CartItem": {
+            "type": "object",
+            "properties": {
+                "added_at": {
+                    "type": "string"
+                },
+                "artist_name": {
+                    "type": "string"
+                },
+                "attributes": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "line_total": {
+                    "description": "presentment minor units",
+                    "type": "integer"
+                },
+                "line_total_cny": {
+                    "description": "unit_price_cny * qty",
+                    "type": "integer"
+                },
+                "product_id": {
+                    "type": "integer"
+                },
+                "product_slug": {
+                    "type": "string"
+                },
+                "product_title": {
+                    "type": "string"
+                },
+                "qty": {
+                    "type": "integer"
+                },
+                "sku_code": {
+                    "type": "string"
+                },
+                "sku_id": {
+                    "type": "integer"
+                },
+                "stock": {
+                    "type": "integer"
+                },
+                "thumbnail_url": {
+                    "type": "string"
+                },
+                "unit_price": {
+                    "description": "Presentment-currency fields (populated when ?currency= is supplied).",
+                    "type": "integer"
+                },
+                "unit_price_cny": {
+                    "description": "minor units (fen)",
+                    "type": "integer"
+                },
+                "weight_grams": {
+                    "type": "integer"
+                }
+            }
+        },
         "jingdezhen-ceramics-backend_internal_models.ContentStatus": {
             "type": "string",
             "enum": [
@@ -305,6 +839,33 @@
                 },
                 "width": {
                     "type": "integer"
+                }
+            }
+        },
+        "jingdezhen-ceramics-backend_internal_models.MergeCartItem": {
+            "type": "object",
+            "required": [
+                "qty",
+                "sku_id"
+            ],
+            "properties": {
+                "qty": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "sku_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "jingdezhen-ceramics-backend_internal_models.MergeCartRequest": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.MergeCartItem"
+                    }
                 }
             }
         },
@@ -526,6 +1087,18 @@
                 },
                 "product_count": {
                     "type": "integer"
+                }
+            }
+        },
+        "jingdezhen-ceramics-backend_internal_models.UpdateCartItemRequest": {
+            "type": "object",
+            "required": [
+                "qty"
+            ],
+            "properties": {
+                "qty": {
+                    "type": "integer",
+                    "minimum": 1
                 }
             }
         }

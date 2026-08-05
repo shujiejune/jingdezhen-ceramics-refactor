@@ -1,5 +1,85 @@
 basePath: /
 definitions:
+  jingdezhen-ceramics-backend_internal_models.AddCartItemRequest:
+    properties:
+      qty:
+        minimum: 1
+        type: integer
+      sku_id:
+        type: integer
+    required:
+    - sku_id
+    type: object
+  jingdezhen-ceramics-backend_internal_models.BulkRemoveRequest:
+    properties:
+      sku_ids:
+        items:
+          type: integer
+        minItems: 1
+        type: array
+    required:
+    - sku_ids
+    type: object
+  jingdezhen-ceramics-backend_internal_models.Cart:
+    properties:
+      currency:
+        description: ISO 4217 (when ?currency=)
+        type: string
+      item_count:
+        description: sum of distinct SKUs (not sum of qty)
+        type: integer
+      items:
+        items:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.CartItem'
+        type: array
+      total:
+        description: presentment minor units (when ?currency=)
+        type: integer
+      total_cny:
+        description: sum of line_total_cny, minor units (fen)
+        type: integer
+    type: object
+  jingdezhen-ceramics-backend_internal_models.CartItem:
+    properties:
+      added_at:
+        type: string
+      artist_name:
+        type: string
+      attributes:
+        items:
+          type: integer
+        type: array
+      line_total:
+        description: presentment minor units
+        type: integer
+      line_total_cny:
+        description: unit_price_cny * qty
+        type: integer
+      product_id:
+        type: integer
+      product_slug:
+        type: string
+      product_title:
+        type: string
+      qty:
+        type: integer
+      sku_code:
+        type: string
+      sku_id:
+        type: integer
+      stock:
+        type: integer
+      thumbnail_url:
+        type: string
+      unit_price:
+        description: Presentment-currency fields (populated when ?currency= is supplied).
+        type: integer
+      unit_price_cny:
+        description: minor units (fen)
+        type: integer
+      weight_grams:
+        type: integer
+    type: object
   jingdezhen-ceramics-backend_internal_models.ContentStatus:
     enum:
     - draft
@@ -51,6 +131,24 @@ definitions:
         type: string
       width:
         type: integer
+    type: object
+  jingdezhen-ceramics-backend_internal_models.MergeCartItem:
+    properties:
+      qty:
+        minimum: 1
+        type: integer
+      sku_id:
+        type: integer
+    required:
+    - qty
+    - sku_id
+    type: object
+  jingdezhen-ceramics-backend_internal_models.MergeCartRequest:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.MergeCartItem'
+        type: array
     type: object
   jingdezhen-ceramics-backend_internal_models.PaginatedResponse:
     properties:
@@ -213,6 +311,14 @@ definitions:
       product_count:
         type: integer
     type: object
+  jingdezhen-ceramics-backend_internal_models.UpdateCartItemRequest:
+    properties:
+      qty:
+        minimum: 1
+        type: integer
+    required:
+    - qty
+    type: object
 info:
   contact:
     name: Jingdezhen Ceramics Platform Team
@@ -226,6 +332,291 @@ info:
   title: Jingdezhen Ceramics Platform API
   version: "1.0"
 paths:
+  /cart:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Returns the signed-in user's cart, enriched with display info
+        for the requested locale. Optional ?currency= adds presentment
+        totals + per-line presentment prices (USD/EUR/GBP; FX-snapshotted).
+        Stock is advisory at this stage (authoritative decrement at checkout).
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - default: '"en-US"'
+        description: BCP 47 locale (e.g. en-US). Overrides Accept-Language.
+        in: query
+        name: locale
+        type: string
+      - description: Presentment currency (USD/EUR/GBP). Adds presentment totals +
+          per-line prices.
+        in: query
+        name: currency
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.Cart'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get the current user's cart
+      tags:
+      - cart
+  /cart/items:
+    delete:
+      consumes:
+      - application/json
+      description: Removes all listed SKUs from the cart. Returns the count removed.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: SKU IDs to remove (min 1)
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.BulkRemoveRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: '{"removed": <count>}'
+          schema:
+            type: object
+        "400":
+          description: Invalid body / validation (min 1 SKU ID)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Bulk-remove items from the cart
+      tags:
+      - cart
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Adds a SKU to the cart. POST is additive: the existing qty for
+        this SKU is incremented by qty (defaults to 1). A qty exceeding
+        available stock returns 409 (advisory; authoritative decrement
+        is at checkout).
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Item to add (qty optional, defaults to 1)
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.AddCartItemRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created (empty body)
+        "400":
+          description: Invalid body / validation / qty < 1
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: SKU not in cart or does not exist
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "409":
+          description: Quantity exceeds available stock
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Add an item to the cart
+      tags:
+      - cart
+  /cart/items/{sku_id}:
+    delete:
+      consumes:
+      - application/json
+      description: Removes a SKU from the cart entirely (not a decrement).
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: SKU ID
+        in: path
+        name: sku_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content (empty body)
+        "400":
+          description: Invalid SKU ID
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: SKU not in cart or does not exist
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Remove an item from the cart
+      tags:
+      - cart
+    patch:
+      consumes:
+      - application/json
+      description: |-
+        Sets the quantity for a SKU in the cart to exactly qty (absolute,
+        not additive). A qty exceeding available stock returns 409.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: SKU ID
+        in: path
+        name: sku_id
+        required: true
+        type: integer
+      - description: New quantity (absolute set, must be >= 1)
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.UpdateCartItemRequest'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content (empty body)
+        "400":
+          description: Invalid SKU ID / body / validation / qty < 1
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: SKU not in cart or does not exist
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "409":
+          description: Quantity exceeds available stock
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Set a cart item's quantity
+      tags:
+      - cart
+  /cart/merge:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Merges a guest localStorage cart (posted on login) into the
+        signed-in user's server cart. Each guest item is upserted
+        additively, capped at the SKU's stock. Returns the merged cart
+        (same shape as GET /cart). Optional ?currency= adds presentment.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - default: '"en-US"'
+        description: BCP 47 locale (e.g. en-US). Overrides Accept-Language.
+        in: query
+        name: locale
+        type: string
+      - description: Presentment currency (USD/EUR/GBP).
+        in: query
+        name: currency
+        type: string
+      - description: Guest cart items to merge
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.MergeCartRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.Cart'
+        "400":
+          description: Invalid body / validation
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Merge a guest cart into the server cart
+      tags:
+      - cart
   /catalog/categories:
     get:
       description: Distinct categories across published products (bare strings for

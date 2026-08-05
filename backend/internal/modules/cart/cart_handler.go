@@ -60,6 +60,23 @@ func requestCurrency(c *fiber.Ctx) string {
 }
 
 // GetCart: GET /cart?locale=en-US&currency=USD
+//
+// @Summary      Get the current user's cart
+// @Description  Returns the signed-in user's cart, enriched with display info
+// @Description  for the requested locale. Optional ?currency= adds presentment
+// @Description  totals + per-line presentment prices (USD/EUR/GBP; FX-snapshotted).
+// @Description  Stock is advisory at this stage (authoritative decrement at checkout).
+// @Tags         cart
+// @Accept       json
+// @Produce      json
+// @Param        Authorization header string true "Bearer <access_token>"
+// @Param        locale   query string false "BCP 47 locale (e.g. en-US). Overrides Accept-Language." default("en-US")
+// @Param        currency query string false "Presentment currency (USD/EUR/GBP). Adds presentment totals + per-line prices."
+// @Success      200 {object} models.Cart
+// @Failure      401 {object} models.ErrorResponse "Authentication required"
+// @Failure      500 {object} models.ErrorResponse "Internal error"
+// @Security     BearerAuth
+// @Router       /cart [get]
 func (h *Handler) GetCart(c *fiber.Ctx) error {
 	userID, err := utils.GetUserIDFromContext(c)
 	if err != nil {
@@ -76,6 +93,25 @@ func (h *Handler) GetCart(c *fiber.Ctx) error {
 }
 
 // AddItem: POST /cart/items (body: {"sku_id":1,"qty":2}; qty defaults to 1, additive)
+//
+// @Summary      Add an item to the cart
+// @Description  Adds a SKU to the cart. POST is additive: the existing qty for
+// @Description  this SKU is incremented by qty (defaults to 1). A qty exceeding
+// @Description  available stock returns 409 (advisory; authoritative decrement
+// @Description  is at checkout).
+// @Tags         cart
+// @Accept       json
+// @Produce      json
+// @Param        Authorization header string true "Bearer <access_token>"
+// @Param        body body models.AddCartItemRequest true "Item to add (qty optional, defaults to 1)"
+// @Success      201 "Created (empty body)"
+// @Failure      400 {object} models.ErrorResponse "Invalid body / validation / qty < 1"
+// @Failure      401 {object} models.ErrorResponse "Authentication required"
+// @Failure      404 {object} models.ErrorResponse "SKU not in cart or does not exist"
+// @Failure      409 {object} models.ErrorResponse "Quantity exceeds available stock"
+// @Failure      500 {object} models.ErrorResponse "Internal error"
+// @Security     BearerAuth
+// @Router       /cart/items [post]
 func (h *Handler) AddItem(c *fiber.Ctx) error {
 	userID, err := utils.GetUserIDFromContext(c)
 	if err != nil {
@@ -98,6 +134,24 @@ func (h *Handler) AddItem(c *fiber.Ctx) error {
 }
 
 // UpdateItemQty: PATCH /cart/items/:sku_id (body: {"qty":3}; absolute set)
+//
+// @Summary      Set a cart item's quantity
+// @Description  Sets the quantity for a SKU in the cart to exactly qty (absolute,
+// @Description  not additive). A qty exceeding available stock returns 409.
+// @Tags         cart
+// @Accept       json
+// @Produce      json
+// @Param        Authorization header string true "Bearer <access_token>"
+// @Param        sku_id path int true "SKU ID"
+// @Param        body body models.UpdateCartItemRequest true "New quantity (absolute set, must be >= 1)"
+// @Success      204 "No Content (empty body)"
+// @Failure      400 {object} models.ErrorResponse "Invalid SKU ID / body / validation / qty < 1"
+// @Failure      401 {object} models.ErrorResponse "Authentication required"
+// @Failure      404 {object} models.ErrorResponse "SKU not in cart or does not exist"
+// @Failure      409 {object} models.ErrorResponse "Quantity exceeds available stock"
+// @Failure      500 {object} models.ErrorResponse "Internal error"
+// @Security     BearerAuth
+// @Router       /cart/items/{sku_id} [patch]
 func (h *Handler) UpdateItemQty(c *fiber.Ctx) error {
 	userID, err := utils.GetUserIDFromContext(c)
 	if err != nil {
@@ -121,6 +175,21 @@ func (h *Handler) UpdateItemQty(c *fiber.Ctx) error {
 }
 
 // RemoveItem: DELETE /cart/items/:sku_id
+//
+// @Summary      Remove an item from the cart
+// @Description  Removes a SKU from the cart entirely (not a decrement).
+// @Tags         cart
+// @Accept       json
+// @Produce      json
+// @Param        Authorization header string true "Bearer <access_token>"
+// @Param        sku_id path int true "SKU ID"
+// @Success      204 "No Content (empty body)"
+// @Failure      400 {object} models.ErrorResponse "Invalid SKU ID"
+// @Failure      401 {object} models.ErrorResponse "Authentication required"
+// @Failure      404 {object} models.ErrorResponse "SKU not in cart or does not exist"
+// @Failure      500 {object} models.ErrorResponse "Internal error"
+// @Security     BearerAuth
+// @Router       /cart/items/{sku_id} [delete]
 func (h *Handler) RemoveItem(c *fiber.Ctx) error {
 	userID, err := utils.GetUserIDFromContext(c)
 	if err != nil {
@@ -137,6 +206,20 @@ func (h *Handler) RemoveItem(c *fiber.Ctx) error {
 }
 
 // BulkRemove: DELETE /cart/items (body: {"sku_ids":[1,2,3]})
+//
+// @Summary      Bulk-remove items from the cart
+// @Description  Removes all listed SKUs from the cart. Returns the count removed.
+// @Tags         cart
+// @Accept       json
+// @Produce      json
+// @Param        Authorization header string true "Bearer <access_token>"
+// @Param        body body models.BulkRemoveRequest true "SKU IDs to remove (min 1)"
+// @Success      200 {object} object "{"removed": <count>}"
+// @Failure      400 {object} models.ErrorResponse "Invalid body / validation (min 1 SKU ID)"
+// @Failure      401 {object} models.ErrorResponse "Authentication required"
+// @Failure      500 {object} models.ErrorResponse "Internal error"
+// @Security     BearerAuth
+// @Router       /cart/items [delete]
 func (h *Handler) BulkRemove(c *fiber.Ctx) error {
 	userID, err := utils.GetUserIDFromContext(c)
 	if err != nil {
@@ -159,6 +242,25 @@ func (h *Handler) BulkRemove(c *fiber.Ctx) error {
 
 // MergeCart: POST /cart/merge (body: {"items":[{"sku_id":1,"qty":2}]}). Merges a
 // guest localStorage cart into the server cart on login. Returns the merged cart.
+//
+// @Summary      Merge a guest cart into the server cart
+// @Description  Merges a guest localStorage cart (posted on login) into the
+// @Description  signed-in user's server cart. Each guest item is upserted
+// @Description  additively, capped at the SKU's stock. Returns the merged cart
+// @Description  (same shape as GET /cart). Optional ?currency= adds presentment.
+// @Tags         cart
+// @Accept       json
+// @Produce      json
+// @Param        Authorization header string true "Bearer <access_token>"
+// @Param        locale   query string false "BCP 47 locale (e.g. en-US). Overrides Accept-Language." default("en-US")
+// @Param        currency query string false "Presentment currency (USD/EUR/GBP)."
+// @Param        body body models.MergeCartRequest true "Guest cart items to merge"
+// @Success      200 {object} models.Cart
+// @Failure      400 {object} models.ErrorResponse "Invalid body / validation"
+// @Failure      401 {object} models.ErrorResponse "Authentication required"
+// @Failure      500 {object} models.ErrorResponse "Internal error"
+// @Security     BearerAuth
+// @Router       /cart/merge [post]
 func (h *Handler) MergeCart(c *fiber.Ctx) error {
 	userID, err := utils.GetUserIDFromContext(c)
 	if err != nil {
