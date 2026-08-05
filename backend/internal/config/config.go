@@ -101,6 +101,19 @@ type Config struct {
 	// the Airwallex/PayPal adapters (#6) + sandbox creds; until then checkout
 	// in live mode returns an error so no order dangles in `created`.
 	PaymentsMode string `mapstructure:"PAYMENTS_MODE"`
+
+	// --- In-house analytics (TDD §3.4/§4.2, PRD §3.4.2) ---
+	// ANALYTICS_HMAC_KEY seeds the daily-rotating visitor_hash key
+	// (HMAC-SHA256(appKey, YYYY-MM-DD)) so the same visitor within a day
+	// collides but cannot be tracked across days (GDPR-friendly). Separate
+	// from CONSENT_HMAC_KEY so a consent-db leak cannot forge analytics.
+	AnalyticsHMACKey string `mapstructure:"ANALYTICS_HMAC_KEY"`
+	// GEOIP_MODE=noop (dev default): NoopLookup → country 'ZZ' (no .mmdb
+	//   needed). "maxmind": MaxMindLookup reads a local GeoLite2-Country db
+	//   at GEOLITE2_DB_PATH. Unknown/private IP → 'ZZ' (TDD §10/§11). The
+	//   City db (region-level) is a later schema change; MVP stores CHAR(2).
+	GeoIPMode      string `mapstructure:"GEOIP_MODE"`       // noop | maxmind
+	GeoLite2DBPath string `mapstructure:"GEOLITE2_DB_PATH"` // path to .mmdb
 }
 
 func LoadConfig(path string) (config Config, err error) {
@@ -141,4 +154,10 @@ func init() {
 	// required to run the app or tests.
 	viper.SetDefault("PDF_MODE", "local")
 	viper.SetDefault("OSS_PUBLIC_BASE_URL", "") // empty = bucket URL
+
+	// GeoIP adapter (TDD §10/§11). Dev default = noop so no MaxMind download
+	// is needed to run the app or tests; flip to "maxmind" with a local
+	// GeoLite2-Country .mmdb when ops provisions the MaxMind account.
+	viper.SetDefault("GEOIP_MODE", "noop")
+	viper.SetDefault("GEOLITE2_DB_PATH", "")
 }

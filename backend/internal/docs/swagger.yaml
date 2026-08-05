@@ -63,6 +63,38 @@ definitions:
     required:
     - sku_id
     type: object
+  jingdezhen-ceramics-backend_internal_models.AnalyticsEventKind:
+    enum:
+    - pageview
+    - event
+    type: string
+    x-enum-varnames:
+    - AnalyticsKindPageview
+    - AnalyticsKindEvent
+  jingdezhen-ceramics-backend_internal_models.AnalyticsEventRequest:
+    properties:
+      kind:
+        allOf:
+        - $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.AnalyticsEventKind'
+        enum:
+        - pageview
+        - event
+      locale:
+        maxLength: 10
+        type: string
+      name:
+        maxLength: 100
+        type: string
+      path:
+        maxLength: 2048
+        type: string
+      props:
+        additionalProperties: {}
+        type: object
+    required:
+    - kind
+    - path
+    type: object
   jingdezhen-ceramics-backend_internal_models.Artist:
     properties:
       avatar_url:
@@ -6190,6 +6222,42 @@ paths:
       tags:
       - admin
       - users
+  /analytics/events:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Records a pseudonymous analytics event (pageview or named event).
+        Public + consent-gated: the visitor must have granted cookie_analytics
+        consent (checked by IP hash). Not-consented → 204, event dropped.
+        Country is resolved server-side from GeoLite2 (no raw IP stored).
+      parameters:
+      - description: Event (kind, path; name for events)
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.AnalyticsEventRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: '{id: <int64>}'
+          schema:
+            type: object
+        "204":
+          description: Consent not granted — event silently dropped (not an error)
+        "400":
+          description: Invalid body / validation
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      summary: Record an analytics event
+      tags:
+      - analytics
   /artists:
     get:
       consumes:

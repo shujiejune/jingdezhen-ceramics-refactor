@@ -88,8 +88,10 @@ Tracking the transition of the existing `backend/` codebase (former "Learning & 
 
 ## M4 — Compliance, Dashboard & Hardening
 
-- [ ] Cookie consent banner backend (consent records); analytics gated on consent
-- [ ] In-house analytics: event endpoint + GeoLite2 geolocation + PostgreSQL
+- [x] Cookie consent banner backend (consent records); analytics gated on consent
+  — consent module (M1) already records `cookie_analytics`; the analytics service's consent gate (commit below) reads the latest granted record by IP hash.
+- [x] In-house analytics: event endpoint + GeoLite2 geolocation + PostgreSQL
+  — **migration `000026_analytics`** (`analytics_events` + `analytics_daily`); `pkg/adapters/geoip/` (`Lookup` interface + `Noop`→'ZZ' dev default + `MaxMind` GeoLite2-Country reader, env-flip `GEOIP_MODE`); `internal/modules/analytics/` (handler→service→repository: `POST /analytics/events` public + consent-gated via `consent.Service.GetConsentStateForIP`; visitor_hash = `hex(HMAC(dailyRotatingKey, IP+UA))`, no raw IP stored; GeoLite2 country resolved at ingest, 'ZZ' on miss; `analytics:rollup` nightly job wired — pageviews/events/visitors rolled up idempotently into `analytics_daily` via `INSERT…ON CONFLICT DO UPDATE SET value=excluded.value`). Fiber `limiter` (60/min/IP, TDD §333) on the route group. Config: `ANALYTICS_HMAC_KEY`, `GEOIP_MODE`, `GEOLITE2_DB_PATH`. Unit tests (consent gate, visitor_hash stability/rotation, pageview nil-name, rollup) + integration tests (consented insert + props JSONB round-trip, refused/never-consented drop with zero rows, GeoIP GB resolution, rollup aggregation + idempotency, empty-day no-op). Live-verified (build/vet/lint/-short green; integration pending Docker on the dev box — CI runs them via testcontainers).
 - [ ] Dashboard APIs: traffic, sales, itinerary funnel; CSV export
 - [ ] Audit log for sensitive admin actions
 - [ ] Rate limiting, webhook signature verification, security pass

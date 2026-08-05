@@ -39,6 +39,7 @@ import (
 	"jingdezhen-ceramics-backend/internal/config"
 	"jingdezhen-ceramics-backend/internal/models"
 	"jingdezhen-ceramics-backend/internal/modules/address"
+	"jingdezhen-ceramics-backend/internal/modules/analytics"
 	"jingdezhen-ceramics-backend/internal/modules/artist"
 	"jingdezhen-ceramics-backend/internal/modules/cart"
 	"jingdezhen-ceramics-backend/internal/modules/ceramicstory"
@@ -62,6 +63,7 @@ import (
 	platformredis "jingdezhen-ceramics-backend/internal/platform/redis"
 	"jingdezhen-ceramics-backend/internal/ws"
 	"jingdezhen-ceramics-backend/pkg/adapters/certchain"
+	"jingdezhen-ceramics-backend/pkg/adapters/geoip"
 	"jingdezhen-ceramics-backend/pkg/adapters/payments"
 	"jingdezhen-ceramics-backend/pkg/adapters/pdf"
 	"jingdezhen-ceramics-backend/pkg/adapters/storage"
@@ -441,6 +443,14 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 	privacyService := privacy.NewService(privacyRepo, jobClient)
 	privacyHandler := privacy.NewHandler(privacyService)
 
+	// --- Analytics (in-house, PRD §3.4.2, TDD §3.4/§4.2) ---
+	// Public + consent-gated event endpoint. GeoIP flips noop→maxmind via env;
+	// noop (dev default) resolves every IP to 'ZZ' so no .mmdb is needed.
+	geoipLookup := geoip.MustNew(cfg.GeoIPMode, cfg.GeoLite2DBPath)
+	analyticsRepo := analytics.NewRepository(dbPool)
+	analyticsService := analytics.NewService(analyticsRepo, consentService, geoipLookup, []byte(cfg.AnalyticsHMACKey))
+	analyticsHandler := analytics.NewHandler(analyticsService)
+
 	// --- Itinerary (Custom Travel, PRD §3.3.2) ---
 	// Customer-facing wizard: submit + draft + list/get/cancel. The 24h-SLA ack
 	// email reuses the order email enqueuer; consent recording adapts consent.Service
@@ -477,7 +487,7 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 		ceramicStoryHandler, engageHandler, addressHandler,
 		consentHandler, artistHandler, productHandler, wishlistHandler, cartHandler, fxHandler,
 		shippingHandler, orderHandler, paymentHandler, certificateHandler, mediaHandler, twoFAHandler, privacyHandler,
-		itineraryHandler,
+		itineraryHandler, analyticsHandler,
 	)
 
 	// --- Start server (graceful shutdown) ---
@@ -688,6 +698,21 @@ func runWorker(rootCtx context.Context, cfg config.Config) {
 					log.Printf("worker.SLACheck.Email(planner=%s req=%d): %v", p.ID, req.ID, err)
 				}
 			}
+		}
+		return nil
+	}
+
+	// analytics:rollup (nightly, TDD §4.2). Aggregates yesterday's events into
+	// analytics_daily. Idempotent: re-running for a date SETs the value (does
+	// not increment). Worker-side analytics service = fresh repo + noop geoip
+	// (rollup reads country from the stored column, never re-resolves) + the
+	// same analytics HMAC key (unused in rollup, but the constructor needs it).
+	wAnalyticsRepo := analytics.NewRepository(dbPool)
+	wAnalyticsService := analytics.NewService(wAnalyticsRepo, nil, geoip.NewNoop(), []byte(cfg.AnalyticsHMACKey))
+	jobServer.AnalyticsRollup = func(ctx context.Context) error {
+		if err := wAnalyticsService.RollupDaily(ctx, time.Time{}); err != nil {
+			log.Printf("worker.AnalyticsRollup: %v", err)
+			return fmt.Errorf("analytics:rollup: %w", err)
 		}
 		return nil
 	}

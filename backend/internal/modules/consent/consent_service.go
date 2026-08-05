@@ -22,6 +22,11 @@ type ServiceInterface interface {
 	// GetConsentState returns the latest granted/refused record for a user +
 	// kind (nil = no record = not yet consented).
 	GetConsentState(ctx context.Context, userID string, kind models.ConsentKind) (*models.ConsentRecord, error)
+	// GetConsentStateForIP returns the latest consent record for an anonymous
+	// visitor (by IP hash) + kind, or nil if none. Used by the analytics ingest
+	// consent gate (cookie_analytics) — anonymous because analytics fires before
+	// login. nil = not-yet-consented (not an error).
+	GetConsentStateForIP(ctx context.Context, clientIP string, kind models.ConsentKind) (*models.ConsentRecord, error)
 	// ListUserConsentHistory returns the full consent history for a user (GDPR
 	// data export). Caller is responsible for ensuring the requester is allowed
 	// to view this user's data (own data, or admin).
@@ -70,6 +75,24 @@ func (s *Service) GetConsentState(ctx context.Context, userID string, kind model
 			return nil, nil // no record = not yet consented (not an error for the caller)
 		}
 		return nil, fmt.Errorf("service.GetConsentState: %w", err)
+	}
+	return rec, nil
+}
+
+// GetConsentStateForIP mirrors GetConsentState for an anonymous visitor: it
+// hashes clientIP with the consent HMAC key and looks up the latest record by
+// IP hash. Returns nil (not an error) when no record exists.
+func (s *Service) GetConsentStateForIP(ctx context.Context, clientIP string, kind models.ConsentKind) (*models.ConsentRecord, error) {
+	if clientIP == "" {
+		return nil, nil
+	}
+	ipHash := hashIP(s.hmacKey, clientIP)
+	rec, err := s.repo.LatestForIPHash(ctx, ipHash, kind)
+	if err != nil {
+		if errors.Is(err, models.ErrNotFound) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("service.GetConsentStateForIP: %w", err)
 	}
 	return rec, nil
 }

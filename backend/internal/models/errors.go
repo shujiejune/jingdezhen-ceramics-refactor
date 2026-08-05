@@ -34,3 +34,8 @@ var ErrQuoteAlreadyPaid = errors.New("deposit has already been paid for this quo
 var ErrInvalidQuote = errors.New("quote line items are invalid")                               // unknown option_key / qty mismatch
 var ErrConsentRequired = errors.New("privacy policy consent is required")                      // PRD §3.3.2 step 4: the GDPR checkbox must be checked to submit
 var ErrItineraryNotCancellable = errors.New("itinerary request is not in a cancellable state") // only `pending` is customer-cancellable
+
+// Analytics (TDD §3.4/§4.2, PRD §3.4.2). The consent gate returns this when the
+// visitor has not granted cookie_analytics consent — the handler maps it to 204
+// (event silently dropped, not a client error).
+var ErrConsentNotGranted = errors.New("analytics consent not granted")

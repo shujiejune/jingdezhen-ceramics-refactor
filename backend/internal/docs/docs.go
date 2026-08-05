@@ -6302,6 +6302,55 @@ const docTemplate = `{
                 }
             }
         },
+        "/analytics/events": {
+            "post": {
+                "description": "Records a pseudonymous analytics event (pageview or named event).\nPublic + consent-gated: the visitor must have granted cookie_analytics\nconsent (checked by IP hash). Not-consented → 204, event dropped.\nCountry is resolved server-side from GeoLite2 (no raw IP stored).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "analytics"
+                ],
+                "summary": "Record an analytics event",
+                "parameters": [
+                    {
+                        "description": "Event (kind, path; name for events)",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.AnalyticsEventRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "{id: \u003cint64\u003e}",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "204": {
+                        "description": "Consent not granted — event silently dropped (not an error)"
+                    },
+                    "400": {
+                        "description": "Invalid body / validation",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/artists": {
             "get": {
                 "description": "Paginated list of published artists in the requested locale.\nLocale resolution: ?locale= overrides Accept-Language.",
@@ -10728,6 +10777,53 @@ const docTemplate = `{
             "properties": {
                 "sku_id": {
                     "type": "integer"
+                }
+            }
+        },
+        "jingdezhen-ceramics-backend_internal_models.AnalyticsEventKind": {
+            "type": "string",
+            "enum": [
+                "pageview",
+                "event"
+            ],
+            "x-enum-varnames": [
+                "AnalyticsKindPageview",
+                "AnalyticsKindEvent"
+            ]
+        },
+        "jingdezhen-ceramics-backend_internal_models.AnalyticsEventRequest": {
+            "type": "object",
+            "required": [
+                "kind",
+                "path"
+            ],
+            "properties": {
+                "kind": {
+                    "enum": [
+                        "pageview",
+                        "event"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.AnalyticsEventKind"
+                        }
+                    ]
+                },
+                "locale": {
+                    "type": "string",
+                    "maxLength": 10
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 100
+                },
+                "path": {
+                    "type": "string",
+                    "maxLength": 2048
+                },
+                "props": {
+                    "type": "object",
+                    "additionalProperties": {}
                 }
             }
         },
