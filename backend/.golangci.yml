@@ -1,53 +1,56 @@
-# golangci-lint config (PRD §2.4.1). Minimal + strict on the high-signal
-# linters; `go vet` is the current gate (passes clean) — this supersedes it.
-# Kept conservative so a first run doesn't drown in style nits; widen later.
+# golangci-lint v2 config (PRD §2.4.1 — lint gate, stricter than `go vet`).
+# Migrated from v1 via `golangci-lint migrate`; verified locally with v2.12.2
+# (built with Go 1.26 — required because our go.mod targets `go 1.26`, forced
+# by chromedp v0.16.0; a golangci-lint built with an older Go refuses to lint
+# this module).
+#
+# Linters enabled (beyond the v2 `standard` default set, which covers govet,
+# errcheck, staticcheck, ineffassign, unused, gosimple):
+#   misspell          — typo detection in identifiers/strings/comments.
+# Formatters:
+#   gofmt, goimports  — local-prefixes set to the module path.
+# Exclusions:
+#   - _test.go files skip errcheck (test plumbing; non-actionable).
+#   - Idiomatic deferred Close/Rollback/WS-write errchecks excluded (the stdlib
+#     itself does `defer resp.Body.Close()`; the error is non-actionable cleanup).
+#   - cmd/api/main.go deferred shutdown closes excluded.
 
+version: "2"
 run:
-  timeout: 5m
-  # Tests are exempt from errcheck (helpers often ignore errors); other
-  # linters still run on test code.
   tests: true
-
 linters:
+  enable:
+    - misspell
+  exclusions:
+    generated: lax
+    rules:
+      - linters:
+          - errcheck
+        path: _test\.go
+      - linters:
+          - errcheck
+        text: Error return value of `(.*Close|tx.Rollback|.*SetReadDeadline|.*SetWriteDeadline|.*WriteJSON|.*WriteMessage)` is not checked
+      - linters:
+          - errcheck
+        path: cmd/api/main\.go
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+formatters:
   enable:
     - gofmt
     - goimports
-    - govet
-    - errcheck
-    - staticcheck
-    - ineffassign
-    - unused
-    - misspell
-    - gosimple
-
-linters-settings:
-  goimports:
-    local-prefixes: jingdezhen-ceramics-backend
-
-issues:
-  # Don't auto-exclude anything by default — surface it all.
-  exclude-use-default: false
-  max-issues-per-linter: 0
-  max-same-issues: 0
-  exclude-rules:
-    # Test files: relax errcheck (test plumbing ignores many errors on purpose).
-    - path: _test\.go
-      linters:
-        - errcheck
-
-    # Idiomatic Go: deferred Close/Rollback where the error is non-actionable.
-    # The standard library itself does `defer resp.Body.Close()`. Checking these
-    # adds noise without catching real bugs (the close/rollback is best-effort
-    # cleanup; the error means the resource is already gone). Also covers the
-    # WebSocket write/deadline calls — on a disconnecting peer the error is
-    # non-actionable (the conn is already broken).
-    - linters:
-        - errcheck
-      text: "Error return value of `(.*Close|tx.Rollback|.*SetReadDeadline|.*SetWriteDeadline|.*WriteJSON|.*WriteMessage)` is not checked"
-
-    # cmd/api/main.go: deferred shutdown closes (redisClient, jobClient) —
-    # non-actionable at process exit. Covered by the Close() rule above too,
-    # but kept explicit for clarity.
-    - path: cmd/api/main\.go
-      linters:
-        - errcheck
+  settings:
+    goimports:
+      local-prefixes:
+        - jingdezhen-ceramics-backend
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

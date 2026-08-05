@@ -41,10 +41,20 @@ jobs:
         with:
           go-version-file: backend/go.mod
           cache: true
+          cache-dependency-path: backend/go.sum
       - name: golangci-lint
+        # golangci-lint v2.x. install-mode: goinstall builds it from source with
+        # the Go provisioned above (1.26, from go-version-file). This is required
+        # because our go.mod targets `go 1.26` (forced by chromedp v0.16.0), and
+        # golangci-lint refuses to lint a module targeting a Go newer than its
+        # build Go — so the prebuilt v1.64 binary (built with Go 1.24) fails
+        # with "the Go language version used to build golangci-lint is lower
+        # than the targeted Go version". Building from source with Go 1.26
+        # matches the local dev env exactly. Config is v2 format (.golangci.yml).
         uses: golangci/golangci-lint-action@v6
         with:
-          version: v1.64
+          version: v2.12.2
+          install-mode: goinstall
           working-directory: backend
           args: --timeout 5m
 
@@ -60,6 +70,7 @@ jobs:
         with:
           go-version-file: backend/go.mod
           cache: true
+          cache-dependency-path: backend/go.sum
       - name: go test -race -short -cover
         # -short skips testcontainers integration tests (fast inner loop).
         # TESTCONTAINERS_RYUK_DISABLED is harmless here (no containers spin up).
@@ -86,6 +97,7 @@ jobs:
         with:
           go-version-file: backend/go.mod
           cache: true
+          cache-dependency-path: backend/go.sum
       - name: go test -race
         # Full suite: unit + integration via testcontainers-go (real PG + Redis
         # in Docker). Ryuk is disabled — the ephemeral runner cleans up on exit.
@@ -122,6 +134,7 @@ jobs:
         with:
           go-version-file: backend/go.mod
           cache: true
+          cache-dependency-path: backend/go.sum
       - name: govulncheck (hard gate — reachable vulns)
         # Scans the module for known vulnerabilities in dependencies + the
         # standard library, validated against the call graph (only flags
@@ -137,7 +150,7 @@ jobs:
         # visibility on the transitive surface without blocking on unfixed
         # upstream CVEs.
         continue-on-error: true
-        uses: google/osv-scanner-action/osv-scanner-action@v2
+        uses: google/osv-scanner-action@v2.3.8
         with:
           scan-args: |-
             -r
