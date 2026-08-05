@@ -63,6 +63,7 @@ func SetupRoutes(
 	privacyHandler *privacy.Handler,
 	itineraryHandler *itinerary.Handler,
 	analyticsHandler *analytics.Handler,
+	analyticsDashHandler *analytics.DashboardHandler,
 ) {
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{"message": "Welcome to the Jingdezhen Ceramics Platform!"})
@@ -491,6 +492,18 @@ func SetupRoutes(
 			adminSKUs.Put("/:id", productHandler.AdminUpdateSKU)
 			adminSKUs.Delete("/:id", productHandler.AdminDeleteSKU)
 		}
+
+		// --- Dashboard analytics (PRD §3.4.2 Phase B) ---
+		// traffic / sales / funnel live reads + CSV export. RBAC:
+		// dashboard.view → {ecommerce_operator, customer_service} (rbac.go).
+		// NOTE: the public POST /analytics/events ingest route is registered
+		// separately (top of this file); this group is under /admin so there is
+		// no path collision.
+		adminAnalytics := adminGroup.Group("/analytics")
+		adminAnalytics.Use(middleware.RequirePermission(models.PermDashboardView))
+		adminAnalytics.Get("/traffic", analyticsDashHandler.Traffic)
+		adminAnalytics.Get("/sales", analyticsDashHandler.Sales)
+		adminAnalytics.Get("/funnel", analyticsDashHandler.Funnel)
 	}
 
 	/* --- GDPR self-service: account erasure (PRD §4.3) --- */

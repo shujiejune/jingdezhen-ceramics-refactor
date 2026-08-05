@@ -450,6 +450,12 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 	analyticsRepo := analytics.NewRepository(dbPool)
 	analyticsService := analytics.NewService(analyticsRepo, consentService, geoipLookup, []byte(cfg.AnalyticsHMACKey))
 	analyticsHandler := analytics.NewHandler(analyticsService)
+	// Dashboard read endpoints (PRD §3.4.2 Phase B): traffic/sales/funnel live
+	// queries + CSV export. Separate repo+service so the ingest path stays
+	// focused; same *pgxpool.Pool.
+	analyticsDashRepo := analytics.NewDashboardRepo(dbPool)
+	analyticsDashService := analytics.NewDashboardService(analyticsDashRepo)
+	analyticsDashHandler := analytics.NewDashboardHandler(analyticsDashService)
 
 	// --- Itinerary (Custom Travel, PRD §3.3.2) ---
 	// Customer-facing wizard: submit + draft + list/get/cancel. The 24h-SLA ack
@@ -487,7 +493,7 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 		ceramicStoryHandler, engageHandler, addressHandler,
 		consentHandler, artistHandler, productHandler, wishlistHandler, cartHandler, fxHandler,
 		shippingHandler, orderHandler, paymentHandler, certificateHandler, mediaHandler, twoFAHandler, privacyHandler,
-		itineraryHandler, analyticsHandler,
+		itineraryHandler, analyticsHandler, analyticsDashHandler,
 	)
 
 	// --- Start server (graceful shutdown) ---

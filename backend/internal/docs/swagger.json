@@ -15,6 +15,255 @@
     },
     "basePath": "/",
     "paths": {
+        "/admin/analytics/funnel": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Itinerary conversion funnel: form views (analytics_events name=\nitinerary_form_view) → submissions (itinerary_requests submitted_at in range)\n→ confirmed (cohort status='confirmed'), conversion rates over time. Cohort\nsemantics (no confirmed_at column). Range filter as for /traffic.\n?format=csv streams a flattened CSV (Content-Disposition: attachment).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin",
+                    "analytics"
+                ],
+                "summary": "Itinerary conversion funnel",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer \u003caccess_token\u003e",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "day|week|month|quarter|year",
+                        "name": "range",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "YYYY-MM-DD (inclusive)",
+                        "name": "from",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "YYYY-MM-DD (inclusive)",
+                        "name": "to",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "csv",
+                        "name": "format",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.FunnelReport"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid date range",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden (needs dashboard.view)",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/analytics/sales": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Sales analysis: GMV (Σ subtotal_cny, excludes shipping) over realized orders\n(status IN paid|shipped|completed — cancelled/refunded excluded), by\ncurrency/region/product/artist, time series. Range filter as for /traffic.\n?format=csv streams a flattened CSV (Content-Disposition: attachment).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin",
+                    "analytics"
+                ],
+                "summary": "Sales dashboard report",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer \u003caccess_token\u003e",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "day|week|month|quarter|year",
+                        "name": "range",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "YYYY-MM-DD (inclusive)",
+                        "name": "from",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "YYYY-MM-DD (inclusive)",
+                        "name": "to",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "csv",
+                        "name": "format",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.SalesReport"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid date range",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden (needs dashboard.view)",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/analytics/traffic": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Traffic analysis: page views, visitors (by GeoIP country), top content, by locale.\nReads live from analytics_events (consent-gated at ingest). Range filter via\n?range=day|week|month|quarter|year or ?from=\u0026to= (YYYY-MM-DD, default 30 days, max 365).\n?format=csv streams a flattened CSV (Content-Disposition: attachment).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin",
+                    "analytics"
+                ],
+                "summary": "Traffic dashboard report",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer \u003caccess_token\u003e",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "day|week|month|quarter|year (server computes [now-start, now))",
+                        "name": "range",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "YYYY-MM-DD (inclusive; requires to)",
+                        "name": "from",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "YYYY-MM-DD (inclusive)",
+                        "name": "to",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "csv = stream a flattened CSV report",
+                        "name": "format",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.TrafficReport"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid date range",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden (needs dashboard.view)",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/admin/artists": {
             "get": {
                 "security": [
@@ -11642,6 +11891,23 @@
                 }
             }
         },
+        "jingdezhen-ceramics-backend_internal_models.DailyPoint": {
+            "type": "object",
+            "properties": {
+                "date": {
+                    "type": "string"
+                },
+                "events": {
+                    "type": "integer"
+                },
+                "pageviews": {
+                    "type": "integer"
+                },
+                "visitors": {
+                    "type": "integer"
+                }
+            }
+        },
         "jingdezhen-ceramics-backend_internal_models.DeleteAccountRequest": {
             "type": "object",
             "required": [
@@ -11685,6 +11951,78 @@
                 },
                 "message": {
                     "type": "string"
+                }
+            }
+        },
+        "jingdezhen-ceramics-backend_internal_models.FunnelConversion": {
+            "type": "object",
+            "properties": {
+                "submit_to_confirm_pct": {
+                    "description": "confirmed/submitted × 100",
+                    "type": "number"
+                },
+                "view_to_submit_pct": {
+                    "description": "submitted/views × 100",
+                    "type": "number"
+                }
+            }
+        },
+        "jingdezhen-ceramics-backend_internal_models.FunnelDailyPoint": {
+            "type": "object",
+            "properties": {
+                "confirmed": {
+                    "type": "integer"
+                },
+                "date": {
+                    "description": "YYYY-MM-DD",
+                    "type": "string"
+                },
+                "submitted": {
+                    "type": "integer"
+                },
+                "views": {
+                    "type": "integer"
+                }
+            }
+        },
+        "jingdezhen-ceramics-backend_internal_models.FunnelReport": {
+            "type": "object",
+            "properties": {
+                "conversion": {
+                    "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.FunnelConversion"
+                },
+                "from": {
+                    "type": "string"
+                },
+                "series": {
+                    "description": "one per day, zero-filled",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.FunnelDailyPoint"
+                    }
+                },
+                "to": {
+                    "type": "string"
+                },
+                "totals": {
+                    "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.FunnelTotals"
+                }
+            }
+        },
+        "jingdezhen-ceramics-backend_internal_models.FunnelTotals": {
+            "type": "object",
+            "properties": {
+                "confirmed": {
+                    "description": "subset with status='confirmed'",
+                    "type": "integer"
+                },
+                "submitted": {
+                    "description": "itinerary_requests submitted_at in range",
+                    "type": "integer"
+                },
+                "views": {
+                    "description": "analytics_events name=itinerary_form_view",
+                    "type": "integer"
                 }
             }
         },
@@ -12856,6 +13194,145 @@
                 }
             }
         },
+        "jingdezhen-ceramics-backend_internal_models.SalesByArtist": {
+            "type": "object",
+            "properties": {
+                "artist_id": {
+                    "type": "integer"
+                },
+                "gmv_cny": {
+                    "type": "integer"
+                },
+                "name": {
+                    "description": "artist name (\"Unknown\" if artist_id NULL)",
+                    "type": "string"
+                },
+                "qty": {
+                    "type": "integer"
+                }
+            }
+        },
+        "jingdezhen-ceramics-backend_internal_models.SalesByCountry": {
+            "type": "object",
+            "properties": {
+                "country": {
+                    "description": "from address-\u003e\u003e'country'",
+                    "type": "string"
+                },
+                "gmv_cny": {
+                    "type": "integer"
+                },
+                "orders": {
+                    "type": "integer"
+                }
+            }
+        },
+        "jingdezhen-ceramics-backend_internal_models.SalesByCurrency": {
+            "type": "object",
+            "properties": {
+                "currency": {
+                    "description": "CHAR(3) presentment",
+                    "type": "string"
+                },
+                "gmv_cny": {
+                    "type": "integer"
+                },
+                "orders": {
+                    "type": "integer"
+                }
+            }
+        },
+        "jingdezhen-ceramics-backend_internal_models.SalesByProduct": {
+            "type": "object",
+            "properties": {
+                "gmv_cny": {
+                    "type": "integer"
+                },
+                "product_id": {
+                    "type": "integer"
+                },
+                "qty": {
+                    "type": "integer"
+                },
+                "title": {
+                    "description": "en-US product title fallback (\"Unknown\" if missing)",
+                    "type": "string"
+                }
+            }
+        },
+        "jingdezhen-ceramics-backend_internal_models.SalesDailyPoint": {
+            "type": "object",
+            "properties": {
+                "date": {
+                    "description": "YYYY-MM-DD",
+                    "type": "string"
+                },
+                "gmv_cny": {
+                    "type": "integer"
+                },
+                "orders": {
+                    "type": "integer"
+                }
+            }
+        },
+        "jingdezhen-ceramics-backend_internal_models.SalesReport": {
+            "type": "object",
+            "properties": {
+                "by_artist": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.SalesByArtist"
+                    }
+                },
+                "by_country": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.SalesByCountry"
+                    }
+                },
+                "by_currency": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.SalesByCurrency"
+                    }
+                },
+                "by_product": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.SalesByProduct"
+                    }
+                },
+                "from": {
+                    "type": "string"
+                },
+                "series": {
+                    "description": "one per day, zero-filled",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.SalesDailyPoint"
+                    }
+                },
+                "to": {
+                    "type": "string"
+                },
+                "totals": {
+                    "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.SalesTotals"
+                }
+            }
+        },
+        "jingdezhen-ceramics-backend_internal_models.SalesTotals": {
+            "type": "object",
+            "properties": {
+                "gmv_cny": {
+                    "description": "Σ subtotal_cny over realized orders",
+                    "type": "integer"
+                },
+                "orders": {
+                    "description": "count of realized orders",
+                    "type": "integer"
+                }
+            }
+        },
         "jingdezhen-ceramics-backend_internal_models.SendQuoteRequest": {
             "type": "object",
             "required": [
@@ -13036,6 +13513,104 @@
                     "type": "string"
                 },
                 "product_count": {
+                    "type": "integer"
+                }
+            }
+        },
+        "jingdezhen-ceramics-backend_internal_models.TrafficByCountry": {
+            "type": "object",
+            "properties": {
+                "country": {
+                    "description": "ISO 3166-1 alpha-2; 'ZZ' = unknown",
+                    "type": "string"
+                },
+                "pageviews": {
+                    "type": "integer"
+                },
+                "visitors": {
+                    "type": "integer"
+                }
+            }
+        },
+        "jingdezhen-ceramics-backend_internal_models.TrafficByLocale": {
+            "type": "object",
+            "properties": {
+                "locale": {
+                    "type": "string"
+                },
+                "pageviews": {
+                    "type": "integer"
+                },
+                "visitors": {
+                    "type": "integer"
+                }
+            }
+        },
+        "jingdezhen-ceramics-backend_internal_models.TrafficByPath": {
+            "type": "object",
+            "properties": {
+                "pageviews": {
+                    "type": "integer"
+                },
+                "path": {
+                    "type": "string"
+                }
+            }
+        },
+        "jingdezhen-ceramics-backend_internal_models.TrafficReport": {
+            "type": "object",
+            "properties": {
+                "by_country": {
+                    "description": "top 100",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.TrafficByCountry"
+                    }
+                },
+                "by_locale": {
+                    "description": "top 100",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.TrafficByLocale"
+                    }
+                },
+                "by_path": {
+                    "description": "top 100 pageviews",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.TrafficByPath"
+                    }
+                },
+                "from": {
+                    "type": "string"
+                },
+                "series": {
+                    "description": "one per day, zero-filled",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.DailyPoint"
+                    }
+                },
+                "to": {
+                    "type": "string"
+                },
+                "totals": {
+                    "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.TrafficTotals"
+                }
+            }
+        },
+        "jingdezhen-ceramics-backend_internal_models.TrafficTotals": {
+            "type": "object",
+            "properties": {
+                "events": {
+                    "description": "named events (kind='event')",
+                    "type": "integer"
+                },
+                "pageviews": {
+                    "type": "integer"
+                },
+                "visitors": {
+                    "description": "distinct visitor_hash",
                     "type": "integer"
                 }
             }

@@ -674,6 +674,17 @@ definitions:
     - country
     - max_weight_grams
     type: object
+  jingdezhen-ceramics-backend_internal_models.DailyPoint:
+    properties:
+      date:
+        type: string
+      events:
+        type: integer
+      pageviews:
+        type: integer
+      visitors:
+        type: integer
+    type: object
   jingdezhen-ceramics-backend_internal_models.DeleteAccountRequest:
     properties:
       confirm:
@@ -704,6 +715,55 @@ definitions:
         type: string
       message:
         type: string
+    type: object
+  jingdezhen-ceramics-backend_internal_models.FunnelConversion:
+    properties:
+      submit_to_confirm_pct:
+        description: confirmed/submitted × 100
+        type: number
+      view_to_submit_pct:
+        description: submitted/views × 100
+        type: number
+    type: object
+  jingdezhen-ceramics-backend_internal_models.FunnelDailyPoint:
+    properties:
+      confirmed:
+        type: integer
+      date:
+        description: YYYY-MM-DD
+        type: string
+      submitted:
+        type: integer
+      views:
+        type: integer
+    type: object
+  jingdezhen-ceramics-backend_internal_models.FunnelReport:
+    properties:
+      conversion:
+        $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.FunnelConversion'
+      from:
+        type: string
+      series:
+        description: one per day, zero-filled
+        items:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.FunnelDailyPoint'
+        type: array
+      to:
+        type: string
+      totals:
+        $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.FunnelTotals'
+    type: object
+  jingdezhen-ceramics-backend_internal_models.FunnelTotals:
+    properties:
+      confirmed:
+        description: subset with status='confirmed'
+        type: integer
+      submitted:
+        description: itinerary_requests submitted_at in range
+        type: integer
+      views:
+        description: analytics_events name=itinerary_form_view
+        type: integer
     type: object
   jingdezhen-ceramics-backend_internal_models.ItineraryAdminRow:
     properties:
@@ -1521,6 +1581,99 @@ definitions:
         description: packed weight
         type: integer
     type: object
+  jingdezhen-ceramics-backend_internal_models.SalesByArtist:
+    properties:
+      artist_id:
+        type: integer
+      gmv_cny:
+        type: integer
+      name:
+        description: artist name ("Unknown" if artist_id NULL)
+        type: string
+      qty:
+        type: integer
+    type: object
+  jingdezhen-ceramics-backend_internal_models.SalesByCountry:
+    properties:
+      country:
+        description: from address->>'country'
+        type: string
+      gmv_cny:
+        type: integer
+      orders:
+        type: integer
+    type: object
+  jingdezhen-ceramics-backend_internal_models.SalesByCurrency:
+    properties:
+      currency:
+        description: CHAR(3) presentment
+        type: string
+      gmv_cny:
+        type: integer
+      orders:
+        type: integer
+    type: object
+  jingdezhen-ceramics-backend_internal_models.SalesByProduct:
+    properties:
+      gmv_cny:
+        type: integer
+      product_id:
+        type: integer
+      qty:
+        type: integer
+      title:
+        description: en-US product title fallback ("Unknown" if missing)
+        type: string
+    type: object
+  jingdezhen-ceramics-backend_internal_models.SalesDailyPoint:
+    properties:
+      date:
+        description: YYYY-MM-DD
+        type: string
+      gmv_cny:
+        type: integer
+      orders:
+        type: integer
+    type: object
+  jingdezhen-ceramics-backend_internal_models.SalesReport:
+    properties:
+      by_artist:
+        items:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.SalesByArtist'
+        type: array
+      by_country:
+        items:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.SalesByCountry'
+        type: array
+      by_currency:
+        items:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.SalesByCurrency'
+        type: array
+      by_product:
+        items:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.SalesByProduct'
+        type: array
+      from:
+        type: string
+      series:
+        description: one per day, zero-filled
+        items:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.SalesDailyPoint'
+        type: array
+      to:
+        type: string
+      totals:
+        $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.SalesTotals'
+    type: object
+  jingdezhen-ceramics-backend_internal_models.SalesTotals:
+    properties:
+      gmv_cny:
+        description: Σ subtotal_cny over realized orders
+        type: integer
+      orders:
+        description: count of realized orders
+        type: integer
+    type: object
   jingdezhen-ceramics-backend_internal_models.SendQuoteRequest:
     properties:
       currency:
@@ -1647,6 +1800,72 @@ definitions:
         description: locale-resolved (COALESCE in the JOIN)
         type: string
       product_count:
+        type: integer
+    type: object
+  jingdezhen-ceramics-backend_internal_models.TrafficByCountry:
+    properties:
+      country:
+        description: ISO 3166-1 alpha-2; 'ZZ' = unknown
+        type: string
+      pageviews:
+        type: integer
+      visitors:
+        type: integer
+    type: object
+  jingdezhen-ceramics-backend_internal_models.TrafficByLocale:
+    properties:
+      locale:
+        type: string
+      pageviews:
+        type: integer
+      visitors:
+        type: integer
+    type: object
+  jingdezhen-ceramics-backend_internal_models.TrafficByPath:
+    properties:
+      pageviews:
+        type: integer
+      path:
+        type: string
+    type: object
+  jingdezhen-ceramics-backend_internal_models.TrafficReport:
+    properties:
+      by_country:
+        description: top 100
+        items:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.TrafficByCountry'
+        type: array
+      by_locale:
+        description: top 100
+        items:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.TrafficByLocale'
+        type: array
+      by_path:
+        description: top 100 pageviews
+        items:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.TrafficByPath'
+        type: array
+      from:
+        type: string
+      series:
+        description: one per day, zero-filled
+        items:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.DailyPoint'
+        type: array
+      to:
+        type: string
+      totals:
+        $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.TrafficTotals'
+    type: object
+  jingdezhen-ceramics-backend_internal_models.TrafficTotals:
+    properties:
+      events:
+        description: named events (kind='event')
+        type: integer
+      pageviews:
+        type: integer
+      visitors:
+        description: distinct visitor_hash
         type: integer
     type: object
   jingdezhen-ceramics-backend_internal_models.TwoFAConfirmResponse:
@@ -1996,6 +2215,181 @@ info:
   title: Jingdezhen Ceramics Platform API
   version: "1.0"
 paths:
+  /admin/analytics/funnel:
+    get:
+      description: |-
+        Itinerary conversion funnel: form views (analytics_events name=
+        itinerary_form_view) → submissions (itinerary_requests submitted_at in range)
+        → confirmed (cohort status='confirmed'), conversion rates over time. Cohort
+        semantics (no confirmed_at column). Range filter as for /traffic.
+        ?format=csv streams a flattened CSV (Content-Disposition: attachment).
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: day|week|month|quarter|year
+        in: query
+        name: range
+        type: string
+      - description: YYYY-MM-DD (inclusive)
+        in: query
+        name: from
+        type: string
+      - description: YYYY-MM-DD (inclusive)
+        in: query
+        name: to
+        type: string
+      - description: csv
+        in: query
+        name: format
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.FunnelReport'
+        "400":
+          description: Invalid date range
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs dashboard.view)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Itinerary conversion funnel
+      tags:
+      - admin
+      - analytics
+  /admin/analytics/sales:
+    get:
+      description: |-
+        Sales analysis: GMV (Σ subtotal_cny, excludes shipping) over realized orders
+        (status IN paid|shipped|completed — cancelled/refunded excluded), by
+        currency/region/product/artist, time series. Range filter as for /traffic.
+        ?format=csv streams a flattened CSV (Content-Disposition: attachment).
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: day|week|month|quarter|year
+        in: query
+        name: range
+        type: string
+      - description: YYYY-MM-DD (inclusive)
+        in: query
+        name: from
+        type: string
+      - description: YYYY-MM-DD (inclusive)
+        in: query
+        name: to
+        type: string
+      - description: csv
+        in: query
+        name: format
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.SalesReport'
+        "400":
+          description: Invalid date range
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs dashboard.view)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Sales dashboard report
+      tags:
+      - admin
+      - analytics
+  /admin/analytics/traffic:
+    get:
+      description: |-
+        Traffic analysis: page views, visitors (by GeoIP country), top content, by locale.
+        Reads live from analytics_events (consent-gated at ingest). Range filter via
+        ?range=day|week|month|quarter|year or ?from=&to= (YYYY-MM-DD, default 30 days, max 365).
+        ?format=csv streams a flattened CSV (Content-Disposition: attachment).
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: day|week|month|quarter|year (server computes [now-start, now))
+        in: query
+        name: range
+        type: string
+      - description: YYYY-MM-DD (inclusive; requires to)
+        in: query
+        name: from
+        type: string
+      - description: YYYY-MM-DD (inclusive)
+        in: query
+        name: to
+        type: string
+      - description: csv = stream a flattened CSV report
+        in: query
+        name: format
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.TrafficReport'
+        "400":
+          description: Invalid date range
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs dashboard.view)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Traffic dashboard report
+      tags:
+      - admin
+      - analytics
   /admin/artists:
     get:
       consumes:
