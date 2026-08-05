@@ -582,3 +582,41 @@ The interesting bugs are:
 None of those depend on real SQL. The idempotency is the control flow - if `UpsertWebhook` says 'already existed', don't enqueue again - and that control flow is the same whether the upsert hits real Postgres or an in-memory map.
 
 repository_test: user, address, product
+
+## GitHub Actions CI pipeline
+
+It's 3 layers.
+
+### `.github/workflows/*.yml` - the pipeline itself
+
+This is the only strictly required file. Everything else is config consumed by this workflow or by tools it runs.
+A workflow defines:
+- triggers (`on:`): when it runs (push, PR, schedule, manual)
+- jobs: parallel / sequential units of work, each on a runner
+- steps: checkout, setup tools, run commands, use actions
+
+You can have multiple workflow files, e.g. `ci.yml`, `deploy.yml`, `release.yml`. They are independent pipelines.
+This project's workflow is just `ci.yml` with 5 jobs: lint -> unit -> integration -> build -> security.
+
+### Tool config files - consumed by steps inside the workflow
+
+These are not GitHub-specific. The workflow just invokes the tools, which read their own configs.
+
+ ┌────────────────────────────────────┬──────────────────────┬──────────────────────┐ 
+ │ File                               │ Tool                 │ What it configures   │ 
+ ├────────────────────────────────────┼──────────────────────┼──────────────────────┤ 
+ │ backend/.golangci.yml              │ golangci-lint        │ which linters, what  │ 
+ │                                    │                      │ to exclude           │ 
+ ├────────────────────────────────────┼──────────────────────┼──────────────────────┤ 
+ │ backend/.golangci-lint-version /   │ golangci-lint-action │ optional: pin the    │ 
+ │ .tool-versions                     │                      │ linter version via   │ 
+ │                                    │                      │ file instead of      │ 
+ │                                    │                      │ inline               │ 
+ ├────────────────────────────────────┼──────────────────────┼──────────────────────┤ 
+ │ .editorconfig / prettier config    │ any formatter        │ style rules          │ 
+ └────────────────────────────────────┴──────────────────────┴──────────────────────┘ 
+
+ ### `.github/dependeabot.yml` - automated dependency maintenance
+
+ This is not part of the CI pipeline, it's a separate GitHub feature that opens PRs to bump outdated deps.
+ It doesn't run tests; it just triggers the CI pipeline so the pipeline validates the bumps.
