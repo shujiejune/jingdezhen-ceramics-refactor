@@ -10,8 +10,8 @@ ifneq (,$(wildcard ./.env))
 endif
 
 .PHONY: help build up up-db down down-v stop logs logs-api logs-worker \
-	migrate-up migrate-down migrate-force db-shell db-reset db-seed
-	test test-unit test-integration
+	migrate-up migrate-down migrate-force db-shell db-reset db-seed \
+	test test-unit test-integration swag swag-fmt swag-check
 
 help:
 	@echo "Usage: make [target]"
@@ -113,3 +113,21 @@ test-integration:
 db-seed:
 	@echo "Seeding database with dev test data..."
 	cat scripts/seed/[0-9][0-9]_*.sql | $(COMPOSE) exec -T db psql -U "$(DB_USER)" -d "$(DB_NAME)"
+
+## swag: regenerate the OpenAPI/Swagger 2.0 spec from handler annotations.
+## Run after adding/changing @-annotations on handlers. The generated files
+## in internal/docs/ ARE committed (so CI can detect drift via `swag-check`).
+## --parseDependency --parseInternal let swag resolve model structs in
+## internal/models (another package) from the @Success/@Param annotations.
+swag:
+	swag init -g cmd/api/main.go -o internal/docs --parseDependency --parseInternal
+
+## swag-fmt: normalize the @-annotation comment formatting (align, order).
+swag-fmt:
+	swag fmt -d internal/modules
+
+## swag-check: CI gate — fails if the committed internal/docs/ is stale.
+## Catches "added a handler but forgot to regenerate the spec". Does NOT
+## catch wrong annotations (those fail at `swag init` time with a parse error).
+swag-check: swag
+	@git diff --exit-code internal/docs

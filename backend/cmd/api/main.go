@@ -1,3 +1,25 @@
+// Package main is the entrypoint for the Jingdezhen Ceramics Platform API
+// (serve mode). It wires config, the Fiber router, the WebSocket hub, and the
+// Asynq worker.
+//
+// API documentation (OpenAPI/Swagger 2.0):
+//
+//	swag init -g cmd/api/main.go -o internal/docs --parseDependency --parseInternal
+//	browse to /admin/swagger/index.html (admin-only, dev-gated)
+//
+// @title        Jingdezhen Ceramics Platform API
+// @version      1.0
+// @description  Internationalized culture / e-commerce / custom-travel platform for Jingdezhen ceramic art.
+// @description  Backend in Go + Fiber; money as BIGINT minor units (CNY base, USD/EUR/GBP presentment).
+// @termsOfService  https://jingdezhen.test/terms
+// @contact.name   Jingdezhen Ceramics Platform Team
+// @license.name   Apache 2.0
+// @license.url    http://www.apache.org/licenses/LICENSE-2.0.html
+// @BasePath       /
+// @securityDefinitions.apikey BearerAuth
+// @in   header
+// @name Authorization
+// @description   "Bearer <access_token>" — JWT access token from POST /auth/login (or OAuth). Required for all /admin/* and customer-authed endpoints; omitted for public /catalog/* reads.
 package main
 
 import (

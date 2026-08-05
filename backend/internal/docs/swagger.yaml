@@ -1,0 +1,391 @@
+basePath: /
+definitions:
+  jingdezhen-ceramics-backend_internal_models.ContentStatus:
+    enum:
+    - draft
+    - in_review
+    - published
+    - rejected
+    type: string
+    x-enum-varnames:
+    - StatusDraft
+    - StatusInReview
+    - StatusPublished
+    - StatusRejected
+  jingdezhen-ceramics-backend_internal_models.ErrorResponse:
+    properties:
+      details:
+        description: Optional additional details
+        type: string
+      message:
+        type: string
+    type: object
+  jingdezhen-ceramics-backend_internal_models.MediaAsset:
+    properties:
+      created_at:
+        type: string
+      duration:
+        description: seconds (videos)
+        type: integer
+      height:
+        type: integer
+      hls_key:
+        description: transcoded HLS playlist (videos)
+        type: string
+      id:
+        type: integer
+      kind:
+        description: image | video
+        type: string
+      mime:
+        type: string
+      oss_key:
+        type: string
+      public_url:
+        description: PublicURL resolved at read time by the storage adapter. Not in
+          DB.
+        type: string
+      updated_at:
+        type: string
+      uploaded_by:
+        type: string
+      width:
+        type: integer
+    type: object
+  jingdezhen-ceramics-backend_internal_models.PaginatedResponse:
+    properties:
+      data: {}
+      limit:
+        type: integer
+      page:
+        type: integer
+      total:
+        type: integer
+      total_pages:
+        type: integer
+    type: object
+  jingdezhen-ceramics-backend_internal_models.Product:
+    properties:
+      artist_id:
+        description: 'parent: FK to artists.id'
+        type: integer
+      artist_name:
+        description: populated by service (joined or from artist_translations)
+        type: string
+      artist_slug:
+        description: for cross-link to artist profile
+        type: string
+      category:
+        description: 'parent: bare string for now (dead post-media; kept for back-comat)'
+        type: string
+      created_at:
+        description: parent
+        type: string
+      description:
+        type: string
+      display_order:
+        description: parent
+        type: integer
+      gallery:
+        description: |-
+          Gallery loaded by the service (detail view only). Empty when no
+          product_media rows. The first item's media PublicURL is the preferred
+          thumbnail; ThumbnailURL above is the fallback for back-comat.
+        items:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ProductMediaItem'
+        type: array
+      id:
+        type: integer
+      locale:
+        type: string
+      meta_description:
+        type: string
+      meta_title:
+        type: string
+      published_at:
+        type: string
+      skus:
+        description: SKUs loaded by the service (detail view only; omitted from list
+          view).
+        items:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.SKU'
+        type: array
+      slug:
+        type: string
+      status:
+        $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ContentStatus'
+      tags:
+        description: |-
+          Tags loaded by the service (list + detail views; batch-loaded to avoid N+1).
+          `Name` is the locale-resolved display name (en-US → key fallback).
+        items:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.Tag'
+        type: array
+      thumbnail_url:
+        description: 'parent: primary display (dead post-media; gallery preferred)'
+        type: string
+      title:
+        description: Translation fields.
+        type: string
+      updated_at:
+        description: parent
+        type: string
+    type: object
+  jingdezhen-ceramics-backend_internal_models.ProductMediaItem:
+    properties:
+      caption:
+        type: string
+      created_at:
+        type: string
+      id:
+        description: product_media.id
+        type: integer
+      media:
+        allOf:
+        - $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.MediaAsset'
+        description: The media asset, loaded via JOIN. Embedded so the JSON nests
+          it.
+      media_id:
+        type: integer
+      product_id:
+        type: integer
+      sort_order:
+        type: integer
+    type: object
+  jingdezhen-ceramics-backend_internal_models.SKU:
+    properties:
+      attributes:
+        description: JSONB map
+        items:
+          type: integer
+        type: array
+      created_at:
+        type: string
+      id:
+        type: integer
+      is_active:
+        type: boolean
+      low_stock_threshold:
+        type: integer
+      price:
+        description: |-
+          Presentment-currency price (populated when the request carries ?currency=).
+          Nil when no conversion was requested. TDD §7: converted at read time from
+          the cached fx_rates, with the PRD rounding rule applied.
+        type: integer
+      price_cny:
+        description: minor units (fen)
+        type: integer
+      price_currency:
+        description: ISO 4217
+        type: string
+      product_id:
+        type: integer
+      sku_code:
+        type: string
+      stock:
+        type: integer
+      updated_at:
+        type: string
+      weight_grams:
+        description: packed weight
+        type: integer
+    type: object
+  jingdezhen-ceramics-backend_internal_models.Tag:
+    properties:
+      id:
+        type: integer
+      key:
+        type: string
+      name:
+        description: locale-resolved (COALESCE in the JOIN)
+        type: string
+    type: object
+  jingdezhen-ceramics-backend_internal_models.TagWithCount:
+    properties:
+      id:
+        type: integer
+      key:
+        type: string
+      name:
+        description: locale-resolved (COALESCE in the JOIN)
+        type: string
+      product_count:
+        type: integer
+    type: object
+info:
+  contact:
+    name: Jingdezhen Ceramics Platform Team
+  description: |-
+    Internationalized culture / e-commerce / custom-travel platform for Jingdezhen ceramic art.
+    Backend in Go + Fiber; money as BIGINT minor units (CNY base, USD/EUR/GBP presentment).
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: https://jingdezhen.test/terms
+  title: Jingdezhen Ceramics Platform API
+  version: "1.0"
+paths:
+  /catalog/categories:
+    get:
+      description: Distinct categories across published products (bare strings for
+        MVP).
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: string
+            type: array
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      summary: List product categories
+      tags:
+      - catalog
+      - categories
+  /catalog/products:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Paginated list of published products in the requested locale.
+        Supports filtering by category, artist, and tags (ANY-match).
+        Locale resolution: ?locale= overrides Accept-Language.
+      parameters:
+      - default: '"en-US"'
+        description: BCP 47 locale (e.g. en-US). Overrides Accept-Language.
+        in: query
+        name: locale
+        type: string
+      - description: Category name (exact match)
+        in: query
+        name: category
+        type: string
+      - description: Artist ID
+        in: query
+        name: artist
+        type: integer
+      - description: Comma-separated canonical tag keys (ANY-match, e.g. hand-painted,celadon-glaze)
+        in: query
+        name: tag
+        type: string
+      - default: 1
+        description: Page number (1-based)
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Page size (max 100)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.PaginatedResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.Product'
+                  type: array
+              type: object
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      summary: List published products
+      tags:
+      - catalog
+      - products
+  /catalog/products/{slug}:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Fetches a single published product by its locale-specific slug,
+        with SKUs, gallery, and tags loaded. Optional ?currency= adds
+        presentment pricing to each SKU (USD/EUR/GBP; FX-snapshotted).
+      parameters:
+      - description: Product slug (locale-specific)
+        in: path
+        name: slug
+        required: true
+        type: string
+      - default: '"en-US"'
+        description: BCP 47 locale (e.g. en-US). Overrides Accept-Language.
+        in: query
+        name: locale
+        type: string
+      - description: Presentment currency (USD/EUR/GBP). Adds `price` + `price_currency`
+          to each SKU.
+        in: query
+        name: currency
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.Product'
+        "400":
+          description: Missing slug
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Product not found (or not published in this locale)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      summary: Get a product by slug
+      tags:
+      - catalog
+      - products
+  /catalog/tags:
+    get:
+      description: |-
+        Tags attached to at least one published product, with the
+        locale-resolved display name + a product count.
+      parameters:
+      - default: '"en-US"'
+        description: BCP 47 locale (e.g. en-US). Overrides Accept-Language.
+        in: query
+        name: locale
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.TagWithCount'
+            type: array
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      summary: List product tags (public facet)
+      tags:
+      - catalog
+      - tags
+securityDefinitions:
+  BearerAuth:
+    description: '"Bearer <access_token>" — JWT access token from POST /auth/login
+      (or OAuth). Required for all /admin/* and customer-authed endpoints; omitted
+      for public /catalog/* reads.'
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

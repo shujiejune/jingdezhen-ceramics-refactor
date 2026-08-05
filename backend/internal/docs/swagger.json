@@ -1,0 +1,541 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "Internationalized culture / e-commerce / custom-travel platform for Jingdezhen ceramic art.\nBackend in Go + Fiber; money as BIGINT minor units (CNY base, USD/EUR/GBP presentment).",
+        "title": "Jingdezhen Ceramics Platform API",
+        "termsOfService": "https://jingdezhen.test/terms",
+        "contact": {
+            "name": "Jingdezhen Ceramics Platform Team"
+        },
+        "license": {
+            "name": "Apache 2.0",
+            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+        },
+        "version": "1.0"
+    },
+    "basePath": "/",
+    "paths": {
+        "/catalog/categories": {
+            "get": {
+                "description": "Distinct categories across published products (bare strings for MVP).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "catalog",
+                    "categories"
+                ],
+                "summary": "List product categories",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/catalog/products": {
+            "get": {
+                "description": "Paginated list of published products in the requested locale.\nSupports filtering by category, artist, and tags (ANY-match).\nLocale resolution: ?locale= overrides Accept-Language.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "catalog",
+                    "products"
+                ],
+                "summary": "List published products",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "\"en-US\"",
+                        "description": "BCP 47 locale (e.g. en-US). Overrides Accept-Language.",
+                        "name": "locale",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Category name (exact match)",
+                        "name": "category",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Artist ID",
+                        "name": "artist",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Comma-separated canonical tag keys (ANY-match, e.g. hand-painted,celadon-glaze)",
+                        "name": "tag",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page number (1-based)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Page size (max 100)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.PaginatedResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.Product"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/catalog/products/{slug}": {
+            "get": {
+                "description": "Fetches a single published product by its locale-specific slug,\nwith SKUs, gallery, and tags loaded. Optional ?currency= adds\npresentment pricing to each SKU (USD/EUR/GBP; FX-snapshotted).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "catalog",
+                    "products"
+                ],
+                "summary": "Get a product by slug",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Product slug (locale-specific)",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "default": "\"en-US\"",
+                        "description": "BCP 47 locale (e.g. en-US). Overrides Accept-Language.",
+                        "name": "locale",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Presentment currency (USD/EUR/GBP). Adds `price` + `price_currency` to each SKU.",
+                        "name": "currency",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.Product"
+                        }
+                    },
+                    "400": {
+                        "description": "Missing slug",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Product not found (or not published in this locale)",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/catalog/tags": {
+            "get": {
+                "description": "Tags attached to at least one published product, with the\nlocale-resolved display name + a product count.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "catalog",
+                    "tags"
+                ],
+                "summary": "List product tags (public facet)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "\"en-US\"",
+                        "description": "BCP 47 locale (e.g. en-US). Overrides Accept-Language.",
+                        "name": "locale",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.TagWithCount"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "jingdezhen-ceramics-backend_internal_models.ContentStatus": {
+            "type": "string",
+            "enum": [
+                "draft",
+                "in_review",
+                "published",
+                "rejected"
+            ],
+            "x-enum-varnames": [
+                "StatusDraft",
+                "StatusInReview",
+                "StatusPublished",
+                "StatusRejected"
+            ]
+        },
+        "jingdezhen-ceramics-backend_internal_models.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "details": {
+                    "description": "Optional additional details",
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "jingdezhen-ceramics-backend_internal_models.MediaAsset": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "duration": {
+                    "description": "seconds (videos)",
+                    "type": "integer"
+                },
+                "height": {
+                    "type": "integer"
+                },
+                "hls_key": {
+                    "description": "transcoded HLS playlist (videos)",
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "kind": {
+                    "description": "image | video",
+                    "type": "string"
+                },
+                "mime": {
+                    "type": "string"
+                },
+                "oss_key": {
+                    "type": "string"
+                },
+                "public_url": {
+                    "description": "PublicURL resolved at read time by the storage adapter. Not in DB.",
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "uploaded_by": {
+                    "type": "string"
+                },
+                "width": {
+                    "type": "integer"
+                }
+            }
+        },
+        "jingdezhen-ceramics-backend_internal_models.PaginatedResponse": {
+            "type": "object",
+            "properties": {
+                "data": {},
+                "limit": {
+                    "type": "integer"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                },
+                "total_pages": {
+                    "type": "integer"
+                }
+            }
+        },
+        "jingdezhen-ceramics-backend_internal_models.Product": {
+            "type": "object",
+            "properties": {
+                "artist_id": {
+                    "description": "parent: FK to artists.id",
+                    "type": "integer"
+                },
+                "artist_name": {
+                    "description": "populated by service (joined or from artist_translations)",
+                    "type": "string"
+                },
+                "artist_slug": {
+                    "description": "for cross-link to artist profile",
+                    "type": "string"
+                },
+                "category": {
+                    "description": "parent: bare string for now (dead post-media; kept for back-comat)",
+                    "type": "string"
+                },
+                "created_at": {
+                    "description": "parent",
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "display_order": {
+                    "description": "parent",
+                    "type": "integer"
+                },
+                "gallery": {
+                    "description": "Gallery loaded by the service (detail view only). Empty when no\nproduct_media rows. The first item's media PublicURL is the preferred\nthumbnail; ThumbnailURL above is the fallback for back-comat.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ProductMediaItem"
+                    }
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "locale": {
+                    "type": "string"
+                },
+                "meta_description": {
+                    "type": "string"
+                },
+                "meta_title": {
+                    "type": "string"
+                },
+                "published_at": {
+                    "type": "string"
+                },
+                "skus": {
+                    "description": "SKUs loaded by the service (detail view only; omitted from list view).",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.SKU"
+                    }
+                },
+                "slug": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ContentStatus"
+                },
+                "tags": {
+                    "description": "Tags loaded by the service (list + detail views; batch-loaded to avoid N+1).\n`Name` is the locale-resolved display name (en-US → key fallback).",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.Tag"
+                    }
+                },
+                "thumbnail_url": {
+                    "description": "parent: primary display (dead post-media; gallery preferred)",
+                    "type": "string"
+                },
+                "title": {
+                    "description": "Translation fields.",
+                    "type": "string"
+                },
+                "updated_at": {
+                    "description": "parent",
+                    "type": "string"
+                }
+            }
+        },
+        "jingdezhen-ceramics-backend_internal_models.ProductMediaItem": {
+            "type": "object",
+            "properties": {
+                "caption": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "description": "product_media.id",
+                    "type": "integer"
+                },
+                "media": {
+                    "description": "The media asset, loaded via JOIN. Embedded so the JSON nests it.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.MediaAsset"
+                        }
+                    ]
+                },
+                "media_id": {
+                    "type": "integer"
+                },
+                "product_id": {
+                    "type": "integer"
+                },
+                "sort_order": {
+                    "type": "integer"
+                }
+            }
+        },
+        "jingdezhen-ceramics-backend_internal_models.SKU": {
+            "type": "object",
+            "properties": {
+                "attributes": {
+                    "description": "JSONB map",
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "is_active": {
+                    "type": "boolean"
+                },
+                "low_stock_threshold": {
+                    "type": "integer"
+                },
+                "price": {
+                    "description": "Presentment-currency price (populated when the request carries ?currency=).\nNil when no conversion was requested. TDD §7: converted at read time from\nthe cached fx_rates, with the PRD rounding rule applied.",
+                    "type": "integer"
+                },
+                "price_cny": {
+                    "description": "minor units (fen)",
+                    "type": "integer"
+                },
+                "price_currency": {
+                    "description": "ISO 4217",
+                    "type": "string"
+                },
+                "product_id": {
+                    "type": "integer"
+                },
+                "sku_code": {
+                    "type": "string"
+                },
+                "stock": {
+                    "type": "integer"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "weight_grams": {
+                    "description": "packed weight",
+                    "type": "integer"
+                }
+            }
+        },
+        "jingdezhen-ceramics-backend_internal_models.Tag": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "key": {
+                    "type": "string"
+                },
+                "name": {
+                    "description": "locale-resolved (COALESCE in the JOIN)",
+                    "type": "string"
+                }
+            }
+        },
+        "jingdezhen-ceramics-backend_internal_models.TagWithCount": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "key": {
+                    "type": "string"
+                },
+                "name": {
+                    "description": "locale-resolved (COALESCE in the JOIN)",
+                    "type": "string"
+                },
+                "product_count": {
+                    "type": "integer"
+                }
+            }
+        }
+    },
+    "securityDefinitions": {
+        "BearerAuth": {
+            "description": "\"Bearer \u003caccess_token\u003e\" — JWT access token from POST /auth/login (or OAuth). Required for all /admin/* and customer-authed endpoints; omitted for public /catalog/* reads.",
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
+        }
+    }
+}

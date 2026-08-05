@@ -64,6 +64,23 @@ func requestLocale(c *fiber.Ctx) string {
 
 // GetProducts: GET /catalog/products?locale=en-US&category=&artist=&tag=&page=&limit=
 // `tag` is a comma-separated list of canonical tag keys (ANY-match).
+//
+// @Summary      List published products
+// @Description  Paginated list of published products in the requested locale.
+// @Description  Supports filtering by category, artist, and tags (ANY-match).
+// @Description  Locale resolution: ?locale= overrides Accept-Language.
+// @Tags         catalog,products
+// @Accept       json
+// @Produce      json
+// @Param        locale   query string            false "BCP 47 locale (e.g. en-US). Overrides Accept-Language." default("en-US")
+// @Param        category query string            false "Category name (exact match)"
+// @Param        artist   query int               false "Artist ID"
+// @Param        tag      query string            false "Comma-separated canonical tag keys (ANY-match, e.g. hand-painted,celadon-glaze)"
+// @Param        page     query int               false "Page number (1-based)" default(1)
+// @Param        limit    query int               false "Page size (max 100)" default(20)
+// @Success      200      {object} models.PaginatedResponse{data=[]models.Product}
+// @Failure      500      {object} models.ErrorResponse "Internal error"
+// @Router       /catalog/products [get]
 func (h *Handler) GetProducts(c *fiber.Ctx) error {
 	page, limit := utils.GetPageLimit(c)
 	locale := requestLocale(c)
@@ -82,6 +99,22 @@ func (h *Handler) GetProducts(c *fiber.Ctx) error {
 // When ?currency= is a supported presentment currency (USD/EUR/GBP) and an FX
 // converter is wired, each SKU's response gains `price` + `price_currency`
 // (presentment minor units, PRD rounding applied). price_cny is always present.
+//
+// @Summary      Get a product by slug
+// @Description  Fetches a single published product by its locale-specific slug,
+// @Description  with SKUs, gallery, and tags loaded. Optional ?currency= adds
+// @Description  presentment pricing to each SKU (USD/EUR/GBP; FX-snapshotted).
+// @Tags         catalog,products
+// @Accept       json
+// @Produce      json
+// @Param        slug     path string  true "Product slug (locale-specific)"
+// @Param        locale   query string false "BCP 47 locale (e.g. en-US). Overrides Accept-Language." default("en-US")
+// @Param        currency query string false "Presentment currency (USD/EUR/GBP). Adds `price` + `price_currency` to each SKU."
+// @Success      200      {object} models.Product
+// @Failure      400      {object} models.ErrorResponse "Missing slug"
+// @Failure      404      {object} models.ErrorResponse "Product not found (or not published in this locale)"
+// @Failure      500      {object} models.ErrorResponse "Internal error"
+// @Router       /catalog/products/{slug} [get]
 func (h *Handler) GetProductBySlug(c *fiber.Ctx) error {
 	slug := c.Params("slug")
 	if slug == "" {
@@ -487,6 +520,14 @@ func (h *Handler) AdminDeleteSKU(c *fiber.Ctx) error {
 // --- Catalog helpers ---
 
 // GetCategories: GET /catalog/categories
+//
+// @Summary      List product categories
+// @Description  Distinct categories across published products (bare strings for MVP).
+// @Tags         catalog,categories
+// @Produce      json
+// @Success      200  {array}  string
+// @Failure      500  {object} models.ErrorResponse "Internal error"
+// @Router       /catalog/categories [get]
 func (h *Handler) GetCategories(c *fiber.Ctx) error {
 	categories, err := h.service.GetCategories(c.Context())
 	if err != nil {
@@ -499,6 +540,16 @@ func (h *Handler) GetCategories(c *fiber.Ctx) error {
 // GetTags: GET /catalog/tags?locale=en-US
 // Lists tags attached to ≥1 published product, with the locale-resolved display
 // name + a product count (public facet list, PRD §3.2.1 line 173).
+//
+// @Summary      List product tags (public facet)
+// @Description  Tags attached to at least one published product, with the
+// @Description  locale-resolved display name + a product count.
+// @Tags         catalog,tags
+// @Produce      json
+// @Param        locale query string false "BCP 47 locale (e.g. en-US). Overrides Accept-Language." default("en-US")
+// @Success      200  {array}  models.TagWithCount
+// @Failure      500  {object} models.ErrorResponse "Internal error"
+// @Router       /catalog/tags [get]
 func (h *Handler) GetTags(c *fiber.Ctx) error {
 	locale := requestLocale(c)
 	tags, err := h.service.GetTags(c.Context(), locale)

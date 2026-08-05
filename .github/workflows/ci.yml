@@ -54,6 +54,13 @@ jobs:
         run: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.2
       - name: golangci-lint run
         run: golangci-lint run --timeout 5m ./...
+      - name: Swagger spec freshness (swag-check)
+        # Fails if internal/docs/ is stale vs the @-annotations on handlers.
+        # Catches "added a handler but forgot `make swag`". Does NOT catch
+        # wrong annotations (those fail at `swag init` with a parse error).
+        run: |
+          go install github.com/swaggo/swag/cmd/swag@v1.16.4
+          make swag-check
 
   unit:
     name: Unit tests (-short, no Docker)
