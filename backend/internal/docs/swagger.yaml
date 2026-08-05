@@ -1,5 +1,51 @@
 basePath: /
 definitions:
+  jingdezhen-ceramics-backend_internal_models.ActivationRequest:
+    properties:
+      token:
+        type: string
+    required:
+    - token
+    type: object
+  jingdezhen-ceramics-backend_internal_models.Activity:
+    properties:
+      address:
+        type: string
+      body:
+        type: string
+      brief_introduction:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      lat:
+        description: Destination location (parent, non-localized; NULL for non-destination
+          types).
+        type: number
+      lng:
+        type: number
+      locale:
+        type: string
+      meta_description:
+        type: string
+      meta_title:
+        type: string
+      published_at:
+        type: string
+      slug:
+        description: Translation fields.
+        type: string
+      status:
+        $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ContentStatus'
+      title:
+        type: string
+      type:
+        description: 'parent: ''Destination'', ''Local Lifestyle'', etc.'
+        type: string
+      updated_at:
+        type: string
+    type: object
   jingdezhen-ceramics-backend_internal_models.AddCartItemRequest:
     properties:
       qty:
@@ -73,6 +119,13 @@ definitions:
         type: integer
     required:
     - media_id
+    type: object
+  jingdezhen-ceramics-backend_internal_models.AuthResponse:
+    properties:
+      access_token:
+        type: string
+      user:
+        $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.User'
     type: object
   jingdezhen-ceramics-backend_internal_models.BudgetInput:
     properties:
@@ -183,6 +236,60 @@ definitions:
       weight_grams:
         type: integer
     type: object
+  jingdezhen-ceramics-backend_internal_models.CeramicStory:
+    properties:
+      characteristics_art:
+        type: string
+      characteristics_craft:
+        type: string
+      created_at:
+        description: parent
+        type: string
+      description:
+        description: translation
+        type: string
+      display_order:
+        description: parent
+        type: integer
+      dynasty_name:
+        description: translation
+        type: string
+      end_year:
+        description: parent
+        type: integer
+      id:
+        type: integer
+      image_url:
+        description: parent (non-localized media)
+        type: string
+      locale:
+        description: translation
+        type: string
+      meta_description:
+        type: string
+      meta_title:
+        type: string
+      period:
+        description: translation
+        type: string
+      published_at:
+        type: string
+      slug:
+        description: translation (per-locale unique)
+        type: string
+      start_year:
+        description: parent
+        type: integer
+      status:
+        allOf:
+        - $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ContentStatus'
+        description: translation
+      takeaways:
+        type: string
+      updated_at:
+        description: parent
+        type: string
+    type: object
   jingdezhen-ceramics-backend_internal_models.Certificate:
     properties:
       artist_name:
@@ -238,6 +345,42 @@ definitions:
     required:
     - address_id
     type: object
+  jingdezhen-ceramics-backend_internal_models.ConfirmTwoFARequest:
+    properties:
+      code:
+        description: 6-digit TOTP code
+        type: string
+    required:
+    - code
+    type: object
+  jingdezhen-ceramics-backend_internal_models.ConsentKind:
+    enum:
+    - privacy_policy
+    - tos
+    - cookie_analytics
+    - cookie_marketing
+    type: string
+    x-enum-varnames:
+    - ConsentKindPrivacyPolicy
+    - ConsentKindToS
+    - ConsentKindCookieAnalytics
+    - ConsentKindCookieMarketing
+  jingdezhen-ceramics-backend_internal_models.ConsentRecord:
+    properties:
+      created_at:
+        type: string
+      doc_version:
+        type: string
+      granted:
+        type: boolean
+      id:
+        type: integer
+      kind:
+        $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ConsentKind'
+      user_id:
+        description: NULL = anonymous visitor
+        type: string
+    type: object
   jingdezhen-ceramics-backend_internal_models.ContactInput:
     properties:
       channel:
@@ -265,6 +408,41 @@ definitions:
     - StatusInReview
     - StatusPublished
     - StatusRejected
+  jingdezhen-ceramics-backend_internal_models.CreateActivityData:
+    properties:
+      address:
+        type: string
+      body:
+        type: string
+      brief_introduction:
+        type: string
+      lat:
+        description: Destination location (parent, non-localized; nullable).
+        type: number
+      lng:
+        type: number
+      locale:
+        type: string
+      meta_description:
+        type: string
+      meta_title:
+        maxLength: 255
+        type: string
+      slug:
+        maxLength: 255
+        type: string
+      title:
+        maxLength: 255
+        type: string
+      type:
+        description: Destination | Local Lifestyle, etc.
+        maxLength: 50
+        type: string
+    required:
+    - slug
+    - title
+    - type
+    type: object
   jingdezhen-ceramics-backend_internal_models.CreateAddressRequest:
     properties:
       city:
@@ -326,6 +504,41 @@ definitions:
         type: string
     required:
     - name
+    - slug
+    type: object
+  jingdezhen-ceramics-backend_internal_models.CreateCeramicStoryData:
+    properties:
+      characteristics_art:
+        type: string
+      characteristics_craft:
+        type: string
+      description:
+        type: string
+      display_order:
+        minimum: 0
+        type: integer
+      dynasty_name:
+        maxLength: 100
+        type: string
+      end_year:
+        type: integer
+      image_url:
+        type: string
+      locale:
+        type: string
+      period:
+        maxLength: 100
+        type: string
+      slug:
+        maxLength: 100
+        type: string
+      start_year:
+        type: integer
+      takeaways:
+        type: string
+    required:
+    - description
+    - dynasty_name
     - slug
     type: object
   jingdezhen-ceramics-backend_internal_models.CreateOptionRateRequest:
@@ -429,12 +642,28 @@ definitions:
     - country
     - max_weight_grams
     type: object
+  jingdezhen-ceramics-backend_internal_models.DeleteAccountRequest:
+    properties:
+      confirm:
+        type: string
+    required:
+    - confirm
+    type: object
   jingdezhen-ceramics-backend_internal_models.DepositPaidResponse:
     properties:
       hosted_url:
         type: string
       quote_id:
         type: integer
+    type: object
+  jingdezhen-ceramics-backend_internal_models.EnrollTwoFARequest:
+    properties:
+      account:
+        type: string
+      issuer:
+        description: Issuer/account labels for the otpauth URI; defaults applied if
+          empty.
+        type: string
     type: object
   jingdezhen-ceramics-backend_internal_models.ErrorResponse:
     properties:
@@ -724,6 +953,16 @@ definitions:
     - pace
     - services
     type: object
+  jingdezhen-ceramics-backend_internal_models.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
   jingdezhen-ceramics-backend_internal_models.MediaAsset:
     properties:
       created_at:
@@ -774,6 +1013,42 @@ definitions:
           $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.MergeCartItem'
         type: array
     type: object
+  jingdezhen-ceramics-backend_internal_models.Notification:
+    properties:
+      actor_user:
+        $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.User'
+      actor_user_id:
+        type: string
+      created_at:
+        type: string
+      entity_id:
+        type: integer
+      entity_type:
+        type: string
+      is_read:
+        type: boolean
+      message:
+        type: string
+      notification_id:
+        type: integer
+      notification_type:
+        $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.NotificationType'
+      recipient_user_id:
+        type: string
+    type: object
+  jingdezhen-ceramics-backend_internal_models.NotificationType:
+    enum:
+    - system
+    - low_stock
+    type: string
+    x-enum-comments:
+      NotificationTypeLowStock: 'PRD §3.4.1: low-stock alert to E-commerce Operators'
+    x-enum-descriptions:
+    - ""
+    - 'PRD §3.4.1: low-stock alert to E-commerce Operators'
+    x-enum-varnames:
+    - NotificationTypeSystem
+    - NotificationTypeLowStock
   jingdezhen-ceramics-backend_internal_models.OptionRate:
     properties:
       display_label:
@@ -919,6 +1194,27 @@ definitions:
     required:
     - gateway
     type: object
+  jingdezhen-ceramics-backend_internal_models.PendingTwoFAConfirmRequest:
+    properties:
+      code:
+        type: string
+      pending_token:
+        type: string
+    required:
+    - code
+    - pending_token
+    type: object
+  jingdezhen-ceramics-backend_internal_models.PendingTwoFAEnrollRequest:
+    properties:
+      account:
+        type: string
+      issuer:
+        type: string
+      pending_token:
+        type: string
+    required:
+    - pending_token
+    type: object
   jingdezhen-ceramics-backend_internal_models.Product:
     properties:
       artist_id:
@@ -1007,6 +1303,11 @@ definitions:
       sort_order:
         type: integer
     type: object
+  jingdezhen-ceramics-backend_internal_models.ProfileData:
+    properties:
+      other_contact:
+        type: string
+    type: object
   jingdezhen-ceramics-backend_internal_models.ProvenanceKind:
     enum:
     - created
@@ -1063,6 +1364,25 @@ definitions:
     - QuoteDepositPaid
     - QuoteFullyPaid
     - QuoteCancelled
+  jingdezhen-ceramics-backend_internal_models.RecordConsentRequest:
+    properties:
+      doc_version:
+        maxLength: 20
+        type: string
+      granted:
+        type: boolean
+      kind:
+        allOf:
+        - $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ConsentKind'
+        enum:
+        - privacy_policy
+        - tos
+        - cookie_analytics
+        - cookie_marketing
+    required:
+    - doc_version
+    - kind
+    type: object
   jingdezhen-ceramics-backend_internal_models.RefundDepositRequest:
     properties:
       reason:
@@ -1110,6 +1430,32 @@ definitions:
         type: integer
     required:
     - media_id
+    type: object
+  jingdezhen-ceramics-backend_internal_models.RequestPasswordResetRequest:
+    properties:
+      email:
+        type: string
+    required:
+    - email
+    type: object
+  jingdezhen-ceramics-backend_internal_models.ResendActivationRequest:
+    properties:
+      email:
+        type: string
+    required:
+    - email
+    type: object
+  jingdezhen-ceramics-backend_internal_models.ResetPasswordRequest:
+    properties:
+      new_password:
+        description: Enforce a minimum password length
+        minLength: 8
+        type: string
+      token:
+        type: string
+    required:
+    - new_password
+    - token
     type: object
   jingdezhen-ceramics-backend_internal_models.SKU:
     properties:
@@ -1240,6 +1586,22 @@ definitions:
       weight_grams:
         type: integer
     type: object
+  jingdezhen-ceramics-backend_internal_models.SignupRequest:
+    properties:
+      email:
+        type: string
+      nickname:
+        maxLength: 50
+        minLength: 2
+        type: string
+      password:
+        minLength: 8
+        type: string
+    required:
+    - email
+    - nickname
+    - password
+    type: object
   jingdezhen-ceramics-backend_internal_models.Tag:
     properties:
       id:
@@ -1261,6 +1623,52 @@ definitions:
         type: string
       product_count:
         type: integer
+    type: object
+  jingdezhen-ceramics-backend_internal_models.TwoFAConfirmResponse:
+    properties:
+      backup_codes:
+        description: shown once; stored hashed, never returned again
+        items:
+          type: string
+        type: array
+      message:
+        type: string
+    type: object
+  jingdezhen-ceramics-backend_internal_models.TwoFAEnrollResponse:
+    properties:
+      otpauth_uri:
+        description: otpauth://totp/... — render as QR
+        type: string
+      secret:
+        description: for manual entry
+        type: string
+    type: object
+  jingdezhen-ceramics-backend_internal_models.UpdateActivityData:
+    properties:
+      address:
+        type: string
+      body:
+        type: string
+      brief_introduction:
+        type: string
+      lat:
+        type: number
+      lng:
+        type: number
+      meta_description:
+        type: string
+      meta_title:
+        maxLength: 255
+        type: string
+      slug:
+        maxLength: 255
+        type: string
+      title:
+        maxLength: 255
+        type: string
+      type:
+        maxLength: 50
+        type: string
     type: object
   jingdezhen-ceramics-backend_internal_models.UpdateAddressRequest:
     properties:
@@ -1325,6 +1733,35 @@ definitions:
         type: integer
     required:
     - qty
+    type: object
+  jingdezhen-ceramics-backend_internal_models.UpdateCeramicStoryData:
+    properties:
+      characteristics_art:
+        type: string
+      characteristics_craft:
+        type: string
+      description:
+        type: string
+      display_order:
+        minimum: 0
+        type: integer
+      dynasty_name:
+        maxLength: 100
+        type: string
+      end_year:
+        type: integer
+      image_url:
+        type: string
+      period:
+        maxLength: 100
+        type: string
+      slug:
+        maxLength: 100
+        type: string
+      start_year:
+        type: integer
+      takeaways:
+        type: string
     type: object
   jingdezhen-ceramics-backend_internal_models.UpdateOptionRateRequest:
     properties:
@@ -1415,6 +1852,44 @@ definitions:
     - country
     - max_weight_grams
     type: object
+  jingdezhen-ceramics-backend_internal_models.User:
+    properties:
+      auth_provider:
+        type: string
+      avatar_url:
+        type: string
+      created_at:
+        type: string
+      deleted_at:
+        description: set when GDPR-erased (anonymized stub)
+        type: string
+      email:
+        type: string
+      id:
+        description: UUID string from DB
+        type: string
+      is_active:
+        type: boolean
+      nickname:
+        type: string
+      preferred_currency:
+        description: 'ISO 4217: USD, EUR, GBP (PRD §3.2.3)'
+        type: string
+      preferred_locale:
+        description: 'BCP 47: en-US, zh-CN (PRD §3.5.1)'
+        type: string
+      profile_data:
+        $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ProfileData'
+      roles:
+        description: |-
+          Roles are loaded separately from user_roles (db:"-"; populated by services).
+          A user with no staff role is a customer (PRD §3.4.1).
+        items:
+          type: string
+        type: array
+      updated_at:
+        type: string
+    type: object
   jingdezhen-ceramics-backend_internal_models.UserAddress:
     properties:
       city:
@@ -1442,6 +1917,16 @@ definitions:
         type: string
       updated_at:
         type: string
+    type: object
+  jingdezhen-ceramics-backend_internal_models.VerifyTwoFARequest:
+    properties:
+      code:
+        type: string
+      pending_token:
+        type: string
+    required:
+    - code
+    - pending_token
     type: object
   jingdezhen-ceramics-backend_internal_models.WishlistItem:
     properties:
@@ -2017,6 +2502,527 @@ paths:
       tags:
       - admin
       - artists
+  /admin/ceramicstory:
+    get:
+      consumes:
+      - application/json
+      description: 'Paginated list of stories filtered by locale + status. Access:
+        content_editor.'
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: BCP 47 locale
+        in: query
+        name: locale
+        type: string
+      - description: Filter by workflow status
+        in: query
+        name: status
+        type: string
+      - default: 1
+        description: Page number (1-based)
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Page size (max 100)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.PaginatedResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.CeramicStory'
+                  type: array
+              type: object
+        "400":
+          description: Invalid locale
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs content.write)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List ceramic stories (admin, any status)
+      tags:
+      - admin
+      - ceramicstory
+    post:
+      consumes:
+      - application/json
+      description: 'Creates a story + its first translation. Access: content_editor.'
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Story to create
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.CreateCeramicStoryData'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.CeramicStory'
+        "400":
+          description: Invalid body / validation / bad locale
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs content.write)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a ceramic story
+      tags:
+      - admin
+      - ceramicstory
+  /admin/ceramicstory/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: 'Removes a story (parent + all translations). Access: content_editor.'
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Story ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content (empty body)
+        "400":
+          description: Invalid story ID
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs content.write)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Ceramic story not found
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a ceramic story
+      tags:
+      - admin
+      - ceramicstory
+    put:
+      consumes:
+      - application/json
+      description: 'Updates a story''s translation + parent fields (nil = unchanged).
+        Access: content_editor.'
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Story ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - default: en-US
+        description: BCP 47 locale
+        in: query
+        name: locale
+        type: string
+      - description: Fields to update (nil pointers = unchanged)
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.UpdateCeramicStoryData'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.CeramicStory'
+        "400":
+          description: Invalid story ID / body / bad locale
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs content.write)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Ceramic story not found
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "409":
+          description: Translation not editable in its current workflow state
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a ceramic story
+      tags:
+      - admin
+      - ceramicstory
+  /admin/ceramicstory/{id}/approve:
+    post:
+      consumes:
+      - application/json
+      description: 'Transitions an in_review story translation to published. Access:
+        super_admin ONLY.'
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Story ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: '{locale: en-US}'
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.CeramicStory'
+        "400":
+          description: Invalid story ID / body / bad locale
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs content.publish — super_admin only)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Ceramic story not found
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "409":
+          description: Invalid workflow transition
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Approve + publish a ceramic story
+      tags:
+      - admin
+      - ceramicstory
+      - workflow
+  /admin/ceramicstory/{id}/reject:
+    post:
+      consumes:
+      - application/json
+      description: 'Transitions an in_review story translation to rejected. Access:
+        super_admin ONLY.'
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Story ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: '{locale: en-US}'
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.CeramicStory'
+        "400":
+          description: Invalid story ID / body / bad locale
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs content.publish — super_admin only)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Ceramic story not found
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "409":
+          description: Invalid workflow transition
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Reject a ceramic story (in_review → rejected)
+      tags:
+      - admin
+      - ceramicstory
+      - workflow
+  /admin/ceramicstory/{id}/submit:
+    post:
+      consumes:
+      - application/json
+      description: 'Transitions a draft story translation to in_review. Body: {locale}.
+        Access: content_editor.'
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Story ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: '{locale: en-US}'
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.CeramicStory'
+        "400":
+          description: Invalid story ID / body / bad locale
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs content.write)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Ceramic story not found
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "409":
+          description: Invalid workflow transition
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Submit a ceramic story for review
+      tags:
+      - admin
+      - ceramicstory
+      - workflow
+  /admin/ceramicstory/{id}/unpublish:
+    post:
+      consumes:
+      - application/json
+      description: 'Transitions a published story translation back to draft. Access:
+        super_admin ONLY.'
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Story ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: '{locale: en-US}'
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.CeramicStory'
+        "400":
+          description: Invalid story ID / body / bad locale
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs content.publish — super_admin only)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Ceramic story not found
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "409":
+          description: Invalid workflow transition
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Unpublish a ceramic story (published → draft)
+      tags:
+      - admin
+      - ceramicstory
+      - workflow
+  /admin/ceramicstory/{slug}:
+    get:
+      consumes:
+      - application/json
+      description: 'Fetches a single story by slug in any workflow status. Access:
+        content_editor.'
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Story slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - default: en-US
+        description: BCP 47 locale
+        in: query
+        name: locale
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.CeramicStory'
+        "400":
+          description: Invalid locale
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs content.write)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Ceramic story not found
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get a ceramic story by slug (admin, any status)
+      tags:
+      - admin
+      - ceramicstory
   /admin/certificates:
     get:
       consumes:
@@ -2173,6 +3179,283 @@ paths:
       tags:
       - admin
       - certificates
+  /admin/engage:
+    get:
+      consumes:
+      - application/json
+      description: 'Paginated list of activities filtered by locale, status, type.
+        Access: content_editor.'
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: BCP 47 locale
+        in: query
+        name: locale
+        type: string
+      - description: Filter by workflow status
+        in: query
+        name: status
+        type: string
+      - description: Filter by activity type
+        in: query
+        name: type
+        type: string
+      - default: 1
+        description: Page number (1-based)
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Page size (max 100)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.PaginatedResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.Activity'
+                  type: array
+              type: object
+        "400":
+          description: Invalid locale
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs content.write)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List activities (admin, any status)
+      tags:
+      - admin
+      - engage
+    post:
+      consumes:
+      - application/json
+      description: 'Creates an activity + its first translation. Access: content_editor.'
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Activity to create
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.CreateActivityData'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.Activity'
+        "400":
+          description: Invalid body / validation / bad locale
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs content.write)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create an activity
+      tags:
+      - admin
+      - engage
+  /admin/engage/{id}:
+    put:
+      consumes:
+      - application/json
+      description: 'Updates an activity''s translation + parent fields (nil = unchanged).
+        Access: content_editor.'
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Activity ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - default: en-US
+        description: BCP 47 locale
+        in: query
+        name: locale
+        type: string
+      - description: Fields to update (nil pointers = unchanged)
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.UpdateActivityData'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.Activity'
+        "400":
+          description: Invalid activity ID / body / bad locale
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs content.write)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Activity not found
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "409":
+          description: Translation not editable in its current workflow state
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update an activity
+      tags:
+      - admin
+      - engage
+  /admin/engage/{slug}:
+    get:
+      consumes:
+      - application/json
+      description: 'Fetches a single activity by slug in any workflow status. Access:
+        content_editor.'
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Activity slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - default: en-US
+        description: BCP 47 locale
+        in: query
+        name: locale
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.Activity'
+        "400":
+          description: Invalid locale
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs content.write)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Activity not found
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get an activity by slug (admin, any status)
+      tags:
+      - admin
+      - engage
+  /admin/fx/refresh:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Enqueues the fx:refresh job (worker fetches ECB rates, applies markup, upserts).
+        Access: super_admin (settings.manage).
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: '{message: \"FX refresh enqueued\"}'
+          schema:
+            type: object
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs settings.manage)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "503":
+          description: FX refresh job queue not configured
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Enqueue an FX rate refresh
+      tags:
+      - admin
+      - fx
   /admin/itineraries:
     get:
       consumes:
@@ -4861,6 +6144,59 @@ paths:
       tags:
       - admin
       - skus
+  /admin/users:
+    get:
+      consumes:
+      - application/json
+      description: 'Paginated list of all users. Access: super_admin (users.manage).'
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - default: 1
+        description: Page number (1-based)
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Page size (max 100)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.PaginatedResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.User'
+                  type: array
+              type: object
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs users.manage)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List users (admin)
+      tags:
+      - admin
+      - users
   /artists:
     get:
       consumes:
@@ -4945,6 +6281,363 @@ paths:
       tags:
       - catalog
       - artists
+  /auth/2fa/pending-confirm:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Verifies the first TOTP code, enables 2FA, mints the real access token,
+        and returns backup codes. Public (pending token is the credential).
+      parameters:
+      - description: pending_token + 6-digit code
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.PendingTwoFAConfirmRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: AuthResponse + backup_codes
+          schema:
+            type: object
+        "400":
+          description: Invalid body / validation
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Invalid or expired pending token / invalid TOTP code
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      summary: Confirm 2FA enrollment + complete login
+      tags:
+      - auth
+      - 2fa
+  /auth/2fa/pending-enroll:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Begins 2FA enrollment for a super_admin blocked at login. Public
+        (the pending token is the credential). Returns the otpauth:// URI + raw secret.
+      parameters:
+      - description: pending_token + password
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.PendingTwoFAEnrollRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: otpauth URI + raw secret
+          schema:
+            type: object
+        "400":
+          description: Invalid body / validation
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Invalid or expired pending token
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      summary: Start 2FA enrollment (must-enroll flow)
+      tags:
+      - auth
+      - 2fa
+  /auth/2fa/verify:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Completes a 2FA-challenged login. Public (no JWT): the pending token +
+        6-digit TOTP code are the credentials. On success mints the real access token.
+      parameters:
+      - description: pending_token + 6-digit code
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.VerifyTwoFARequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.AuthResponse'
+        "400":
+          description: Invalid body / validation
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Invalid or expired pending token / invalid TOTP code
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      summary: Complete 2FA login
+      tags:
+      - auth
+      - 2fa
+  /auth/activate:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Activates an inactive account via the email activation token, then
+        auto-logs the user in (mints a JWT).
+      parameters:
+      - description: Activation token (from email)
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ActivationRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.AuthResponse'
+        "400":
+          description: Invalid or expired activation token
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      summary: Activate a user account
+      tags:
+      - auth
+  /auth/google/callback:
+    get:
+      description: |-
+        Handles the Google OAuth callback: exchanges the code for a token,
+        finds/creates the user, and either mints a JWT or issues a 2FA challenge.
+        Redirects to the frontend with the token (or a 2FA pending_token).
+      parameters:
+      - description: OAuth state (must match the oauthstate cookie)
+        in: query
+        name: state
+        required: true
+        type: string
+      - description: Authorization code from Google
+        in: query
+        name: code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "307":
+          description: Redirect to frontend /login/success (or /2fa, /2fa/enroll,
+            /error)
+          schema:
+            type: string
+        "400":
+          description: Authorization code not provided
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Invalid or missing state cookie / state mismatch
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      summary: Google OAuth callback
+      tags:
+      - auth
+      - oauth
+  /auth/google/login:
+    get:
+      description: Redirects the browser to Google's consent screen (sets an oauthstate
+        cookie).
+      produces:
+      - application/json
+      responses:
+        "307":
+          description: Redirect to Google consent screen
+          schema:
+            type: string
+        "500":
+          description: Could not initiate Google login
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      summary: Start Google OAuth login
+      tags:
+      - auth
+      - oauth
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Authenticates by email + password. If 2FA is enabled, returns a
+        pending_token (HTTP 200 with a pending_token field) instead of a real
+        access token; the client completes via /auth/2fa/verify.
+        Super_admins without 2FA enrolled are blocked (must enroll via pending flow).
+      parameters:
+      - description: Login credentials (email, password)
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: access_token (real or pending_token for 2FA)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.AuthResponse'
+        "401":
+          description: Invalid credentials / account not active
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      summary: Log in
+      tags:
+      - auth
+  /auth/request-password-reset:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Sends a password-reset email if the account exists. Always returns a generic
+        success message (anti-enumeration) regardless of whether the email exists.
+      parameters:
+      - description: Email to reset
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.RequestPasswordResetRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: '{message: \"...\"}'
+          schema:
+            type: object
+        "400":
+          description: Invalid body / validation
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      summary: Request a password reset (step 1)
+      tags:
+      - auth
+  /auth/resend-activation:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Resends the activation email. Always returns a generic success message
+        (to prevent email enumeration) regardless of whether the email exists.
+      parameters:
+      - description: Email to resend activation to
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ResendActivationRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: '{message: \"...\"}'
+          schema:
+            type: object
+        "400":
+          description: Invalid body / validation
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      summary: Resend the activation email
+      tags:
+      - auth
+  /auth/reset-password:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Completes a password reset: verifies the token, sets the new password,
+        and mints a new JWT (auto-login).
+      parameters:
+      - description: Reset token + new password (min 8)
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ResetPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.AuthResponse'
+        "400":
+          description: Invalid body / validation / invalid or expired token
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      summary: Reset password (step 2)
+      tags:
+      - auth
+  /auth/signup:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Creates an inactive user account + sends an activation email.
+        Returns a generic 201 (the user activates via email link).
+      parameters:
+      - description: Signup credentials (nickname, email, password)
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.SignupRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.AuthResponse'
+        "400":
+          description: Invalid body / validation
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "409":
+          description: Email address is already in use
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      summary: Sign up a new user
+      tags:
+      - auth
   /cart:
     get:
       consumes:
@@ -5417,6 +7110,73 @@ paths:
       tags:
       - catalog
       - tags
+  /ceramicstory:
+    get:
+      consumes:
+      - application/json
+      description: Returns all published ceramic-story/dynasty entries for the requested
+        locale.
+      parameters:
+      - default: '"en-US"'
+        description: BCP 47 locale (e.g. en-US). Overrides Accept-Language.
+        in: query
+        name: locale
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.CeramicStory'
+            type: array
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      summary: List ceramic stories
+      tags:
+      - ceramicstory
+  /ceramicstory/{slug}:
+    get:
+      consumes:
+      - application/json
+      description: Fetches a single published ceramic story by its locale-specific
+        slug.
+      parameters:
+      - description: Story slug (locale-specific)
+        in: path
+        name: slug
+        required: true
+        type: string
+      - default: '"en-US"'
+        description: BCP 47 locale (e.g. en-US). Overrides Accept-Language.
+        in: query
+        name: locale
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.CeramicStory'
+        "400":
+          description: Missing slug
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Ceramic story not found
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      summary: Get a ceramic story by slug
+      tags:
+      - ceramicstory
   /certificates/{code}:
     get:
       consumes:
@@ -5588,6 +7348,148 @@ paths:
       tags:
       - orders
       - checkout
+  /consent:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Records a consent decision (privacy/TOS/cookie-analytics/cookie-marketing).
+        Public (no auth): anonymous visitors record by IP hash; a JWT, if present, links to the user.
+      parameters:
+      - description: Consent decision (kind, granted, doc_version)
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.RecordConsentRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ConsentRecord'
+        "400":
+          description: Invalid body / validation
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      summary: Record a consent decision
+      tags:
+      - consent
+  /engage:
+    get:
+      consumes:
+      - application/json
+      description: Paginated list of published activities for a locale, optionally
+        filtered by type.
+      parameters:
+      - default: '"en-US"'
+        description: BCP 47 locale (e.g. en-US). Overrides Accept-Language.
+        in: query
+        name: locale
+        type: string
+      - description: Activity type filter (e.g. Destination, Local Lifestyle)
+        in: query
+        name: type
+        type: string
+      - default: 1
+        description: Page number (1-based)
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Page size (max 100)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.PaginatedResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.Activity'
+                  type: array
+              type: object
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      summary: List published activities
+      tags:
+      - engage
+  /engage/{slug}:
+    get:
+      consumes:
+      - application/json
+      description: Fetches a single published activity by its locale-specific slug.
+      parameters:
+      - description: Activity slug (locale-specific)
+        in: path
+        name: slug
+        required: true
+        type: string
+      - default: '"en-US"'
+        description: BCP 47 locale (e.g. en-US). Overrides Accept-Language.
+        in: query
+        name: locale
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.Activity'
+        "400":
+          description: Missing slug
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Article not found
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      summary: Get an activity by slug
+      tags:
+      - engage
+  /fx/rates:
+    get:
+      consumes:
+      - application/json
+      description: Returns the current fx_rates rows (dev-debug endpoint).
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: object
+            type: array
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "503":
+          description: FX rate listing not available
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      summary: List current FX rates (dev-debug)
+      tags:
+      - fx
   /itineraries:
     get:
       consumes:
@@ -6041,6 +7943,156 @@ paths:
       summary: Save the itinerary draft
       tags:
       - itineraries
+  /notifications:
+    get:
+      consumes:
+      - application/json
+      description: Paginated list of the signed-in user's notifications.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - default: 1
+        description: Page number (1-based)
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Page size (max 100)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.PaginatedResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.Notification'
+                  type: array
+              type: object
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List the user's notifications
+      tags:
+      - notifications
+  /notifications/{notification_id}/mark-read:
+    post:
+      consumes:
+      - application/json
+      description: Marks one of the signed-in user's notifications as read.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Notification ID
+        in: path
+        name: notification_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content (empty body)
+        "400":
+          description: Invalid notification ID
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Notification not found (or not owned by user)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Mark a notification as read
+      tags:
+      - notifications
+  /notifications/mark-all-read:
+    post:
+      consumes:
+      - application/json
+      description: Marks all of the signed-in user's notifications as read.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content (empty body)
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Mark all notifications as read
+      tags:
+      - notifications
+  /notifications/unread-count:
+    get:
+      consumes:
+      - application/json
+      description: Returns the count of the signed-in user's unread notifications.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: '{count: int}'
+          schema:
+            type: object
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get the unread notification count
+      tags:
+      - notifications
   /orders:
     get:
       consumes:
@@ -6191,6 +8243,282 @@ paths:
       summary: Cancel an unpaid order
       tags:
       - orders
+  /privacy/delete-account:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Performs irreversible GDPR erasure (anonymize-in-place; order history
+        preserved via NO ACTION FK). Requires {"confirm":"DELETE"} body guard.
+        Returns 204 on success; the client must discard the current token.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: '{confirm: \'
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.DeleteAccountRequest'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content (empty body)
+        "400":
+          description: Invalid body / missing confirmation
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "409":
+          description: Account has already been deleted
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete the user's account (GDPR erasure)
+      tags:
+      - privacy
+  /profile:
+    get:
+      consumes:
+      - application/json
+      description: Returns the signed-in user's profile.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.User'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: User profile not found
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get the current user's profile
+      tags:
+      - profile
+  /profile/2fa:
+    delete:
+      consumes:
+      - application/json
+      description: Turns 2FA off (keeps the staged secret for re-enrollment).
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: '{message: \"2FA disabled\"}'
+          schema:
+            type: object
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: 2FA is not enabled
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Disable 2FA
+      tags:
+      - profile
+      - 2fa
+  /profile/2fa/backup-codes:
+    get:
+      consumes:
+      - application/json
+      description: Returns how many unused backup codes remain (not the codes themselves).
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: '{remaining: int}'
+          schema:
+            type: object
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Count remaining backup codes
+      tags:
+      - profile
+      - 2fa
+  /profile/2fa/backup-codes/regenerate:
+    post:
+      consumes:
+      - application/json
+      description: Invalidates remaining unused backup codes + issues a fresh set
+        (shown once).
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.TwoFAConfirmResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "409":
+          description: 2FA is not enabled
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Regenerate backup codes
+      tags:
+      - profile
+      - 2fa
+  /profile/2fa/confirm:
+    post:
+      consumes:
+      - application/json
+      description: Verifies the first TOTP code, enables 2FA, and returns backup codes
+        (shown once).
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: 6-digit TOTP code
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ConfirmTwoFARequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.TwoFAConfirmResponse'
+        "400":
+          description: Invalid body / validation
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required / invalid TOTP code
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: No pending 2FA enrollment found — call /2fa/enroll first
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Confirm 2FA enrollment
+      tags:
+      - profile
+      - 2fa
+  /profile/2fa/enroll:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Begins TOTP enrollment. Returns the otpauth:// URI (QR) + raw secret (shown once).
+        Confirm via /profile/2fa/confirm with the first TOTP code.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Optional enrollment params (defaults applied)
+        in: body
+        name: body
+        schema:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.EnrollTwoFARequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.TwoFAEnrollResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Start 2FA enrollment
+      tags:
+      - profile
+      - 2fa
   /profile/addresses:
     get:
       consumes:
@@ -6455,6 +8783,124 @@ paths:
       tags:
       - profile
       - addresses
+  /profile/consent:
+    get:
+      consumes:
+      - application/json
+      description: Returns the full consent history for the signed-in user (GDPR data
+        export).
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: '{data: []models.ConsentRecord}'
+          schema:
+            type: object
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List the user's full consent history
+      tags:
+      - profile
+      - consent
+  /profile/consent/{kind}:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Returns the latest consent record for the given kind, or {granted: false}
+        if no record exists yet.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Consent kind (privacy_policy|terms_of_service|cookie_analytics|cookie_marketing)
+        in: path
+        name: kind
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: '{kind, granted, recorded, doc_version?, created_at?}'
+          schema:
+            type: object
+        "400":
+          description: Invalid consent kind
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get the current consent state for a kind
+      tags:
+      - profile
+      - consent
+  /profile/export:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Returns the complete machine-readable personal-data package (JSON)
+        for the signed-in user (GDPR data portability). Synchronous for MVP.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: BCP 47 locale for display strings
+        in: query
+        name: locale
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'Personal-data package (Content-Disposition: attachment)'
+          schema:
+            type: object
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Export the user's personal data (GDPR)
+      tags:
+      - profile
+      - privacy
   /shipping/quote:
     get:
       consumes:

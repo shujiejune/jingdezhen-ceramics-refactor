@@ -22,6 +22,20 @@ func NewHandler(service ServiceInterface) *Handler {
 
 // Enroll: POST /profile/2fa/enroll — start TOTP enrollment (staff only).
 // Returns the otpauth:// URI (QR) and the raw secret (shown once).
+//
+// @Summary      Start 2FA enrollment
+// @Description  Begins TOTP enrollment. Returns the otpauth:// URI (QR) + raw secret (shown once).
+// @Description  Confirm via /profile/2fa/confirm with the first TOTP code.
+// @Tags         profile,2fa
+// @Accept       json
+// @Produce      json
+// @Param        Authorization header string true "Bearer <access_token>"
+// @Param        body body models.EnrollTwoFARequest false "Optional enrollment params (defaults applied)"
+// @Success      200 {object} models.TwoFAEnrollResponse
+// @Failure      401 {object} models.ErrorResponse "Authentication required"
+// @Failure      500 {object} models.ErrorResponse "Internal error"
+// @Security     BearerAuth
+// @Router       /profile/2fa/enroll [post]
 func (h *Handler) Enroll(c *fiber.Ctx) error {
 	userID, err := utils.GetUserIDFromContext(c)
 	if err != nil {
@@ -42,6 +56,21 @@ func (h *Handler) Enroll(c *fiber.Ctx) error {
 }
 
 // Confirm: POST /profile/2fa/confirm — verify the first code and enable 2FA.
+//
+// @Summary      Confirm 2FA enrollment
+// @Description  Verifies the first TOTP code, enables 2FA, and returns backup codes (shown once).
+// @Tags         profile,2fa
+// @Accept       json
+// @Produce      json
+// @Param        Authorization header string true "Bearer <access_token>"
+// @Param        body body models.ConfirmTwoFARequest true "6-digit TOTP code"
+// @Success      200 {object} models.TwoFAConfirmResponse
+// @Failure      400 {object} models.ErrorResponse "Invalid body / validation"
+// @Failure      401 {object} models.ErrorResponse "Authentication required / invalid TOTP code"
+// @Failure      404 {object} models.ErrorResponse "No pending 2FA enrollment found — call /2fa/enroll first"
+// @Failure      500 {object} models.ErrorResponse "Internal error"
+// @Security     BearerAuth
+// @Router       /profile/2fa/confirm [post]
 func (h *Handler) Confirm(c *fiber.Ctx) error {
 	userID, err := utils.GetUserIDFromContext(c)
 	if err != nil {
@@ -74,6 +103,19 @@ func (h *Handler) Confirm(c *fiber.Ctx) error {
 }
 
 // Disable: DELETE /profile/2fa — turn 2FA off (keeps the staged secret).
+//
+// @Summary      Disable 2FA
+// @Description  Turns 2FA off (keeps the staged secret for re-enrollment).
+// @Tags         profile,2fa
+// @Accept       json
+// @Produce      json
+// @Param        Authorization header string true "Bearer <access_token>"
+// @Success      200 {object} object "{message: \"2FA disabled\"}"
+// @Failure      401 {object} models.ErrorResponse "Authentication required"
+// @Failure      404 {object} models.ErrorResponse "2FA is not enabled"
+// @Failure      500 {object} models.ErrorResponse "Internal error"
+// @Security     BearerAuth
+// @Router       /profile/2fa [delete]
 func (h *Handler) Disable(c *fiber.Ctx) error {
 	userID, err := utils.GetUserIDFromContext(c)
 	if err != nil {
@@ -91,6 +133,19 @@ func (h *Handler) Disable(c *fiber.Ctx) error {
 
 // RegenerateBackupCodes: POST /profile/2fa/backup-codes/regenerate — invalidate
 // remaining unused codes and issue a fresh set. Shown ONCE. Protected by JWT.
+//
+// @Summary      Regenerate backup codes
+// @Description  Invalidates remaining unused backup codes + issues a fresh set (shown once).
+// @Tags         profile,2fa
+// @Accept       json
+// @Produce      json
+// @Param        Authorization header string true "Bearer <access_token>"
+// @Success      200 {object} models.TwoFAConfirmResponse
+// @Failure      401 {object} models.ErrorResponse "Authentication required"
+// @Failure      409 {object} models.ErrorResponse "2FA is not enabled"
+// @Failure      500 {object} models.ErrorResponse "Internal error"
+// @Security     BearerAuth
+// @Router       /profile/2fa/backup-codes/regenerate [post]
 func (h *Handler) RegenerateBackupCodes(c *fiber.Ctx) error {
 	userID, err := utils.GetUserIDFromContext(c)
 	if err != nil {
@@ -112,6 +167,18 @@ func (h *Handler) RegenerateBackupCodes(c *fiber.Ctx) error {
 
 // BackupCodesRemaining: GET /profile/2fa/backup-codes — how many unused codes
 // remain (NOT the codes themselves; those are shown once at generate time).
+//
+// @Summary      Count remaining backup codes
+// @Description  Returns how many unused backup codes remain (not the codes themselves).
+// @Tags         profile,2fa
+// @Accept       json
+// @Produce      json
+// @Param        Authorization header string true "Bearer <access_token>"
+// @Success      200 {object} object "{remaining: int}"
+// @Failure      401 {object} models.ErrorResponse "Authentication required"
+// @Failure      500 {object} models.ErrorResponse "Internal error"
+// @Security     BearerAuth
+// @Router       /profile/2fa/backup-codes [get]
 func (h *Handler) BackupCodesRemaining(c *fiber.Ctx) error {
 	userID, err := utils.GetUserIDFromContext(c)
 	if err != nil {

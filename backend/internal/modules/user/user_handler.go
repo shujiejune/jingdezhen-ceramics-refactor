@@ -27,6 +27,20 @@ func NewHandler(service ServiceInterface) *Handler {
 	}
 }
 
+// Signup: POST /auth/signup (public). Creates an inactive user + sends activation email.
+//
+// @Summary      Sign up a new user
+// @Description  Creates an inactive user account + sends an activation email.
+// @Description  Returns a generic 201 (the user activates via email link).
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        body body models.SignupRequest true "Signup credentials (nickname, email, password)"
+// @Success      201 {object} models.AuthResponse
+// @Failure      400 {object} models.ErrorResponse "Invalid body / validation"
+// @Failure      409 {object} models.ErrorResponse "Email address is already in use"
+// @Failure      500 {object} models.ErrorResponse "Internal error"
+// @Router       /auth/signup [post]
 func (h *Handler) Signup(c *fiber.Ctx) error {
 	var req models.SignupRequest
 	if err := c.BodyParser(&req); err != nil {
@@ -48,6 +62,21 @@ func (h *Handler) Signup(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(authResponse)
 }
 
+// Login: POST /auth/login (public). Returns access token + profile, or a 2FA challenge.
+//
+// @Summary      Log in
+// @Description  Authenticates by email + password. If 2FA is enabled, returns a
+// @Description  pending_token (HTTP 200 with a pending_token field) instead of a real
+// @Description  access token; the client completes via /auth/2fa/verify.
+// @Description  Super_admins without 2FA enrolled are blocked (must enroll via pending flow).
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        body body models.LoginRequest true "Login credentials (email, password)"
+// @Success      200 {object} models.AuthResponse "access_token (real or pending_token for 2FA)"
+// @Failure      401 {object} models.ErrorResponse "Invalid credentials / account not active"
+// @Failure      500 {object} models.ErrorResponse "Internal error"
+// @Router       /auth/login [post]
 func (h *Handler) Login(c *fiber.Ctx) error {
 	var req models.LoginRequest
 	if err := c.BodyParser(&req); err != nil {
@@ -96,6 +125,19 @@ func (h *Handler) Login(c *fiber.Ctx) error {
 // Verify2FALogin: POST /auth/2fa/verify — complete a login challenged for TOTP.
 // PUBLIC (no JWT); the pending token + 6-digit code are the credentials. On
 // success the user service mints the real access token + full profile (TDD §5.3).
+//
+// @Summary      Complete 2FA login
+// @Description  Completes a 2FA-challenged login. Public (no JWT): the pending token +
+// @Description  6-digit TOTP code are the credentials. On success mints the real access token.
+// @Tags         auth,2fa
+// @Accept       json
+// @Produce      json
+// @Param        body body models.VerifyTwoFARequest true "pending_token + 6-digit code"
+// @Success      200 {object} models.AuthResponse
+// @Failure      400 {object} models.ErrorResponse "Invalid body / validation"
+// @Failure      401 {object} models.ErrorResponse "Invalid or expired pending token / invalid TOTP code"
+// @Failure      500 {object} models.ErrorResponse "Internal error"
+// @Router       /auth/2fa/verify [post]
 func (h *Handler) Verify2FALogin(c *fiber.Ctx) error {
 	var req models.VerifyTwoFARequest
 	if err := c.BodyParser(&req); err != nil {
@@ -121,6 +163,19 @@ func (h *Handler) Verify2FALogin(c *fiber.Ctx) error {
 // Pending2FAEnroll: POST /auth/2fa/pending-enroll — must-enroll flow for a
 // super_admin whose login was blocked (Err2FAEnrollmentRequired). PUBLIC: the
 // pending token is the credential. Returns the otpauth:// URI + raw secret.
+//
+// @Summary      Start 2FA enrollment (must-enroll flow)
+// @Description  Begins 2FA enrollment for a super_admin blocked at login. Public
+// @Description  (the pending token is the credential). Returns the otpauth:// URI + raw secret.
+// @Tags         auth,2fa
+// @Accept       json
+// @Produce      json
+// @Param        body body models.PendingTwoFAEnrollRequest true "pending_token + password"
+// @Success      200 {object} object "otpauth URI + raw secret"
+// @Failure      400 {object} models.ErrorResponse "Invalid body / validation"
+// @Failure      401 {object} models.ErrorResponse "Invalid or expired pending token"
+// @Failure      500 {object} models.ErrorResponse "Internal error"
+// @Router       /auth/2fa/pending-enroll [post]
 func (h *Handler) Pending2FAEnroll(c *fiber.Ctx) error {
 	var req models.PendingTwoFAEnrollRequest
 	if err := c.BodyParser(&req); err != nil {
@@ -143,6 +198,19 @@ func (h *Handler) Pending2FAEnroll(c *fiber.Ctx) error {
 // Pending2FAConfirm: POST /auth/2fa/pending-confirm — must-enroll flow. PUBLIC.
 // Verifies the first TOTP code, enables 2FA, and completes login (mints the
 // real access token). On success the super_admin is logged in with 2FA on.
+//
+// @Summary      Confirm 2FA enrollment + complete login
+// @Description  Verifies the first TOTP code, enables 2FA, mints the real access token,
+// @Description  and returns backup codes. Public (pending token is the credential).
+// @Tags         auth,2fa
+// @Accept       json
+// @Produce      json
+// @Param        body body models.PendingTwoFAConfirmRequest true "pending_token + 6-digit code"
+// @Success      200 {object} object "AuthResponse + backup_codes"
+// @Failure      400 {object} models.ErrorResponse "Invalid body / validation"
+// @Failure      401 {object} models.ErrorResponse "Invalid or expired pending token / invalid TOTP code"
+// @Failure      500 {object} models.ErrorResponse "Internal error"
+// @Router       /auth/2fa/pending-confirm [post]
 func (h *Handler) Pending2FAConfirm(c *fiber.Ctx) error {
 	var req models.PendingTwoFAConfirmRequest
 	if err := c.BodyParser(&req); err != nil {
@@ -171,6 +239,20 @@ func (h *Handler) Pending2FAConfirm(c *fiber.Ctx) error {
 	})
 }
 
+// ActivateAccount: POST /auth/activate (public). Activates an inactive user via
+// email token + auto-logs them in.
+//
+// @Summary      Activate a user account
+// @Description  Activates an inactive account via the email activation token, then
+// @Description  auto-logs the user in (mints a JWT).
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        body body models.ActivationRequest true "Activation token (from email)"
+// @Success      200 {object} models.AuthResponse
+// @Failure      400 {object} models.ErrorResponse "Invalid or expired activation token"
+// @Failure      500 {object} models.ErrorResponse "Internal error"
+// @Router       /auth/activate [post]
 func (h *Handler) ActivateAccount(c *fiber.Ctx) error {
 	var req models.ActivationRequest
 	if err := c.BodyParser(&req); err != nil {
@@ -195,6 +277,17 @@ func (h *Handler) ActivateAccount(c *fiber.Ctx) error {
 }
 
 // ResendActivation handles requests to resend an activation email.
+//
+// @Summary      Resend the activation email
+// @Description  Resends the activation email. Always returns a generic success message
+// @Description  (to prevent email enumeration) regardless of whether the email exists.
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        body body models.ResendActivationRequest true "Email to resend activation to"
+// @Success      200 {object} object "{message: \"...\"}"
+// @Failure      400 {object} models.ErrorResponse "Invalid body / validation"
+// @Router       /auth/resend-activation [post]
 func (h *Handler) ResendActivation(c *fiber.Ctx) error {
 	var req models.ResendActivationRequest
 	if err := c.BodyParser(&req); err != nil {
@@ -219,6 +312,14 @@ func (h *Handler) ResendActivation(c *fiber.Ctx) error {
 
 // GoogleLogin initiates the Google OAuth 2.0 login flow.
 // It redirects the user to Google's consent screen.
+//
+// @Summary      Start Google OAuth login
+// @Description  Redirects the browser to Google's consent screen (sets an oauthstate cookie).
+// @Tags         auth,oauth
+// @Produce      json
+// @Success      307 {string} string "Redirect to Google consent screen"
+// @Failure      500 {object} models.ErrorResponse "Could not initiate Google login"
+// @Router       /auth/google/login [get]
 func (h *Handler) GoogleLogin(c *fiber.Ctx) error {
 	// The service generates the unique URL for this login attempt.
 	// This URL includes the client ID and a state parameter for security.
@@ -245,6 +346,19 @@ func (h *Handler) GoogleLogin(c *fiber.Ctx) error {
 // GoogleCallback handles the callback request from Google after the user has authenticated,
 // and validates the state parameter from the URL against the one stored in the cookie.
 // Google redirects the user here with a `code` and `state` parameter in the URL.
+//
+// @Summary      Google OAuth callback
+// @Description  Handles the Google OAuth callback: exchanges the code for a token,
+// @Description  finds/creates the user, and either mints a JWT or issues a 2FA challenge.
+// @Description  Redirects to the frontend with the token (or a 2FA pending_token).
+// @Tags         auth,oauth
+// @Produce      json
+// @Param        state query string true "OAuth state (must match the oauthstate cookie)"
+// @Param        code  query string true "Authorization code from Google"
+// @Success      307 {string} string "Redirect to frontend /login/success (or /2fa, /2fa/enroll, /error)"
+// @Failure      400 {object} models.ErrorResponse "Authorization code not provided"
+// @Failure      401 {object} models.ErrorResponse "Invalid or missing state cookie / state mismatch"
+// @Router       /auth/google/callback [get]
 func (h *Handler) GoogleCallback(c *fiber.Ctx) error {
 	// 1. Read the state from the cookie set in the login step.
 	oauthStateCookie := c.Cookies("oauthstate")
@@ -303,6 +417,17 @@ func (h *Handler) GoogleCallback(c *fiber.Ctx) error {
 // 1. User clicks "Forgot password", frontend sends a POST request to "auth/reset-password"
 // 2. User submits new password on frontend page "/reset-password?token=...", frontend sends a POST request with new password
 // This is the step 1
+//
+// @Summary      Request a password reset (step 1)
+// @Description  Sends a password-reset email if the account exists. Always returns a generic
+// @Description  success message (anti-enumeration) regardless of whether the email exists.
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        body body models.RequestPasswordResetRequest true "Email to reset"
+// @Success      200 {object} object "{message: \"...\"}"
+// @Failure      400 {object} models.ErrorResponse "Invalid body / validation"
+// @Router       /auth/request-password-reset [post]
 func (h *Handler) RequestPasswordReset(c *fiber.Ctx) error {
 	var req models.RequestPasswordResetRequest
 	if err := c.BodyParser(&req); err != nil {
@@ -327,6 +452,18 @@ func (h *Handler) RequestPasswordReset(c *fiber.Ctx) error {
 // This is the step 2
 // It receives a token and a new password, validates them, and if successful,
 // logs the user in by returning a new JWT.
+//
+// @Summary      Reset password (step 2)
+// @Description  Completes a password reset: verifies the token, sets the new password,
+// @Description  and mints a new JWT (auto-login).
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        body body models.ResetPasswordRequest true "Reset token + new password (min 8)"
+// @Success      200 {object} models.AuthResponse
+// @Failure      400 {object} models.ErrorResponse "Invalid body / validation / invalid or expired token"
+// @Failure      500 {object} models.ErrorResponse "Internal error"
+// @Router       /auth/reset-password [post]
 func (h *Handler) ResetPassword(c *fiber.Ctx) error {
 	// 1. Bind the incoming JSON request body to our ResetPasswordRequest struct.
 	var req models.ResetPasswordRequest
@@ -361,6 +498,19 @@ func (h *Handler) ResetPassword(c *fiber.Ctx) error {
 }
 
 // --- User Profile Routes ---
+//
+// @Summary      Get the current user's profile
+// @Description  Returns the signed-in user's profile.
+// @Tags         profile
+// @Accept       json
+// @Produce      json
+// @Param        Authorization header string true "Bearer <access_token>"
+// @Success      200 {object} models.User
+// @Failure      401 {object} models.ErrorResponse "Authentication required"
+// @Failure      404 {object} models.ErrorResponse "User profile not found"
+// @Failure      500 {object} models.ErrorResponse "Internal error"
+// @Security     BearerAuth
+// @Router       /profile [get]
 func (h *Handler) GetProfile(c *fiber.Ctx) error {
 	userID, err := utils.GetUserIDFromContext(c)
 	if err != nil {
@@ -379,6 +529,22 @@ func (h *Handler) GetProfile(c *fiber.Ctx) error {
 }
 
 func (h *Handler) UpdateProfile(c *fiber.Ctx) error {
+	//
+	// @Summary      Update the current user's profile
+	// @Description  Updates editable profile fields (nickname, avatar, contacts, preferred
+	// @Description  locale/currency). Nil pointers = unchanged.
+	// @Tags         profile
+	// @Accept       json
+	// @Produce      json
+	// @Param        Authorization header string true "Bearer <access_token>"
+	// @Param        body body models.UserUpdateData true "Fields to update (nil pointers = unchanged)"
+	// @Success      200 {object} models.User
+	// @Failure      400 {object} models.ErrorResponse "Invalid body / validation"
+	// @Failure      401 {object} models.ErrorResponse "Authentication required"
+	// @Failure      404 {object} models.ErrorResponse "User profile not found"
+	// @Failure      500 {object} models.ErrorResponse "Internal error"
+	// @Security     BearerAuth
+	// @Router       /profile [put]
 	userID, err := utils.GetUserIDFromContext(c)
 	if err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(models.ErrorResponse{Message: err.Error()})
@@ -404,6 +570,17 @@ func (h *Handler) UpdateProfile(c *fiber.Ctx) error {
 }
 
 func (h *Handler) SubmitContactForm(c *fiber.Ctx) error {
+	//
+	// @Summary      Submit the contact form
+	// @Description  Public endpoint: sends a contact/feedback submission via email.
+	// @Tags         contact
+	// @Accept       json
+	// @Produce      json
+	// @Param        body body models.ContactFormData true "Contact form payload"
+	// @Success      200 {object} object "{message: \"Contact form submitted successfully\"}"
+	// @Failure      400 {object} models.ErrorResponse "Invalid body / validation"
+	// @Failure      500 {object} models.ErrorResponse "Internal error"
+	// @Router       /contact [post]
 	var req models.ContactFormData
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(models.ErrorResponse{Message: "Invalid request body: " + err.Error()})
@@ -422,6 +599,21 @@ func (h *Handler) SubmitContactForm(c *fiber.Ctx) error {
 
 // --- Admin User Management Routes ---
 // Protected in router.go by middleware.RequirePermission(models.PermUsersManage).
+//
+// @Summary      List users (admin)
+// @Description  Paginated list of all users. Access: super_admin (users.manage).
+// @Tags         admin,users
+// @Accept       json
+// @Produce      json
+// @Param        Authorization header string true "Bearer <access_token>"
+// @Param        page  query int false "Page number (1-based)" default(1)
+// @Param        limit query int false "Page size (max 100)" default(20)
+// @Success      200 {object} models.PaginatedResponse{data=[]models.User}
+// @Failure      401 {object} models.ErrorResponse "Authentication required"
+// @Failure      403 {object} models.ErrorResponse "Forbidden (needs users.manage)"
+// @Failure      500 {object} models.ErrorResponse "Internal error"
+// @Security     BearerAuth
+// @Router       /admin/users [get]
 func (h *Handler) AdminListUsers(c *fiber.Ctx) error {
 	page, limit := utils.GetPageLimit(c)
 	users, total, err := h.service.AdminListUsers(c.Context(), page, limit)
@@ -433,6 +625,23 @@ func (h *Handler) AdminListUsers(c *fiber.Ctx) error {
 }
 
 func (h *Handler) AdminAssignRole(c *fiber.Ctx) error {
+	//
+	// @Summary      Assign a role to a user (admin)
+	// @Description  Sets a user's role. Access: super_admin (users.manage).
+	// @Tags         admin,users
+	// @Accept       json
+	// @Produce      json
+	// @Param        Authorization header string true "Bearer <access_token>"
+	// @Param        user_id path string true "Target user ID (UUID)"
+	// @Param        body body object true "{role: <one of super_admin|content_editor|travel_planner|ecommerce_operator|customer_service>}"
+	// @Success      200 {object} object "{message: \"User role updated successfully\"}"
+	// @Failure      400 {object} models.ErrorResponse "Invalid body / validation"
+	// @Failure      401 {object} models.ErrorResponse "Authentication required"
+	// @Failure      403 {object} models.ErrorResponse "Forbidden (needs users.manage)"
+	// @Failure      404 {object} models.ErrorResponse "Target user not found"
+	// @Failure      500 {object} models.ErrorResponse "Internal error"
+	// @Security     BearerAuth
+	// @Router       /admin/users/{user_id}/role [put]
 	targetUserID := c.Params("user_id")
 	var req struct {
 		Role string `json:"role" validate:"required,oneof=super_admin content_editor travel_planner ecommerce_operator customer_service"`

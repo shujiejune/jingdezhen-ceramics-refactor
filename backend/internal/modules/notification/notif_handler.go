@@ -24,6 +24,20 @@ func NewHandler(service ServiceInterface) *Handler {
 }
 
 // GetNotifications handles requests from an authenticated user to get their notifications.
+//
+// @Summary      List the user's notifications
+// @Description  Paginated list of the signed-in user's notifications.
+// @Tags         notifications
+// @Accept       json
+// @Produce      json
+// @Param        Authorization header string true "Bearer <access_token>"
+// @Param        page  query int false "Page number (1-based)" default(1)
+// @Param        limit query int false "Page size (max 100)" default(20)
+// @Success      200 {object} models.PaginatedResponse{data=[]models.Notification}
+// @Failure      401 {object} models.ErrorResponse "Authentication required"
+// @Failure      500 {object} models.ErrorResponse "Internal error"
+// @Security     BearerAuth
+// @Router       /notifications [get]
 func (h *Handler) GetNotifications(c *fiber.Ctx) error {
 	// This is a protected route, so a user ID must exist in the context.
 	userID, err := utils.GetUserIDFromContext(c)
@@ -45,6 +59,18 @@ func (h *Handler) GetNotifications(c *fiber.Ctx) error {
 }
 
 // GetUnreadNotificationCount handles requests to get the count of a user's unread notifications.
+//
+// @Summary      Get the unread notification count
+// @Description  Returns the count of the signed-in user's unread notifications.
+// @Tags         notifications
+// @Accept       json
+// @Produce      json
+// @Param        Authorization header string true "Bearer <access_token>"
+// @Success      200 {object} object "{count: int}"
+// @Failure      401 {object} models.ErrorResponse "Authentication required"
+// @Failure      500 {object} models.ErrorResponse "Internal error"
+// @Security     BearerAuth
+// @Router       /notifications/unread-count [get]
 func (h *Handler) GetUnreadNotificationCount(c *fiber.Ctx) error {
 	userID, err := utils.GetUserIDFromContext(c)
 	if err != nil {
@@ -62,6 +88,21 @@ func (h *Handler) GetUnreadNotificationCount(c *fiber.Ctx) error {
 }
 
 // MarkAsRead handles requests to mark a single notification as read.
+//
+// @Summary      Mark a notification as read
+// @Description  Marks one of the signed-in user's notifications as read.
+// @Tags         notifications
+// @Accept       json
+// @Produce      json
+// @Param        Authorization header string true "Bearer <access_token>"
+// @Param        notification_id path int true "Notification ID"
+// @Success      204 "No Content (empty body)"
+// @Failure      400 {object} models.ErrorResponse "Invalid notification ID"
+// @Failure      401 {object} models.ErrorResponse "Authentication required"
+// @Failure      404 {object} models.ErrorResponse "Notification not found (or not owned by user)"
+// @Failure      500 {object} models.ErrorResponse "Internal error"
+// @Security     BearerAuth
+// @Router       /notifications/{notification_id}/mark-read [post]
 func (h *Handler) MarkAsRead(c *fiber.Ctx) error {
 	userID, err := utils.GetUserIDFromContext(c)
 	if err != nil {
@@ -90,6 +131,18 @@ func (h *Handler) MarkAsRead(c *fiber.Ctx) error {
 }
 
 // MarkAllAsRead handles requests to mark all of a user's notifications as read.
+//
+// @Summary      Mark all notifications as read
+// @Description  Marks all of the signed-in user's notifications as read.
+// @Tags         notifications
+// @Accept       json
+// @Produce      json
+// @Param        Authorization header string true "Bearer <access_token>"
+// @Success      204 "No Content (empty body)"
+// @Failure      401 {object} models.ErrorResponse "Authentication required"
+// @Failure      500 {object} models.ErrorResponse "Internal error"
+// @Security     BearerAuth
+// @Router       /notifications/mark-all-read [post]
 func (h *Handler) MarkAllAsRead(c *fiber.Ctx) error {
 	userID, err := utils.GetUserIDFromContext(c)
 	if err != nil {

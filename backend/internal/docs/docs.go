@@ -807,6 +807,791 @@ const docTemplate = `{
                 }
             }
         },
+        "/admin/ceramicstory": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Paginated list of stories filtered by locale + status. Access: content_editor.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin",
+                    "ceramicstory"
+                ],
+                "summary": "List ceramic stories (admin, any status)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer \u003caccess_token\u003e",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "BCP 47 locale",
+                        "name": "locale",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by workflow status",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page number (1-based)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Page size (max 100)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.PaginatedResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.CeramicStory"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid locale",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden (needs content.write)",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Creates a story + its first translation. Access: content_editor.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin",
+                    "ceramicstory"
+                ],
+                "summary": "Create a ceramic story",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer \u003caccess_token\u003e",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "Story to create",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.CreateCeramicStoryData"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.CeramicStory"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid body / validation / bad locale",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden (needs content.write)",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/ceramicstory/{id}": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Updates a story's translation + parent fields (nil = unchanged). Access: content_editor.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin",
+                    "ceramicstory"
+                ],
+                "summary": "Update a ceramic story",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer \u003caccess_token\u003e",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Story ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "default": "en-US",
+                        "description": "BCP 47 locale",
+                        "name": "locale",
+                        "in": "query"
+                    },
+                    {
+                        "description": "Fields to update (nil pointers = unchanged)",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.UpdateCeramicStoryData"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.CeramicStory"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid story ID / body / bad locale",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden (needs content.write)",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Ceramic story not found",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Translation not editable in its current workflow state",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Removes a story (parent + all translations). Access: content_editor.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin",
+                    "ceramicstory"
+                ],
+                "summary": "Delete a ceramic story",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer \u003caccess_token\u003e",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Story ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content (empty body)"
+                    },
+                    "400": {
+                        "description": "Invalid story ID",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden (needs content.write)",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Ceramic story not found",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/ceramicstory/{id}/approve": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Transitions an in_review story translation to published. Access: super_admin ONLY.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin",
+                    "ceramicstory",
+                    "workflow"
+                ],
+                "summary": "Approve + publish a ceramic story",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer \u003caccess_token\u003e",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Story ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "{locale: en-US}",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.CeramicStory"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid story ID / body / bad locale",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden (needs content.publish — super_admin only)",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Ceramic story not found",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Invalid workflow transition",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/ceramicstory/{id}/reject": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Transitions an in_review story translation to rejected. Access: super_admin ONLY.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin",
+                    "ceramicstory",
+                    "workflow"
+                ],
+                "summary": "Reject a ceramic story (in_review → rejected)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer \u003caccess_token\u003e",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Story ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "{locale: en-US}",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.CeramicStory"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid story ID / body / bad locale",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden (needs content.publish — super_admin only)",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Ceramic story not found",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Invalid workflow transition",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/ceramicstory/{id}/submit": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Transitions a draft story translation to in_review. Body: {locale}. Access: content_editor.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin",
+                    "ceramicstory",
+                    "workflow"
+                ],
+                "summary": "Submit a ceramic story for review",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer \u003caccess_token\u003e",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Story ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "{locale: en-US}",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.CeramicStory"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid story ID / body / bad locale",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden (needs content.write)",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Ceramic story not found",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Invalid workflow transition",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/ceramicstory/{id}/unpublish": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Transitions a published story translation back to draft. Access: super_admin ONLY.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin",
+                    "ceramicstory",
+                    "workflow"
+                ],
+                "summary": "Unpublish a ceramic story (published → draft)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer \u003caccess_token\u003e",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Story ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "{locale: en-US}",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.CeramicStory"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid story ID / body / bad locale",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden (needs content.publish — super_admin only)",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Ceramic story not found",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Invalid workflow transition",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/ceramicstory/{slug}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Fetches a single story by slug in any workflow status. Access: content_editor.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin",
+                    "ceramicstory"
+                ],
+                "summary": "Get a ceramic story by slug (admin, any status)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer \u003caccess_token\u003e",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Story slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "default": "en-US",
+                        "description": "BCP 47 locale",
+                        "name": "locale",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.CeramicStory"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid locale",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden (needs content.write)",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Ceramic story not found",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/admin/certificates": {
             "get": {
                 "security": [
@@ -1035,6 +1820,425 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/engage": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Paginated list of activities filtered by locale, status, type. Access: content_editor.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin",
+                    "engage"
+                ],
+                "summary": "List activities (admin, any status)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer \u003caccess_token\u003e",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "BCP 47 locale",
+                        "name": "locale",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by workflow status",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by activity type",
+                        "name": "type",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page number (1-based)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Page size (max 100)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.PaginatedResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.Activity"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid locale",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden (needs content.write)",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Creates an activity + its first translation. Access: content_editor.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin",
+                    "engage"
+                ],
+                "summary": "Create an activity",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer \u003caccess_token\u003e",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "Activity to create",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.CreateActivityData"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.Activity"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid body / validation / bad locale",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden (needs content.write)",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/engage/{id}": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Updates an activity's translation + parent fields (nil = unchanged). Access: content_editor.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin",
+                    "engage"
+                ],
+                "summary": "Update an activity",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer \u003caccess_token\u003e",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Activity ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "default": "en-US",
+                        "description": "BCP 47 locale",
+                        "name": "locale",
+                        "in": "query"
+                    },
+                    {
+                        "description": "Fields to update (nil pointers = unchanged)",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.UpdateActivityData"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.Activity"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid activity ID / body / bad locale",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden (needs content.write)",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Activity not found",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Translation not editable in its current workflow state",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/engage/{slug}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Fetches a single activity by slug in any workflow status. Access: content_editor.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin",
+                    "engage"
+                ],
+                "summary": "Get an activity by slug (admin, any status)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer \u003caccess_token\u003e",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Activity slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "default": "en-US",
+                        "description": "BCP 47 locale",
+                        "name": "locale",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.Activity"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid locale",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden (needs content.write)",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Activity not found",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/fx/refresh": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Enqueues the fx:refresh job (worker fetches ECB rates, applies markup, upserts).\nAccess: super_admin (settings.manage).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin",
+                    "fx"
+                ],
+                "summary": "Enqueue an FX rate refresh",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer \u003caccess_token\u003e",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "{message: \\\"FX refresh enqueued\\\"}",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden (needs settings.manage)",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "503": {
+                        "description": "FX refresh job queue not configured",
                         "schema": {
                             "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
                         }
@@ -5013,6 +6217,91 @@ const docTemplate = `{
                 }
             }
         },
+        "/admin/users": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Paginated list of all users. Access: super_admin (users.manage).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin",
+                    "users"
+                ],
+                "summary": "List users (admin)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer \u003caccess_token\u003e",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page number (1-based)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Page size (max 100)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.PaginatedResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.User"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden (needs users.manage)",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/artists": {
             "get": {
                 "description": "Paginated list of published artists in the requested locale.\nLocale resolution: ?locale= overrides Accept-Language.",
@@ -5126,6 +6415,511 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Artist not found (or not published in this locale)",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/2fa/pending-confirm": {
+            "post": {
+                "description": "Verifies the first TOTP code, enables 2FA, mints the real access token,\nand returns backup codes. Public (pending token is the credential).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth",
+                    "2fa"
+                ],
+                "summary": "Confirm 2FA enrollment + complete login",
+                "parameters": [
+                    {
+                        "description": "pending_token + 6-digit code",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.PendingTwoFAConfirmRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "AuthResponse + backup_codes",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid body / validation",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Invalid or expired pending token / invalid TOTP code",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/2fa/pending-enroll": {
+            "post": {
+                "description": "Begins 2FA enrollment for a super_admin blocked at login. Public\n(the pending token is the credential). Returns the otpauth:// URI + raw secret.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth",
+                    "2fa"
+                ],
+                "summary": "Start 2FA enrollment (must-enroll flow)",
+                "parameters": [
+                    {
+                        "description": "pending_token + password",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.PendingTwoFAEnrollRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "otpauth URI + raw secret",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid body / validation",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Invalid or expired pending token",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/2fa/verify": {
+            "post": {
+                "description": "Completes a 2FA-challenged login. Public (no JWT): the pending token +\n6-digit TOTP code are the credentials. On success mints the real access token.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth",
+                    "2fa"
+                ],
+                "summary": "Complete 2FA login",
+                "parameters": [
+                    {
+                        "description": "pending_token + 6-digit code",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.VerifyTwoFARequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.AuthResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid body / validation",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Invalid or expired pending token / invalid TOTP code",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/activate": {
+            "post": {
+                "description": "Activates an inactive account via the email activation token, then\nauto-logs the user in (mints a JWT).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Activate a user account",
+                "parameters": [
+                    {
+                        "description": "Activation token (from email)",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ActivationRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.AuthResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid or expired activation token",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/google/callback": {
+            "get": {
+                "description": "Handles the Google OAuth callback: exchanges the code for a token,\nfinds/creates the user, and either mints a JWT or issues a 2FA challenge.\nRedirects to the frontend with the token (or a 2FA pending_token).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth",
+                    "oauth"
+                ],
+                "summary": "Google OAuth callback",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "OAuth state (must match the oauthstate cookie)",
+                        "name": "state",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Authorization code from Google",
+                        "name": "code",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "307": {
+                        "description": "Redirect to frontend /login/success (or /2fa, /2fa/enroll, /error)",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Authorization code not provided",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Invalid or missing state cookie / state mismatch",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/google/login": {
+            "get": {
+                "description": "Redirects the browser to Google's consent screen (sets an oauthstate cookie).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth",
+                    "oauth"
+                ],
+                "summary": "Start Google OAuth login",
+                "responses": {
+                    "307": {
+                        "description": "Redirect to Google consent screen",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Could not initiate Google login",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/login": {
+            "post": {
+                "description": "Authenticates by email + password. If 2FA is enabled, returns a\npending_token (HTTP 200 with a pending_token field) instead of a real\naccess token; the client completes via /auth/2fa/verify.\nSuper_admins without 2FA enrolled are blocked (must enroll via pending flow).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Log in",
+                "parameters": [
+                    {
+                        "description": "Login credentials (email, password)",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.LoginRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "access_token (real or pending_token for 2FA)",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.AuthResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Invalid credentials / account not active",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/request-password-reset": {
+            "post": {
+                "description": "Sends a password-reset email if the account exists. Always returns a generic\nsuccess message (anti-enumeration) regardless of whether the email exists.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Request a password reset (step 1)",
+                "parameters": [
+                    {
+                        "description": "Email to reset",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.RequestPasswordResetRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "{message: \\\"...\\\"}",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid body / validation",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/resend-activation": {
+            "post": {
+                "description": "Resends the activation email. Always returns a generic success message\n(to prevent email enumeration) regardless of whether the email exists.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Resend the activation email",
+                "parameters": [
+                    {
+                        "description": "Email to resend activation to",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ResendActivationRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "{message: \\\"...\\\"}",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid body / validation",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/reset-password": {
+            "post": {
+                "description": "Completes a password reset: verifies the token, sets the new password,\nand mints a new JWT (auto-login).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Reset password (step 2)",
+                "parameters": [
+                    {
+                        "description": "Reset token + new password (min 8)",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ResetPasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.AuthResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid body / validation / invalid or expired token",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/signup": {
+            "post": {
+                "description": "Creates an inactive user account + sends an activation email.\nReturns a generic 201 (the user activates via email link).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Sign up a new user",
+                "parameters": [
+                    {
+                        "description": "Signup credentials (nickname, email, password)",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.SignupRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.AuthResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid body / validation",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Email address is already in use",
                         "schema": {
                             "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
                         }
@@ -5824,6 +7618,104 @@ const docTemplate = `{
                 }
             }
         },
+        "/ceramicstory": {
+            "get": {
+                "description": "Returns all published ceramic-story/dynasty entries for the requested locale.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ceramicstory"
+                ],
+                "summary": "List ceramic stories",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "\"en-US\"",
+                        "description": "BCP 47 locale (e.g. en-US). Overrides Accept-Language.",
+                        "name": "locale",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.CeramicStory"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/ceramicstory/{slug}": {
+            "get": {
+                "description": "Fetches a single published ceramic story by its locale-specific slug.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ceramicstory"
+                ],
+                "summary": "Get a ceramic story by slug",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Story slug (locale-specific)",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "default": "\"en-US\"",
+                        "description": "BCP 47 locale (e.g. en-US). Overrides Accept-Language.",
+                        "name": "locale",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.CeramicStory"
+                        }
+                    },
+                    "400": {
+                        "description": "Missing slug",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Ceramic story not found",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/certificates/{code}": {
             "get": {
                 "description": "Public authenticity-certificate lookup by its JDZ-\u003c6-base32\u003e code\n(the QR target). Returns the cert + product/artist display info +\nthe provenance chain. No auth.",
@@ -6051,6 +7943,220 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/consent": {
+            "post": {
+                "description": "Records a consent decision (privacy/TOS/cookie-analytics/cookie-marketing).\nPublic (no auth): anonymous visitors record by IP hash; a JWT, if present, links to the user.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "consent"
+                ],
+                "summary": "Record a consent decision",
+                "parameters": [
+                    {
+                        "description": "Consent decision (kind, granted, doc_version)",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.RecordConsentRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ConsentRecord"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid body / validation",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/engage": {
+            "get": {
+                "description": "Paginated list of published activities for a locale, optionally filtered by type.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "engage"
+                ],
+                "summary": "List published activities",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "\"en-US\"",
+                        "description": "BCP 47 locale (e.g. en-US). Overrides Accept-Language.",
+                        "name": "locale",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Activity type filter (e.g. Destination, Local Lifestyle)",
+                        "name": "type",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page number (1-based)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Page size (max 100)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.PaginatedResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.Activity"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/engage/{slug}": {
+            "get": {
+                "description": "Fetches a single published activity by its locale-specific slug.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "engage"
+                ],
+                "summary": "Get an activity by slug",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Activity slug (locale-specific)",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "default": "\"en-US\"",
+                        "description": "BCP 47 locale (e.g. en-US). Overrides Accept-Language.",
+                        "name": "locale",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.Activity"
+                        }
+                    },
+                    "400": {
+                        "description": "Missing slug",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Article not found",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/fx/rates": {
+            "get": {
+                "description": "Returns the current fx_rates rows (dev-debug endpoint).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "fx"
+                ],
+                "summary": "List current FX rates (dev-debug)",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "object"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "503": {
+                        "description": "FX rate listing not available",
                         "schema": {
                             "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
                         }
@@ -6738,6 +8844,244 @@ const docTemplate = `{
                 }
             }
         },
+        "/notifications": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Paginated list of the signed-in user's notifications.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "notifications"
+                ],
+                "summary": "List the user's notifications",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer \u003caccess_token\u003e",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page number (1-based)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Page size (max 100)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.PaginatedResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.Notification"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/notifications/mark-all-read": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Marks all of the signed-in user's notifications as read.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "notifications"
+                ],
+                "summary": "Mark all notifications as read",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer \u003caccess_token\u003e",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content (empty body)"
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/notifications/unread-count": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns the count of the signed-in user's unread notifications.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "notifications"
+                ],
+                "summary": "Get the unread notification count",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer \u003caccess_token\u003e",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "{count: int}",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/notifications/{notification_id}/mark-read": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Marks one of the signed-in user's notifications as read.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "notifications"
+                ],
+                "summary": "Mark a notification as read",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer \u003caccess_token\u003e",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Notification ID",
+                        "name": "notification_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content (empty body)"
+                    },
+                    "400": {
+                        "description": "Invalid notification ID",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Notification not found (or not owned by user)",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/orders": {
             "get": {
                 "security": [
@@ -6950,6 +9294,425 @@ const docTemplate = `{
                     },
                     "409": {
                         "description": "Only unpaid orders can be cancelled",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/privacy/delete-account": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Performs irreversible GDPR erasure (anonymize-in-place; order history\npreserved via NO ACTION FK). Requires {\"confirm\":\"DELETE\"} body guard.\nReturns 204 on success; the client must discard the current token.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "privacy"
+                ],
+                "summary": "Delete the user's account (GDPR erasure)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer \u003caccess_token\u003e",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "{confirm: \\",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.DeleteAccountRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content (empty body)"
+                    },
+                    "400": {
+                        "description": "Invalid body / missing confirmation",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "User not found",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Account has already been deleted",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/profile": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns the signed-in user's profile.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "profile"
+                ],
+                "summary": "Get the current user's profile",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer \u003caccess_token\u003e",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.User"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "User profile not found",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/profile/2fa": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Turns 2FA off (keeps the staged secret for re-enrollment).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "profile",
+                    "2fa"
+                ],
+                "summary": "Disable 2FA",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer \u003caccess_token\u003e",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "{message: \\\"2FA disabled\\\"}",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "2FA is not enabled",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/profile/2fa/backup-codes": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns how many unused backup codes remain (not the codes themselves).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "profile",
+                    "2fa"
+                ],
+                "summary": "Count remaining backup codes",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer \u003caccess_token\u003e",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "{remaining: int}",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/profile/2fa/backup-codes/regenerate": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Invalidates remaining unused backup codes + issues a fresh set (shown once).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "profile",
+                    "2fa"
+                ],
+                "summary": "Regenerate backup codes",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer \u003caccess_token\u003e",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.TwoFAConfirmResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "2FA is not enabled",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/profile/2fa/confirm": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Verifies the first TOTP code, enables 2FA, and returns backup codes (shown once).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "profile",
+                    "2fa"
+                ],
+                "summary": "Confirm 2FA enrollment",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer \u003caccess_token\u003e",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "6-digit TOTP code",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ConfirmTwoFARequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.TwoFAConfirmResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid body / validation",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required / invalid TOTP code",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "No pending 2FA enrollment found — call /2fa/enroll first",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/profile/2fa/enroll": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Begins TOTP enrollment. Returns the otpauth:// URI (QR) + raw secret (shown once).\nConfirm via /profile/2fa/confirm with the first TOTP code.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "profile",
+                    "2fa"
+                ],
+                "summary": "Start 2FA enrollment",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer \u003caccess_token\u003e",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "Optional enrollment params (defaults applied)",
+                        "name": "body",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.EnrollTwoFARequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.TwoFAEnrollResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
                         "schema": {
                             "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
                         }
@@ -7354,6 +10117,181 @@ const docTemplate = `{
                 }
             }
         },
+        "/profile/consent": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns the full consent history for the signed-in user (GDPR data export).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "profile",
+                    "consent"
+                ],
+                "summary": "List the user's full consent history",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer \u003caccess_token\u003e",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "{data: []models.ConsentRecord}",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/profile/consent/{kind}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns the latest consent record for the given kind, or {granted: false}\nif no record exists yet.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "profile",
+                    "consent"
+                ],
+                "summary": "Get the current consent state for a kind",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer \u003caccess_token\u003e",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Consent kind (privacy_policy|terms_of_service|cookie_analytics|cookie_marketing)",
+                        "name": "kind",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "{kind, granted, recorded, doc_version?, created_at?}",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid consent kind",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/profile/export": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns the complete machine-readable personal-data package (JSON)\nfor the signed-in user (GDPR data portability). Synchronous for MVP.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "profile",
+                    "privacy"
+                ],
+                "summary": "Export the user's personal data (GDPR)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer \u003caccess_token\u003e",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "BCP 47 locale for display strings",
+                        "name": "locale",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Personal-data package (Content-Disposition: attachment)",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "User not found",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/shipping/quote": {
             "get": {
                 "description": "Public preview of the shipping fee for a country + packed weight,\ncomputed from the shipping_fee_tiers table. Returns shippable=false\n(with a reason) for unshippable countries or overweight packages.",
@@ -7700,6 +10638,73 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "jingdezhen-ceramics-backend_internal_models.ActivationRequest": {
+            "type": "object",
+            "required": [
+                "token"
+            ],
+            "properties": {
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
+        "jingdezhen-ceramics-backend_internal_models.Activity": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "body": {
+                    "type": "string"
+                },
+                "brief_introduction": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "lat": {
+                    "description": "Destination location (parent, non-localized; NULL for non-destination types).",
+                    "type": "number"
+                },
+                "lng": {
+                    "type": "number"
+                },
+                "locale": {
+                    "type": "string"
+                },
+                "meta_description": {
+                    "type": "string"
+                },
+                "meta_title": {
+                    "type": "string"
+                },
+                "published_at": {
+                    "type": "string"
+                },
+                "slug": {
+                    "description": "Translation fields.",
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ContentStatus"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "type": {
+                    "description": "parent: 'Destination', 'Local Lifestyle', etc.",
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
         "jingdezhen-ceramics-backend_internal_models.AddCartItemRequest": {
             "type": "object",
             "required": [
@@ -7805,6 +10810,17 @@ const docTemplate = `{
                     "description": "defaults to append-last",
                     "type": "integer",
                     "minimum": 0
+                }
+            }
+        },
+        "jingdezhen-ceramics-backend_internal_models.AuthResponse": {
+            "type": "object",
+            "properties": {
+                "access_token": {
+                    "type": "string"
+                },
+                "user": {
+                    "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.User"
                 }
             }
         },
@@ -7967,6 +10983,84 @@ const docTemplate = `{
                 }
             }
         },
+        "jingdezhen-ceramics-backend_internal_models.CeramicStory": {
+            "type": "object",
+            "properties": {
+                "characteristics_art": {
+                    "type": "string"
+                },
+                "characteristics_craft": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "description": "parent",
+                    "type": "string"
+                },
+                "description": {
+                    "description": "translation",
+                    "type": "string"
+                },
+                "display_order": {
+                    "description": "parent",
+                    "type": "integer"
+                },
+                "dynasty_name": {
+                    "description": "translation",
+                    "type": "string"
+                },
+                "end_year": {
+                    "description": "parent",
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "image_url": {
+                    "description": "parent (non-localized media)",
+                    "type": "string"
+                },
+                "locale": {
+                    "description": "translation",
+                    "type": "string"
+                },
+                "meta_description": {
+                    "type": "string"
+                },
+                "meta_title": {
+                    "type": "string"
+                },
+                "period": {
+                    "description": "translation",
+                    "type": "string"
+                },
+                "published_at": {
+                    "type": "string"
+                },
+                "slug": {
+                    "description": "translation (per-locale unique)",
+                    "type": "string"
+                },
+                "start_year": {
+                    "description": "parent",
+                    "type": "integer"
+                },
+                "status": {
+                    "description": "translation",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ContentStatus"
+                        }
+                    ]
+                },
+                "takeaways": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "description": "parent",
+                    "type": "string"
+                }
+            }
+        },
         "jingdezhen-ceramics-backend_internal_models.Certificate": {
             "type": "object",
             "properties": {
@@ -8047,6 +11141,57 @@ const docTemplate = `{
                 }
             }
         },
+        "jingdezhen-ceramics-backend_internal_models.ConfirmTwoFARequest": {
+            "type": "object",
+            "required": [
+                "code"
+            ],
+            "properties": {
+                "code": {
+                    "description": "6-digit TOTP code",
+                    "type": "string"
+                }
+            }
+        },
+        "jingdezhen-ceramics-backend_internal_models.ConsentKind": {
+            "type": "string",
+            "enum": [
+                "privacy_policy",
+                "tos",
+                "cookie_analytics",
+                "cookie_marketing"
+            ],
+            "x-enum-varnames": [
+                "ConsentKindPrivacyPolicy",
+                "ConsentKindToS",
+                "ConsentKindCookieAnalytics",
+                "ConsentKindCookieMarketing"
+            ]
+        },
+        "jingdezhen-ceramics-backend_internal_models.ConsentRecord": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "doc_version": {
+                    "type": "string"
+                },
+                "granted": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "kind": {
+                    "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ConsentKind"
+                },
+                "user_id": {
+                    "description": "NULL = anonymous visitor",
+                    "type": "string"
+                }
+            }
+        },
         "jingdezhen-ceramics-backend_internal_models.ContactInput": {
             "type": "object",
             "required": [
@@ -8083,6 +11228,55 @@ const docTemplate = `{
                 "StatusPublished",
                 "StatusRejected"
             ]
+        },
+        "jingdezhen-ceramics-backend_internal_models.CreateActivityData": {
+            "type": "object",
+            "required": [
+                "slug",
+                "title",
+                "type"
+            ],
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "body": {
+                    "type": "string"
+                },
+                "brief_introduction": {
+                    "type": "string"
+                },
+                "lat": {
+                    "description": "Destination location (parent, non-localized; nullable).",
+                    "type": "number"
+                },
+                "lng": {
+                    "type": "number"
+                },
+                "locale": {
+                    "type": "string"
+                },
+                "meta_description": {
+                    "type": "string"
+                },
+                "meta_title": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "slug": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "title": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "type": {
+                    "description": "Destination | Local Lifestyle, etc.",
+                    "type": "string",
+                    "maxLength": 50
+                }
+            }
         },
         "jingdezhen-ceramics-backend_internal_models.CreateAddressRequest": {
             "type": "object",
@@ -8167,6 +11361,56 @@ const docTemplate = `{
                 },
                 "user_id": {
                     "description": "optional: link to a platform user",
+                    "type": "string"
+                }
+            }
+        },
+        "jingdezhen-ceramics-backend_internal_models.CreateCeramicStoryData": {
+            "type": "object",
+            "required": [
+                "description",
+                "dynasty_name",
+                "slug"
+            ],
+            "properties": {
+                "characteristics_art": {
+                    "type": "string"
+                },
+                "characteristics_craft": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "display_order": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "dynasty_name": {
+                    "type": "string",
+                    "maxLength": 100
+                },
+                "end_year": {
+                    "type": "integer"
+                },
+                "image_url": {
+                    "type": "string"
+                },
+                "locale": {
+                    "type": "string"
+                },
+                "period": {
+                    "type": "string",
+                    "maxLength": 100
+                },
+                "slug": {
+                    "type": "string",
+                    "maxLength": 100
+                },
+                "start_year": {
+                    "type": "integer"
+                },
+                "takeaways": {
                     "type": "string"
                 }
             }
@@ -8309,6 +11553,17 @@ const docTemplate = `{
                 }
             }
         },
+        "jingdezhen-ceramics-backend_internal_models.DeleteAccountRequest": {
+            "type": "object",
+            "required": [
+                "confirm"
+            ],
+            "properties": {
+                "confirm": {
+                    "type": "string"
+                }
+            }
+        },
         "jingdezhen-ceramics-backend_internal_models.DepositPaidResponse": {
             "type": "object",
             "properties": {
@@ -8317,6 +11572,18 @@ const docTemplate = `{
                 },
                 "quote_id": {
                     "type": "integer"
+                }
+            }
+        },
+        "jingdezhen-ceramics-backend_internal_models.EnrollTwoFARequest": {
+            "type": "object",
+            "properties": {
+                "account": {
+                    "type": "string"
+                },
+                "issuer": {
+                    "description": "Issuer/account labels for the otpauth URI; defaults applied if empty.",
+                    "type": "string"
                 }
             }
         },
@@ -8738,6 +12005,21 @@ const docTemplate = `{
                 }
             }
         },
+        "jingdezhen-ceramics-backend_internal_models.LoginRequest": {
+            "type": "object",
+            "required": [
+                "email",
+                "password"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                }
+            }
+        },
         "jingdezhen-ceramics-backend_internal_models.MediaAsset": {
             "type": "object",
             "properties": {
@@ -8809,6 +12091,59 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "jingdezhen-ceramics-backend_internal_models.Notification": {
+            "type": "object",
+            "properties": {
+                "actor_user": {
+                    "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.User"
+                },
+                "actor_user_id": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "entity_id": {
+                    "type": "integer"
+                },
+                "entity_type": {
+                    "type": "string"
+                },
+                "is_read": {
+                    "type": "boolean"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "notification_id": {
+                    "type": "integer"
+                },
+                "notification_type": {
+                    "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.NotificationType"
+                },
+                "recipient_user_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "jingdezhen-ceramics-backend_internal_models.NotificationType": {
+            "type": "string",
+            "enum": [
+                "system",
+                "low_stock"
+            ],
+            "x-enum-comments": {
+                "NotificationTypeLowStock": "PRD §3.4.1: low-stock alert to E-commerce Operators"
+            },
+            "x-enum-descriptions": [
+                "",
+                "PRD §3.4.1: low-stock alert to E-commerce Operators"
+            ],
+            "x-enum-varnames": [
+                "NotificationTypeSystem",
+                "NotificationTypeLowStock"
+            ]
         },
         "jingdezhen-ceramics-backend_internal_models.OptionRate": {
             "type": "object",
@@ -9017,6 +12352,38 @@ const docTemplate = `{
                 }
             }
         },
+        "jingdezhen-ceramics-backend_internal_models.PendingTwoFAConfirmRequest": {
+            "type": "object",
+            "required": [
+                "code",
+                "pending_token"
+            ],
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "pending_token": {
+                    "type": "string"
+                }
+            }
+        },
+        "jingdezhen-ceramics-backend_internal_models.PendingTwoFAEnrollRequest": {
+            "type": "object",
+            "required": [
+                "pending_token"
+            ],
+            "properties": {
+                "account": {
+                    "type": "string"
+                },
+                "issuer": {
+                    "type": "string"
+                },
+                "pending_token": {
+                    "type": "string"
+                }
+            }
+        },
         "jingdezhen-ceramics-backend_internal_models.Product": {
             "type": "object",
             "properties": {
@@ -9135,6 +12502,14 @@ const docTemplate = `{
                 }
             }
         },
+        "jingdezhen-ceramics-backend_internal_models.ProfileData": {
+            "type": "object",
+            "properties": {
+                "other_contact": {
+                    "type": "string"
+                }
+            }
+        },
         "jingdezhen-ceramics-backend_internal_models.ProvenanceKind": {
             "type": "string",
             "enum": [
@@ -9212,6 +12587,35 @@ const docTemplate = `{
                 "QuoteCancelled"
             ]
         },
+        "jingdezhen-ceramics-backend_internal_models.RecordConsentRequest": {
+            "type": "object",
+            "required": [
+                "doc_version",
+                "kind"
+            ],
+            "properties": {
+                "doc_version": {
+                    "type": "string",
+                    "maxLength": 20
+                },
+                "granted": {
+                    "type": "boolean"
+                },
+                "kind": {
+                    "enum": [
+                        "privacy_policy",
+                        "tos",
+                        "cookie_analytics",
+                        "cookie_marketing"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ConsentKind"
+                        }
+                    ]
+                }
+            }
+        },
         "jingdezhen-ceramics-backend_internal_models.RefundDepositRequest": {
             "type": "object",
             "properties": {
@@ -9278,6 +12682,45 @@ const docTemplate = `{
                 "sort_order": {
                     "type": "integer",
                     "minimum": 0
+                }
+            }
+        },
+        "jingdezhen-ceramics-backend_internal_models.RequestPasswordResetRequest": {
+            "type": "object",
+            "required": [
+                "email"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                }
+            }
+        },
+        "jingdezhen-ceramics-backend_internal_models.ResendActivationRequest": {
+            "type": "object",
+            "required": [
+                "email"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                }
+            }
+        },
+        "jingdezhen-ceramics-backend_internal_models.ResetPasswordRequest": {
+            "type": "object",
+            "required": [
+                "new_password",
+                "token"
+            ],
+            "properties": {
+                "new_password": {
+                    "description": "Enforce a minimum password length",
+                    "type": "string",
+                    "minLength": 8
+                },
+                "token": {
+                    "type": "string"
                 }
             }
         },
@@ -9462,6 +12905,28 @@ const docTemplate = `{
                 }
             }
         },
+        "jingdezhen-ceramics-backend_internal_models.SignupRequest": {
+            "type": "object",
+            "required": [
+                "email",
+                "nickname",
+                "password"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "nickname": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "minLength": 2
+                },
+                "password": {
+                    "type": "string",
+                    "minLength": 8
+                }
+            }
+        },
         "jingdezhen-ceramics-backend_internal_models.Tag": {
             "type": "object",
             "properties": {
@@ -9492,6 +12957,73 @@ const docTemplate = `{
                 },
                 "product_count": {
                     "type": "integer"
+                }
+            }
+        },
+        "jingdezhen-ceramics-backend_internal_models.TwoFAConfirmResponse": {
+            "type": "object",
+            "properties": {
+                "backup_codes": {
+                    "description": "shown once; stored hashed, never returned again",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "jingdezhen-ceramics-backend_internal_models.TwoFAEnrollResponse": {
+            "type": "object",
+            "properties": {
+                "otpauth_uri": {
+                    "description": "otpauth://totp/... — render as QR",
+                    "type": "string"
+                },
+                "secret": {
+                    "description": "for manual entry",
+                    "type": "string"
+                }
+            }
+        },
+        "jingdezhen-ceramics-backend_internal_models.UpdateActivityData": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "body": {
+                    "type": "string"
+                },
+                "brief_introduction": {
+                    "type": "string"
+                },
+                "lat": {
+                    "type": "number"
+                },
+                "lng": {
+                    "type": "number"
+                },
+                "meta_description": {
+                    "type": "string"
+                },
+                "meta_title": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "slug": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "title": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "type": {
+                    "type": "string",
+                    "maxLength": 50
                 }
             }
         },
@@ -9582,6 +13114,48 @@ const docTemplate = `{
                 "qty": {
                     "type": "integer",
                     "minimum": 1
+                }
+            }
+        },
+        "jingdezhen-ceramics-backend_internal_models.UpdateCeramicStoryData": {
+            "type": "object",
+            "properties": {
+                "characteristics_art": {
+                    "type": "string"
+                },
+                "characteristics_craft": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "display_order": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "dynasty_name": {
+                    "type": "string",
+                    "maxLength": 100
+                },
+                "end_year": {
+                    "type": "integer"
+                },
+                "image_url": {
+                    "type": "string"
+                },
+                "period": {
+                    "type": "string",
+                    "maxLength": 100
+                },
+                "slug": {
+                    "type": "string",
+                    "maxLength": 100
+                },
+                "start_year": {
+                    "type": "integer"
+                },
+                "takeaways": {
+                    "type": "string"
                 }
             }
         },
@@ -9708,6 +13282,58 @@ const docTemplate = `{
                 }
             }
         },
+        "jingdezhen-ceramics-backend_internal_models.User": {
+            "type": "object",
+            "properties": {
+                "auth_provider": {
+                    "type": "string"
+                },
+                "avatar_url": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "deleted_at": {
+                    "description": "set when GDPR-erased (anonymized stub)",
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "id": {
+                    "description": "UUID string from DB",
+                    "type": "string"
+                },
+                "is_active": {
+                    "type": "boolean"
+                },
+                "nickname": {
+                    "type": "string"
+                },
+                "preferred_currency": {
+                    "description": "ISO 4217: USD, EUR, GBP (PRD §3.2.3)",
+                    "type": "string"
+                },
+                "preferred_locale": {
+                    "description": "BCP 47: en-US, zh-CN (PRD §3.5.1)",
+                    "type": "string"
+                },
+                "profile_data": {
+                    "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ProfileData"
+                },
+                "roles": {
+                    "description": "Roles are loaded separately from user_roles (db:\"-\"; populated by services).\nA user with no staff role is a customer (PRD §3.4.1).",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
         "jingdezhen-ceramics-backend_internal_models.UserAddress": {
             "type": "object",
             "properties": {
@@ -9746,6 +13372,21 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "jingdezhen-ceramics-backend_internal_models.VerifyTwoFARequest": {
+            "type": "object",
+            "required": [
+                "code",
+                "pending_token"
+            ],
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "pending_token": {
                     "type": "string"
                 }
             }

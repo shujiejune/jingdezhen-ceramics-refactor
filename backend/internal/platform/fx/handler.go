@@ -28,6 +28,21 @@ func NewHandler(service ServiceInterface, jobEnqueuer JobEnqueuer) *Handler {
 
 // RefreshFX: POST /admin/fx/refresh — enqueue the fx:refresh job (worker fetches
 // ECB rates, applies markup, upserts). Guarded by PermSettingsManage.
+//
+// @Summary      Enqueue an FX rate refresh
+// @Description  Enqueues the fx:refresh job (worker fetches ECB rates, applies markup, upserts).
+// @Description  Access: super_admin (settings.manage).
+// @Tags         admin,fx
+// @Accept       json
+// @Produce      json
+// @Param        Authorization header string true "Bearer <access_token>"
+// @Success      202 {object} object "{message: \"FX refresh enqueued\"}"
+// @Failure      401 {object} models.ErrorResponse "Authentication required"
+// @Failure      403 {object} models.ErrorResponse "Forbidden (needs settings.manage)"
+// @Failure      500 {object} models.ErrorResponse "Internal error"
+// @Failure      503 {object} models.ErrorResponse "FX refresh job queue not configured"
+// @Security     BearerAuth
+// @Router       /admin/fx/refresh [post]
 func (h *Handler) RefreshFX(c *fiber.Ctx) error {
 	if h.jobEnqueuer == nil {
 		return c.Status(fiber.StatusServiceUnavailable).JSON(models.ErrorResponse{
@@ -46,6 +61,16 @@ func (h *Handler) RefreshFX(c *fiber.Ctx) error {
 }
 
 // ListRates: GET /fx/rates — dev-debug: current fx_rates rows.
+//
+// @Summary      List current FX rates (dev-debug)
+// @Description  Returns the current fx_rates rows (dev-debug endpoint).
+// @Tags         fx
+// @Accept       json
+// @Produce      json
+// @Success      200 {array} object
+// @Failure      500 {object} models.ErrorResponse "Internal error"
+// @Failure      503 {object} models.ErrorResponse "FX rate listing not available"
+// @Router       /fx/rates [get]
 func (h *Handler) ListRates(c *fiber.Ctx) error {
 	repo, ok := h.repoForList()
 	if !ok {

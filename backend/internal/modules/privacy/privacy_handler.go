@@ -27,6 +27,21 @@ func NewHandler(service ServiceInterface) *Handler {
 // Returns the complete machine-readable personal-data package (JSON) for the
 // authenticated user. Synchronous for MVP; will become an async job + emailed
 // download link once order/itinerary history makes the payload large (M2/M3).
+//
+// @Summary      Export the user's personal data (GDPR)
+// @Description  Returns the complete machine-readable personal-data package (JSON)
+// @Description  for the signed-in user (GDPR data portability). Synchronous for MVP.
+// @Tags         profile,privacy
+// @Accept       json
+// @Produce      json
+// @Param        Authorization header string true "Bearer <access_token>"
+// @Param        locale query string false "BCP 47 locale for display strings"
+// @Success      200 {object} object "Personal-data package (Content-Disposition: attachment)"
+// @Failure      401 {object} models.ErrorResponse "Authentication required"
+// @Failure      404 {object} models.ErrorResponse "User not found"
+// @Failure      500 {object} models.ErrorResponse "Internal error"
+// @Security     BearerAuth
+// @Router       /profile/export [get]
 func (h *Handler) ExportUserData(c *fiber.Ctx) error {
 	userID, err := utils.GetUserIDFromContext(c)
 	if err != nil {
@@ -54,6 +69,24 @@ func (h *Handler) ExportUserData(c *fiber.Ctx) error {
 // valid for re-login (the account is an anonymized stub); the client MUST
 // discard the current token (note: existing unexpired JWTs remain technically
 // valid until a server-side blocklist lands in the security pass — M4).
+//
+// @Summary      Delete the user's account (GDPR erasure)
+// @Description  Performs irreversible GDPR erasure (anonymize-in-place; order history
+// @Description  preserved via NO ACTION FK). Requires {"confirm":"DELETE"} body guard.
+// @Description  Returns 204 on success; the client must discard the current token.
+// @Tags         privacy
+// @Accept       json
+// @Produce      json
+// @Param        Authorization header string true "Bearer <access_token>"
+// @Param        body body models.DeleteAccountRequest true "{confirm: \"DELETE\"}"
+// @Success      204 "No Content (empty body)"
+// @Failure      400 {object} models.ErrorResponse "Invalid body / missing confirmation"
+// @Failure      401 {object} models.ErrorResponse "Authentication required"
+// @Failure      404 {object} models.ErrorResponse "User not found"
+// @Failure      409 {object} models.ErrorResponse "Account has already been deleted"
+// @Failure      500 {object} models.ErrorResponse "Internal error"
+// @Security     BearerAuth
+// @Router       /privacy/delete-account [post]
 func (h *Handler) DeleteAccount(c *fiber.Ctx) error {
 	userID, err := utils.GetUserIDFromContext(c)
 	if err != nil {
