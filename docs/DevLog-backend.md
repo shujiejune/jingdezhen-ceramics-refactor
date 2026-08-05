@@ -620,3 +620,20 @@ These are not GitHub-specific. The workflow just invokes the tools, which read t
 
  This is not part of the CI pipeline, it's a separate GitHub feature that opens PRs to bump outdated deps.
  It doesn't run tests; it just triggers the CI pipeline so the pipeline validates the bumps.
+
+### The order to build it
+
+1. Write the workflow YAML and validate it before pushing. Use a validator: `actionlint .github/workflows/*.yml`. `actionlint` is the strongest, it catches syntax and action-usage errors.
+2. Verify each tool's install path works on a clean runner, not just locally. If a tool must match the Go version, either (a) install it from source on the runner (`go install .../v2/cmd/...@version`), or (b) pin a prebuilt version you've confirmed is built with a compatible Go.
+3. Prefer 3rd-party action wrappers only when they are actively maintained for your case. Installing the tool directly via `go install` + a plain `run:` step was simpler.
+4. Add `dependabot.yml` last, after the pipeline is green.
+
+```
+GitHub repo features     dependabot.yml, CODEOWNERS, issue templates    ← "repo hygiene"
+        ↓                                                                          
+CI pipeline              .github/workflows/*.yml                        ← "what runs, when"
+        ↓                                                                          
+Tools the pipeline runs  golangci-lint, go test, govulncheck, docker    ← "the actual checks"
+        ↓                                                                          
+Tool configuration       .golangci.yml, Dockerfile, Makefile            ← "how the tools behave"
+```
