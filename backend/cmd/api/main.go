@@ -32,6 +32,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -74,6 +75,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/limiter"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -213,6 +215,22 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
 		AllowMethods:     "GET,POST,PUT,DELETE,PATCH,OPTIONS",
 		AllowCredentials: true,
+	}))
+
+	// Global rate-limit backstop (TDD §333: global 100/min/IP). Per-process
+	// Fiber limiter — fine for the single-VPS MVP; Redis-backed is a scale-out
+	// change. Webhook routes (/webhooks/*) are EXEMPT via Next: gateway retries
+	// come from a single gateway IP and a 100/min cap could drop a legit retry;
+	// the HMAC signature is already the security boundary there. The stricter
+	// auth (5/min) + analytics (60/min) group limiters are applied in router.go
+	// and kick in before this backstop for those routes.
+	app.Use(limiter.New(limiter.Config{
+		Max:          100,
+		Expiration:   1 * time.Minute,
+		KeyGenerator: func(c *fiber.Ctx) string { return c.IP() },
+		Next: func(c *fiber.Ctx) bool {
+			return strings.HasPrefix(c.Path(), "/webhooks/")
+		},
 	}))
 
 	// --- Database connection ---

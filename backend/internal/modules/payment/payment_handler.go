@@ -69,11 +69,13 @@ func (h *Handler) handleWebhook(c *fiber.Ctx, gatewayName string) error {
 		case errors.Is(err, models.ErrGatewayUnavailable):
 			return c.Status(fiber.StatusServiceUnavailable).JSON(models.ErrorResponse{Message: "Payment gateway not configured"})
 		default:
+			// Internal error (DB write failure, PayPal verify-API outage, etc.)
+			// → return 500 so the gateway RETRIES. A 200 would ack the event as
+			// processed and stop the retry loop, silently losing the event; the
+			// idempotency_key makes the retry safe (TDD §11). Only signature
+			// mismatch (400) and success (200) are terminal.
 			log.Printf("Handler.Webhook(%s): %v", gatewayName, err)
-			// Still ack 200 so the gateway stops retrying for an internal error
-			// (the event was not signature-invalid; we'll recover via the
-			// idempotency_key on a retry). TDD §2.2 enqueue-and-ack.
-			return c.SendStatus(fiber.StatusOK)
+			return c.Status(fiber.StatusInternalServerError).JSON(models.ErrorResponse{Message: "Webhook processing failed"})
 		}
 	}
 	return c.SendStatus(fiber.StatusOK)
