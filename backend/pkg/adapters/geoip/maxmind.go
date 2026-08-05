@@ -33,6 +33,17 @@ func NewMaxMind(path string) (*MaxMind, error) {
 	return &MaxMind{db: db}, nil
 }
 
+// NewMaxMindFromBytes builds a MaxMind from an in-memory .mmdb (e.g. the
+// embedded test fixture). Used by tests + any caller that ships a db in the
+// binary. CWD-independent (no file path).
+func NewMaxMindFromBytes(b []byte) (*MaxMind, error) {
+	db, err := geoip2.FromBytes(b)
+	if err != nil {
+		return nil, fmt.Errorf("geoip: open from bytes: %w", err)
+	}
+	return &MaxMind{db: db}, nil
+}
+
 // Country resolves ip to its ISO 3166-1 alpha-2 code. Private/unparseable
 // addresses and lookup misses return ("ZZ", false).
 func (m *MaxMind) Country(ip string) (string, bool) {

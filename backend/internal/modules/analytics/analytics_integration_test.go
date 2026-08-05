@@ -221,7 +221,7 @@ func TestGeoIPMaxMind_GBCountry(t *testing.T) {
 	const ip = "81.2.69.160"
 	recordConsentForIP(t, db, ip, true)
 
-	mm, err := geoip.NewMaxMind("../geoip/testdata/GeoIP2-Country-Test.mmdb")
+	mm, err := geoip.NewTestMaxMind()
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = mm.Close() })
 

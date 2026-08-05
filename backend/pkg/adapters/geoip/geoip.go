@@ -10,6 +10,11 @@
 // user-assigned "unknown country" code (TDD §10/§11).
 package geoip
 
+import _ "embed"
+
+//go:embed testdata/GeoIP2-Country-Test.mmdb
+var testMMDB []byte
+
 // Lookup resolves a client IP to an ISO 3166-1 alpha-2 country code. `ok` is
 // false when the IP is unknown, private, or the adapter is the no-op (dev).
 // Implementations must be safe for concurrent use.
