@@ -116,6 +116,18 @@ func SetupRoutes(
 
 	/* --- Auth (Public) --- */
 	authGroup := app.Group("/auth")
+
+	// 2FA brute-force defense, layer 1 (TDD §333): a per-IP Fiber in-process
+	// limiter on the three 2FA routes that take a one-time code. 5/min/IP is
+	// generous for a legit user who mistypes a TOTP/backup code (one window =
+	// ~2-3 attempts) but stops a single-IP brute-forcer cold. Attached at route
+	// registration (not `.Use()` on the group) so it scopes to just these
+	// routes — login/signup/etc. are intentionally NOT throttled in this pass.
+	twoFALimiter := limiter.New(limiter.Config{
+		Max:          5,
+		Expiration:   1 * time.Minute,
+		KeyGenerator: func(c *fiber.Ctx) string { return c.IP() },
+	})
 	{
 		authGroup.Post("/signup", userHandler.Signup)
 		authGroup.Post("/login", userHandler.Login)
@@ -129,15 +141,16 @@ func SetupRoutes(
 		// 2FA login completion — PUBLIC (the pending token is the credential;
 		// a JWT is not yet available because login hasn't finished). TDD §5.3.
 		// Routes to the user handler, which owns the JWT and delegates verification
-		// to the 2FA service.
-		authGroup.Post("/2fa/verify", userHandler.Verify2FALogin)
+		// to the 2FA service. Rate-limited 5/min/IP (layer 1) + per-userID
+		// failed-attempt lockout in the service (layer 2, see ratelimit adapter).
+		authGroup.Post("/2fa/verify", twoFALimiter, userHandler.Verify2FALogin)
 
 		// 2FA must-enroll flow for super_admin (PRD §4.3 mandate). PUBLIC — the
 		// pending token (from the blocked login) is the credential. Enroll returns
 		// the QR/secret; confirm verifies the code, enables 2FA, and mints the
-		// real access token (login completes).
-		authGroup.Post("/2fa/pending-enroll", userHandler.Pending2FAEnroll)
-		authGroup.Post("/2fa/pending-confirm", userHandler.Pending2FAConfirm)
+		// real access token (login completes). Rate-limited 5/min/IP.
+		authGroup.Post("/2fa/pending-enroll", twoFALimiter, userHandler.Pending2FAEnroll)
+		authGroup.Post("/2fa/pending-confirm", twoFALimiter, userHandler.Pending2FAConfirm)
 	}
 
 	/* --- User Profile (Protected) --- */

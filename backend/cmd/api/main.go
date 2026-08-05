@@ -67,6 +67,7 @@ import (
 	"jingdezhen-ceramics-backend/pkg/adapters/geoip"
 	"jingdezhen-ceramics-backend/pkg/adapters/payments"
 	"jingdezhen-ceramics-backend/pkg/adapters/pdf"
+	"jingdezhen-ceramics-backend/pkg/adapters/ratelimit"
 	"jingdezhen-ceramics-backend/pkg/adapters/storage"
 	"jingdezhen-ceramics-backend/pkg/adapters/tokenblocklist"
 	"jingdezhen-ceramics-backend/pkg/email"
@@ -245,6 +246,12 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 	// middleware, so it gets the Noop blocklist.
 	tokenBlocklist := tokenblocklist.NewRedisBlocklist(redisClient)
 
+	// --- 2FA brute-force defense, layer 2 (TDD §333) ---
+	// Per-userID failed-attempt lockout backed by Redis (5 failures / 15-min
+	// window → 15-min lockout). Fail-open on Redis outage (see pkg/adapters/ratelimit).
+	// The worker has no auth path, so it gets the Noop tracker.
+	attemptTracker := ratelimit.NewRedisAttemptTracker(redisClient)
+
 	// --- Asynq enqueue client (so handlers can defer flaky/heavy work) ---
 	redisAddr, err := redisAddrFromURL(cfg.RedisURL)
 	if err != nil {
@@ -292,7 +299,7 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 	userService := user.NewService(
 		userRepo, jobClient, templateManager,
 		cfg.JWTSecret, cfg.ClientOrigin, cfg.AdminEmail, googleOAuthConfig,
-		twoFAService,
+		twoFAService, attemptTracker,
 	)
 	userHandler := user.NewHandler(userService)
 

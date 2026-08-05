@@ -12,6 +12,7 @@ import (
 
 	"jingdezhen-ceramics-backend/internal/models"
 	"jingdezhen-ceramics-backend/internal/platform/jobs"
+	"jingdezhen-ceramics-backend/pkg/adapters/ratelimit"
 	"jingdezhen-ceramics-backend/pkg/adapters/tokenblocklist"
 	emailSvc "jingdezhen-ceramics-backend/pkg/email"
 	"jingdezhen-ceramics-backend/pkg/utils"
@@ -98,7 +99,8 @@ type Service struct {
 	clientOrigin      string // For sending activation and password reset emails (domain name)
 	adminEmail        string
 	googleOAuthConfig *oauth2.Config
-	twoFAChecker      TwoFAChecker // nil if 2FA not wired (login proceeds without challenge)
+	twoFAChecker      TwoFAChecker             // nil if 2FA not wired (login proceeds without challenge)
+	attemptTracker    ratelimit.AttemptTracker // nil/Noop in tests+worker; Redis-backed in serve
 }
 
 func NewService(
@@ -110,7 +112,11 @@ func NewService(
 	adminEmailFromConfig string,
 	googleOAuthConfig *oauth2.Config,
 	twoFAChecker TwoFAChecker,
+	attemptTracker ratelimit.AttemptTracker,
 ) ServiceInterface {
+	if attemptTracker == nil {
+		attemptTracker = ratelimit.NoopAttemptTracker{}
+	}
 	return &Service{
 		userRepo:          userRepo,
 		emailEnqueuer:     emailEnqueuer,
@@ -120,6 +126,7 @@ func NewService(
 		adminEmail:        adminEmailFromConfig,
 		googleOAuthConfig: googleOAuthConfig,
 		twoFAChecker:      twoFAChecker,
+		attemptTracker:    attemptTracker,
 	}
 }
 
@@ -555,8 +562,11 @@ func (s *Service) HandleGoogleCallback(ctx context.Context, code string) (*model
 // Complete2FALogin finishes a login that was challenged for TOTP (TDD §5.3).
 // It resolves the short-lived pending token to a userID, verifies the TOTP
 // code against the stored secret, then mints the real access token + full
-// profile. Returns ErrInvalidToken for a bad/expired pending token and
-// ErrInvalidCredentials for a bad code.
+// profile. Returns ErrInvalidToken for a bad/expired pending token, ErrTooManyAttempts
+// if the account is locked out from too many failed codes (TDD §333 brute-force
+// defense), and ErrInvalidCredentials for a bad code. The per-userID lockout is
+// keyed by userID (NOT pending_token) so re-login doesn't reset the counter;
+// a successful verify resets it, a failed verify increments it.
 func (s *Service) Complete2FALogin(ctx context.Context, pendingToken, code string) (*models.AuthResponse, error) {
 	if s.twoFAChecker == nil {
 		return nil, models.ErrInvalidOperation
@@ -565,12 +575,33 @@ func (s *Service) Complete2FALogin(ctx context.Context, pendingToken, code strin
 	if err != nil {
 		return nil, models.ErrInvalidToken
 	}
+	// Brute-force defense layer 2 (TDD §333): check the per-userID lockout
+	// BEFORE consuming a guess. Fail-open on Redis outage (the pending token
+	// still expires in 5-15 min, and the per-IP Fiber limiter stays active).
+	locked, err := s.attemptTracker.IsLocked(ctx, userID)
+	if err != nil {
+		log.Printf("service.Complete2FALogin.IsLocked (fail-open): %v", err)
+		locked = false
+	}
+	if locked {
+		return nil, models.ErrTooManyAttempts
+	}
 	ok, err := s.twoFAChecker.VerifyCodeOrBackup(ctx, userID, code)
 	if err != nil {
 		return nil, fmt.Errorf("service.Complete2FALogin.verify: %w", err)
 	}
 	if !ok {
+		// Bad code — record the failure (best-effort). The lockout trips on the
+		// MaxFailures-th failure, so the NEXT attempt returns ErrTooManyAttempts.
+		if err := s.attemptTracker.RegisterFailure(ctx, userID); err != nil {
+			log.Printf("service.Complete2FALogin.RegisterFailure: %v", err)
+		}
 		return nil, models.ErrInvalidCredentials
+	}
+	// Success — reset the failure counter so a user who mistyped then got it
+	// right doesn't carry a near-threshold counter forward.
+	if err := s.attemptTracker.Reset(ctx, userID); err != nil {
+		log.Printf("service.Complete2FALogin.Reset: %v", err)
 	}
 	user, err := s.userRepo.FindByID(ctx, userID)
 	if err != nil {

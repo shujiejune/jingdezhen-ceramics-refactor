@@ -156,6 +156,9 @@ func (h *Handler) Verify2FALogin(c *fiber.Ctx) error {
 		if errors.Is(err, models.ErrInvalidToken) {
 			return c.Status(fiber.StatusUnauthorized).JSON(models.ErrorResponse{Message: "Invalid or expired pending token"})
 		}
+		if errors.Is(err, models.ErrTooManyAttempts) {
+			return c.Status(fiber.StatusTooManyRequests).JSON(models.ErrorResponse{Message: "Too many failed attempts, try again later"})
+		}
 		if errors.Is(err, models.ErrInvalidCredentials) {
 			return c.Status(fiber.StatusUnauthorized).JSON(models.ErrorResponse{Message: "Invalid TOTP code"})
 		}
