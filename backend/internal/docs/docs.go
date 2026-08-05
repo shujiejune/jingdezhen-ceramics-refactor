@@ -12136,10 +12136,6 @@ const docTemplate = `{
             "x-enum-comments": {
                 "NotificationTypeLowStock": "PRD §3.4.1: low-stock alert to E-commerce Operators"
             },
-            "x-enum-descriptions": [
-                "",
-                "PRD §3.4.1: low-stock alert to E-commerce Operators"
-            ],
             "x-enum-varnames": [
                 "NotificationTypeSystem",
                 "NotificationTypeLowStock"
@@ -12522,11 +12518,6 @@ const docTemplate = `{
                 "ProvenanceSold": "order paid (TDD §8)",
                 "ProvenanceTransferred": "future ownership transfer"
             },
-            "x-enum-descriptions": [
-                "certificate issued / regenerated",
-                "order paid (TDD §8)",
-                "future ownership transfer"
-            ],
             "x-enum-varnames": [
                 "ProvenanceCreated",
                 "ProvenanceSold",
