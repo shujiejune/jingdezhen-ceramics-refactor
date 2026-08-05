@@ -82,7 +82,7 @@ func (r *Repository) ExportUserData(ctx context.Context, userID string, locale s
 	if err != nil {
 		return nil, err
 	}
-	exp.FavoriteArtworks = favs
+	exp.Wishlist = favs
 
 	// 6. Notifications.
 	notifs, err := r.fetchNotifications(ctx, userID)
@@ -249,8 +249,10 @@ func (r *Repository) fetchTwoFA(ctx context.Context, userID string) (*models.Two
 
 func (r *Repository) fetchFavorites(ctx context.Context, userID string) ([]models.FavoriteExport, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT artwork_id, created_at
-		FROM user_favorite_artworks WHERE user_id = $1 ORDER BY created_at DESC`, userID)
+		SELECT w.sku_id, s.sku_code, w.created_at
+		FROM wishlists w
+		JOIN skus s ON s.id = w.sku_id
+		WHERE w.user_id = $1 ORDER BY w.created_at DESC`, userID)
 	if err != nil {
 		return nil, fmt.Errorf("privacy.fetchFavorites: %w", err)
 	}
@@ -259,7 +261,7 @@ func (r *Repository) fetchFavorites(ctx context.Context, userID string) ([]model
 	out := []models.FavoriteExport{}
 	for rows.Next() {
 		var f models.FavoriteExport
-		if err := rows.Scan(&f.ArtworkID, &f.FavoritedAt); err != nil {
+		if err := rows.Scan(&f.SKUID, &f.SKUCode, &f.FavoritedAt); err != nil {
 			return nil, fmt.Errorf("privacy.fetchFavorites.Scan: %w", err)
 		}
 		out = append(out, f)

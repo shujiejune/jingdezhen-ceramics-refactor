@@ -28,8 +28,9 @@ type UserDataExport struct {
 	// the enabled flag + confirmation timestamp are surfaced for transparency).
 	TwoFA *TwoFAExport `json:"two_fa,omitempty"`
 
-	// Favorited artworks (wishlist precursor).
-	FavoriteArtworks []FavoriteExport `json:"favorite_artworks,omitempty"`
+	// Wishlist (favorited SKUs; was user_favorite_artworks, now keyed on SKU
+	// since the 000013 evolve-artworks migration).
+	Wishlist []FavoriteExport `json:"wishlist,omitempty"`
 
 	// Notifications received.
 	Notifications []Notification `json:"notifications,omitempty"`
@@ -44,10 +45,11 @@ type TwoFAExport struct {
 	BackupCodesRemaining int        `json:"backup_codes_remaining"`
 }
 
-// FavoriteExport is one row of user_favorite_artworks (the artwork detail is
-// joined for readability; the favorited_at timestamp is the personal datum).
+// FavoriteExport is one row of the user's wishlist (the SKU detail is joined
+// for readability; the favorited_at timestamp is the personal datum).
 type FavoriteExport struct {
-	ArtworkID   int64     `json:"artwork_id"`
+	SKUID       int64     `json:"sku_id"`
+	SKUCode     string    `json:"sku_code"`
 	FavoritedAt time.Time `json:"favorited_at"`
 }
 
