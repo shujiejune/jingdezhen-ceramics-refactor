@@ -180,6 +180,28 @@ type localeBody struct {
 
 // AdminListProducts: GET /admin/products?locale=&status=&tag=&page=&limit=
 // `tag` is a comma-separated list of canonical tag keys (ANY-match).
+// AdminListProducts: GET /admin/products?locale=&status=&tag=&page=&limit=
+// `tag` is a comma-separated list of canonical tag keys (ANY-match).
+//
+// @Summary      List products (admin, any status)
+// @Description  Paginated list of products filtered by locale, status, and tags.
+// @Description  Access: ecommerce_operator.
+// @Tags         admin,products
+// @Accept       json
+// @Produce      json
+// @Param        Authorization header string true "Bearer <access_token>"
+// @Param        locale query string false "BCP 47 locale"
+// @Param        status query string false "Filter by workflow status (draft|in_review|published|rejected)"
+// @Param        tag    query string false "Comma-separated canonical tag keys (ANY-match)"
+// @Param        page   query int    false "Page number (1-based)" default(1)
+// @Param        limit  query int    false "Page size (max 100)" default(20)
+// @Success      200 {object} models.PaginatedResponse{data=[]models.Product}
+// @Failure      400 {object} models.ErrorResponse "Invalid locale"
+// @Failure      401 {object} models.ErrorResponse "Authentication required"
+// @Failure      403 {object} models.ErrorResponse "Forbidden (needs product.write)"
+// @Failure      500 {object} models.ErrorResponse "Internal error"
+// @Security     BearerAuth
+// @Router       /admin/products [get]
 func (h *Handler) AdminListProducts(c *fiber.Ctx) error {
 	page, limit := utils.GetPageLimit(c)
 	locale := c.Query("locale")
@@ -197,6 +219,24 @@ func (h *Handler) AdminListProducts(c *fiber.Ctx) error {
 }
 
 // AdminGetProduct: GET /admin/products/:slug?locale=en-US (any status)
+//
+// @Summary      Get a product by slug (admin, any status)
+// @Description  Fetches a single product by slug in any workflow status.
+// @Description  Access: ecommerce_operator.
+// @Tags         admin,products
+// @Accept       json
+// @Produce      json
+// @Param        Authorization header string true "Bearer <access_token>"
+// @Param        slug   path string  true "Product slug"
+// @Param        locale query string false "BCP 47 locale" default(en-US)
+// @Success      200 {object} models.Product
+// @Failure      400 {object} models.ErrorResponse "Invalid locale"
+// @Failure      401 {object} models.ErrorResponse "Authentication required"
+// @Failure      403 {object} models.ErrorResponse "Forbidden (needs product.write)"
+// @Failure      404 {object} models.ErrorResponse "Product not found"
+// @Failure      500 {object} models.ErrorResponse "Internal error"
+// @Security     BearerAuth
+// @Router       /admin/products/{slug} [get]
 func (h *Handler) AdminGetProduct(c *fiber.Ctx) error {
 	slug := c.Params("slug")
 	locale := c.Query("locale", models.DefaultLocale)
@@ -215,6 +255,22 @@ func (h *Handler) AdminGetProduct(c *fiber.Ctx) error {
 }
 
 // AdminCreateProduct: POST /admin/products
+//
+// @Summary      Create a product
+// @Description  Creates a product + optional first SKU. Locale defaults to en-US.
+// @Description  A certificate is auto-issued (fail-soft). Access: ecommerce_operator.
+// @Tags         admin,products
+// @Accept       json
+// @Produce      json
+// @Param        Authorization header string true "Bearer <access_token>"
+// @Param        body body models.CreateProductData true "Product to create"
+// @Success      201 {object} models.Product
+// @Failure      400 {object} models.ErrorResponse "Invalid body / validation / bad locale"
+// @Failure      401 {object} models.ErrorResponse "Authentication required"
+// @Failure      403 {object} models.ErrorResponse "Forbidden (needs product.write)"
+// @Failure      500 {object} models.ErrorResponse "Internal error"
+// @Security     BearerAuth
+// @Router       /admin/products [post]
 func (h *Handler) AdminCreateProduct(c *fiber.Ctx) error {
 	var req models.CreateProductData
 	if err := c.BodyParser(&req); err != nil {
@@ -237,6 +293,23 @@ func (h *Handler) AdminCreateProduct(c *fiber.Ctx) error {
 // AdminBulkImport: POST /admin/products/import (multipart "file" CSV, or raw CSV body)
 // PRD §3.4.1 line 175: bulk upload CSV import. One product per row (+ optional
 // first SKU). Returns a per-row summary (imported / failed / errors).
+//
+// @Summary      Bulk-import products via CSV
+// @Description  Imports products (+ optional first SKU each) from a CSV file
+// @Description  (multipart "file" upload, or raw CSV body). Returns a per-row
+// @Description  summary (imported / failed / errors). Access: ecommerce_operator.
+// @Tags         admin,products
+// @Accept       multipart/form-data
+// @Produce      json
+// @Param        Authorization header string true "Bearer <access_token>"
+// @Param        file formData file false "CSV file (multipart upload)"
+// @Success      200 {object} object "{imported: int, failed: int, errors: []string}"
+// @Failure      400 {object} models.ErrorResponse "Invalid CSV / no rows"
+// @Failure      401 {object} models.ErrorResponse "Authentication required"
+// @Failure      403 {object} models.ErrorResponse "Forbidden (needs product.write)"
+// @Failure      500 {object} models.ErrorResponse "Internal error"
+// @Security     BearerAuth
+// @Router       /admin/products/import [post]
 func (h *Handler) AdminBulkImport(c *fiber.Ctx) error {
 	var reader io.Reader
 	// Prefer a multipart "file" upload; fall back to raw CSV body.
@@ -362,6 +435,28 @@ func parseCSV(r io.Reader) ([]models.BulkImportRow, error) {
 }
 
 // AdminUpdateProduct: PUT /admin/products/:id?locale=en-US
+// AdminUpdateProduct: PUT /admin/products/:id?locale=en-US
+//
+// @Summary      Update a product
+// @Description  Updates a product's translation + parent fields (nil = unchanged).
+// @Description  May return 409 if the translation is not editable in its workflow state.
+// @Description  Access: ecommerce_operator.
+// @Tags         admin,products
+// @Accept       json
+// @Produce      json
+// @Param        Authorization header string true "Bearer <access_token>"
+// @Param        id     path int true "Product ID"
+// @Param        locale query string false "BCP 47 locale" default(en-US)
+// @Param        body   body models.UpdateProductData true "Fields to update (nil pointers = unchanged)"
+// @Success      200 {object} models.Product
+// @Failure      400 {object} models.ErrorResponse "Invalid product ID / body / bad locale"
+// @Failure      401 {object} models.ErrorResponse "Authentication required"
+// @Failure      403 {object} models.ErrorResponse "Forbidden (needs product.write)"
+// @Failure      404 {object} models.ErrorResponse "Product not found"
+// @Failure      409 {object} models.ErrorResponse "Translation not editable in its current workflow state"
+// @Failure      500 {object} models.ErrorResponse "Internal error"
+// @Security     BearerAuth
+// @Router       /admin/products/{id} [put]
 func (h *Handler) AdminUpdateProduct(c *fiber.Ctx) error {
 	id, err := strconv.ParseInt(c.Params("id"), 10, 64)
 	if err != nil {
@@ -420,26 +515,118 @@ func (h *Handler) adminTransition(c *fiber.Ctx, to models.ContentStatus) error {
 }
 
 // AdminSubmitProduct: POST /admin/products/:id/submit (draft → in_review)
+//
+// @Summary      Submit a product for review
+// @Description  Transitions a draft product translation to in_review. Body: {locale}.
+// @Description  Access: ecommerce_operator.
+// @Tags         admin,products,workflow
+// @Accept       json
+// @Produce      json
+// @Param        Authorization header string true "Bearer <access_token>"
+// @Param        id   path int true "Product ID"
+// @Param        body body object true "{locale: en-US}"
+// @Success      200 {object} models.Product
+// @Failure      400 {object} models.ErrorResponse "Invalid product ID / body / bad locale"
+// @Failure      401 {object} models.ErrorResponse "Authentication required"
+// @Failure      403 {object} models.ErrorResponse "Forbidden (needs product.write)"
+// @Failure      404 {object} models.ErrorResponse "Product not found"
+// @Failure      409 {object} models.ErrorResponse "Invalid workflow transition"
+// @Failure      500 {object} models.ErrorResponse "Internal error"
+// @Security     BearerAuth
+// @Router       /admin/products/{id}/submit [post]
 func (h *Handler) AdminSubmitProduct(c *fiber.Ctx) error {
 	return h.adminTransition(c, models.StatusInReview)
 }
 
 // AdminApproveProduct: POST /admin/products/:id/approve (in_review → published)
+//
+// @Summary      Approve + publish a product
+// @Description  Transitions an in_review product translation to published.
+// @Description  Access: super_admin ONLY (product.publish). Body: {locale}.
+// @Tags         admin,products,workflow
+// @Accept       json
+// @Produce      json
+// @Param        Authorization header string true "Bearer <access_token>"
+// @Param        id   path int true "Product ID"
+// @Param        body body object true "{locale: en-US}"
+// @Success      200 {object} models.Product
+// @Failure      400 {object} models.ErrorResponse "Invalid product ID / body / bad locale"
+// @Failure      401 {object} models.ErrorResponse "Authentication required"
+// @Failure      403 {object} models.ErrorResponse "Forbidden (needs product.publish — super_admin only)"
+// @Failure      404 {object} models.ErrorResponse "Product not found"
+// @Failure      409 {object} models.ErrorResponse "Invalid workflow transition"
+// @Failure      500 {object} models.ErrorResponse "Internal error"
+// @Security     BearerAuth
+// @Router       /admin/products/{id}/approve [post]
 func (h *Handler) AdminApproveProduct(c *fiber.Ctx) error {
 	return h.adminTransition(c, models.StatusPublished)
 }
 
 // AdminRejectProduct: POST /admin/products/:id/reject (in_review → rejected)
+//
+// @Summary      Reject a product (in_review → rejected)
+// @Description  Transitions an in_review product translation to rejected.
+// @Description  Access: super_admin ONLY (product.publish). Body: {locale}.
+// @Tags         admin,products,workflow
+// @Accept       json
+// @Produce      json
+// @Param        Authorization header string true "Bearer <access_token>"
+// @Param        id   path int true "Product ID"
+// @Param        body body object true "{locale: en-US}"
+// @Success      200 {object} models.Product
+// @Failure      400 {object} models.ErrorResponse "Invalid product ID / body / bad locale"
+// @Failure      401 {object} models.ErrorResponse "Authentication required"
+// @Failure      403 {object} models.ErrorResponse "Forbidden (needs product.publish — super_admin only)"
+// @Failure      404 {object} models.ErrorResponse "Product not found"
+// @Failure      409 {object} models.ErrorResponse "Invalid workflow transition"
+// @Failure      500 {object} models.ErrorResponse "Internal error"
+// @Security     BearerAuth
+// @Router       /admin/products/{id}/reject [post]
 func (h *Handler) AdminRejectProduct(c *fiber.Ctx) error {
 	return h.adminTransition(c, models.StatusRejected)
 }
 
 // AdminUnpublishProduct: POST /admin/products/:id/unpublish (published → draft)
+//
+// @Summary      Unpublish a product (published → draft)
+// @Description  Transitions a published product translation back to draft.
+// @Description  Access: super_admin ONLY (product.publish). Body: {locale}.
+// @Tags         admin,products,workflow
+// @Accept       json
+// @Produce      json
+// @Param        Authorization header string true "Bearer <access_token>"
+// @Param        id   path int true "Product ID"
+// @Param        body body object true "{locale: en-US}"
+// @Success      200 {object} models.Product
+// @Failure      400 {object} models.ErrorResponse "Invalid product ID / body / bad locale"
+// @Failure      401 {object} models.ErrorResponse "Authentication required"
+// @Failure      403 {object} models.ErrorResponse "Forbidden (needs product.publish — super_admin only)"
+// @Failure      404 {object} models.ErrorResponse "Product not found"
+// @Failure      409 {object} models.ErrorResponse "Invalid workflow transition"
+// @Failure      500 {object} models.ErrorResponse "Internal error"
+// @Security     BearerAuth
+// @Router       /admin/products/{id}/unpublish [post]
 func (h *Handler) AdminUnpublishProduct(c *fiber.Ctx) error {
 	return h.adminTransition(c, models.StatusDraft)
 }
 
 // AdminDeleteProduct: DELETE /admin/products/:id
+//
+// @Summary      Delete a product
+// @Description  Removes a product (parent + all translations + SKUs). Access: ecommerce_operator.
+// @Tags         admin,products
+// @Accept       json
+// @Produce      json
+// @Param        Authorization header string true "Bearer <access_token>"
+// @Param        id path int true "Product ID"
+// @Success      204 "No Content (empty body)"
+// @Failure      400 {object} models.ErrorResponse "Invalid product ID"
+// @Failure      401 {object} models.ErrorResponse "Authentication required"
+// @Failure      403 {object} models.ErrorResponse "Forbidden (needs product.write)"
+// @Failure      404 {object} models.ErrorResponse "Product not found"
+// @Failure      500 {object} models.ErrorResponse "Internal error"
+// @Security     BearerAuth
+// @Router       /admin/products/{id} [delete]
 func (h *Handler) AdminDeleteProduct(c *fiber.Ctx) error {
 	id, err := strconv.ParseInt(c.Params("id"), 10, 64)
 	if err != nil {
@@ -460,6 +647,23 @@ func (h *Handler) AdminDeleteProduct(c *fiber.Ctx) error {
 // =============================================================================
 
 // AdminCreateSKU: POST /admin/products/:id/skus
+//
+// @Summary      Create a SKU on a product
+// @Description  Adds a purchasable variant (price in CNY minor units, stock, weight,
+// @Description  attribute map). Access: ecommerce_operator.
+// @Tags         admin,products,skus
+// @Accept       json
+// @Produce      json
+// @Param        Authorization header string true "Bearer <access_token>"
+// @Param        id   path int true "Product ID"
+// @Param        body body models.CreateSKUData true "SKU to create"
+// @Success      201 {object} models.SKU
+// @Failure      400 {object} models.ErrorResponse "Invalid product ID / body / validation"
+// @Failure      401 {object} models.ErrorResponse "Authentication required"
+// @Failure      403 {object} models.ErrorResponse "Forbidden (needs product.write)"
+// @Failure      500 {object} models.ErrorResponse "Internal error"
+// @Security     BearerAuth
+// @Router       /admin/products/{id}/skus [post]
 func (h *Handler) AdminCreateSKU(c *fiber.Ctx) error {
 	productID, err := strconv.ParseInt(c.Params("id"), 10, 64)
 	if err != nil {
@@ -481,6 +685,23 @@ func (h *Handler) AdminCreateSKU(c *fiber.Ctx) error {
 }
 
 // AdminUpdateSKU: PUT /admin/skus/:id
+//
+// @Summary      Update a SKU
+// @Description  Updates a SKU (nil pointers = unchanged). Access: ecommerce_operator.
+// @Tags         admin,skus
+// @Accept       json
+// @Produce      json
+// @Param        Authorization header string true "Bearer <access_token>"
+// @Param        id   path int true "SKU ID"
+// @Param        body body models.UpdateSKUData true "Fields to update (nil pointers = unchanged)"
+// @Success      200 {object} models.SKU
+// @Failure      400 {object} models.ErrorResponse "Invalid SKU ID / body"
+// @Failure      401 {object} models.ErrorResponse "Authentication required"
+// @Failure      403 {object} models.ErrorResponse "Forbidden (needs product.write)"
+// @Failure      404 {object} models.ErrorResponse "SKU not found"
+// @Failure      500 {object} models.ErrorResponse "Internal error"
+// @Security     BearerAuth
+// @Router       /admin/skus/{id} [put]
 func (h *Handler) AdminUpdateSKU(c *fiber.Ctx) error {
 	skuID, err := strconv.ParseInt(c.Params("id"), 10, 64)
 	if err != nil {
@@ -502,6 +723,22 @@ func (h *Handler) AdminUpdateSKU(c *fiber.Ctx) error {
 }
 
 // AdminDeleteSKU: DELETE /admin/skus/:id
+//
+// @Summary      Delete a SKU
+// @Description  Removes a SKU. Access: ecommerce_operator.
+// @Tags         admin,skus
+// @Accept       json
+// @Produce      json
+// @Param        Authorization header string true "Bearer <access_token>"
+// @Param        id path int true "SKU ID"
+// @Success      204 "No Content (empty body)"
+// @Failure      400 {object} models.ErrorResponse "Invalid SKU ID"
+// @Failure      401 {object} models.ErrorResponse "Authentication required"
+// @Failure      403 {object} models.ErrorResponse "Forbidden (needs product.write)"
+// @Failure      404 {object} models.ErrorResponse "SKU not found"
+// @Failure      500 {object} models.ErrorResponse "Internal error"
+// @Security     BearerAuth
+// @Router       /admin/skus/{id} [delete]
 func (h *Handler) AdminDeleteSKU(c *fiber.Ctx) error {
 	skuID, err := strconv.ParseInt(c.Params("id"), 10, 64)
 	if err != nil {

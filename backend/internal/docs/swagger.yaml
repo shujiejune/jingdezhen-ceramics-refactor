@@ -56,6 +56,11 @@ definitions:
         description: 'parent: link to users.id (UUID)'
         type: string
     type: object
+  jingdezhen-ceramics-backend_internal_models.AssignItineraryRequest:
+    properties:
+      assignee_id:
+        type: string
+    type: object
   jingdezhen-ceramics-backend_internal_models.AttachMediaData:
     properties:
       caption:
@@ -69,6 +74,23 @@ definitions:
     required:
     - media_id
     type: object
+  jingdezhen-ceramics-backend_internal_models.BudgetInput:
+    properties:
+      currency:
+        enum:
+        - USD
+        - EUR
+        - GBP
+        type: string
+      max_minor:
+        minimum: 0
+        type: integer
+      min_minor:
+        minimum: 0
+        type: integer
+    required:
+    - currency
+    type: object
   jingdezhen-ceramics-backend_internal_models.BulkRemoveRequest:
     properties:
       sku_ids:
@@ -78,6 +100,22 @@ definitions:
         type: array
     required:
     - sku_ids
+    type: object
+  jingdezhen-ceramics-backend_internal_models.CRMNote:
+    properties:
+      author_id:
+        type: string
+      author_name:
+        description: joined from users (nickname, fall back to email)
+        type: string
+      body:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      request_id:
+        type: integer
     type: object
   jingdezhen-ceramics-backend_internal_models.CancelOrderRequest:
     properties:
@@ -200,6 +238,21 @@ definitions:
     required:
     - address_id
     type: object
+  jingdezhen-ceramics-backend_internal_models.ContactInput:
+    properties:
+      channel:
+        enum:
+        - email
+        - whatsapp
+        type: string
+      notes:
+        description: '"anything else we should know" (step 4 free text)'
+        type: string
+      whatsapp_number:
+        type: string
+    required:
+    - channel
+    type: object
   jingdezhen-ceramics-backend_internal_models.ContentStatus:
     enum:
     - draft
@@ -275,6 +328,94 @@ definitions:
     - name
     - slug
     type: object
+  jingdezhen-ceramics-backend_internal_models.CreateOptionRateRequest:
+    properties:
+      display_label:
+        maxLength: 120
+        type: string
+      option_key:
+        maxLength: 60
+        type: string
+      rate_cny:
+        description: fen
+        minimum: 0
+        type: integer
+      unit:
+        enum:
+        - per_person
+        - per_day
+        - flat
+        type: string
+    required:
+    - option_key
+    - rate_cny
+    - unit
+    type: object
+  jingdezhen-ceramics-backend_internal_models.CreateProductData:
+    properties:
+      artist_id:
+        type: integer
+      category:
+        maxLength: 100
+        type: string
+      description:
+        type: string
+      display_order:
+        minimum: 0
+        type: integer
+      locale:
+        type: string
+      meta_description:
+        type: string
+      meta_title:
+        maxLength: 255
+        type: string
+      slug:
+        maxLength: 100
+        type: string
+      tags:
+        description: |-
+          Tags is a list of canonical tag keys (lowercase kebab-case). Unknown keys
+          are created inline with an en-US display name defaulting to the key itself
+          (the operator edits the name later from the CMS).
+        items:
+          type: string
+        type: array
+      thumbnail_url:
+        type: string
+      title:
+        maxLength: 255
+        type: string
+    required:
+    - slug
+    - title
+    type: object
+  jingdezhen-ceramics-backend_internal_models.CreateSKUData:
+    properties:
+      attributes:
+        items:
+          type: integer
+        type: array
+      is_active:
+        type: boolean
+      low_stock_threshold:
+        minimum: 0
+        type: integer
+      price_cny:
+        minimum: 0
+        type: integer
+      sku_code:
+        maxLength: 100
+        type: string
+      stock:
+        minimum: 0
+        type: integer
+      weight_grams:
+        minimum: 0
+        type: integer
+    required:
+    - sku_code
+    type: object
   jingdezhen-ceramics-backend_internal_models.CreateShippingTierRequest:
     properties:
       country:
@@ -288,6 +429,13 @@ definitions:
     - country
     - max_weight_grams
     type: object
+  jingdezhen-ceramics-backend_internal_models.DepositPaidResponse:
+    properties:
+      hosted_url:
+        type: string
+      quote_id:
+        type: integer
+    type: object
   jingdezhen-ceramics-backend_internal_models.ErrorResponse:
     properties:
       details:
@@ -295,6 +443,286 @@ definitions:
         type: string
       message:
         type: string
+    type: object
+  jingdezhen-ceramics-backend_internal_models.ItineraryAdminRow:
+    properties:
+      adults:
+        type: integer
+      arrival_date:
+        description: Step 1 — Trip basics
+        type: string
+      assigned_to:
+        type: string
+      budget:
+        items:
+          type: integer
+        type: array
+      cancel_reason:
+        type: string
+      cancelled_at:
+        type: string
+      children:
+        type: integer
+      contact:
+        description: Step 4 — Contact & notes
+        items:
+          type: integer
+        type: array
+      created_at:
+        type: string
+      customer_email:
+        type: string
+      customer_nickname:
+        type: string
+      duration_days:
+        type: integer
+      flexible:
+        type: boolean
+      id:
+        type: integer
+      interests:
+        description: Step 2 — Preferences
+        items:
+          type: integer
+        type: array
+      locale:
+        description: Auto-attached
+        type: string
+      notes:
+        type: string
+      pace:
+        type: string
+      services:
+        description: Step 3 — Services
+        items:
+          type: integer
+        type: array
+      sla_deadline:
+        type: string
+      sla_status:
+        description: sla_on_time|sla_approaching|sla_breached|sla_met
+        type: string
+      status:
+        $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ItineraryStatus'
+      submitted_at:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: string
+    type: object
+  jingdezhen-ceramics-backend_internal_models.ItineraryCancelRequest:
+    properties:
+      reason:
+        maxLength: 500
+        type: string
+    type: object
+  jingdezhen-ceramics-backend_internal_models.ItineraryDraft:
+    properties:
+      form_state:
+        items:
+          type: integer
+        type: array
+      id:
+        type: integer
+      step:
+        type: integer
+      updated_at:
+        type: string
+      user_id:
+        type: string
+    type: object
+  jingdezhen-ceramics-backend_internal_models.ItineraryDraftData:
+    properties:
+      form_state:
+        items:
+          type: integer
+        type: array
+      step:
+        maximum: 4
+        minimum: 1
+        type: integer
+    required:
+    - step
+    type: object
+  jingdezhen-ceramics-backend_internal_models.ItineraryNoteRequest:
+    properties:
+      body:
+        maxLength: 5000
+        type: string
+    required:
+    - body
+    type: object
+  jingdezhen-ceramics-backend_internal_models.ItineraryQuote:
+    properties:
+      created_at:
+        type: string
+      currency:
+        type: string
+      deposit_minor:
+        type: integer
+      fx_rate_used:
+        description: rendered from numeric
+        type: string
+      id:
+        type: integer
+      line_items:
+        description: '[]QuoteLineItem'
+        items:
+          type: integer
+        type: array
+      paid_at:
+        type: string
+      pdf_key:
+        description: populated by the pdf:generate worker (TDD §12)
+        type: string
+      request_id:
+        type: integer
+      sent_at:
+        type: string
+      status:
+        $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.QuoteStatus'
+      total_cny:
+        type: integer
+      total_minor:
+        type: integer
+      updated_at:
+        type: string
+    type: object
+  jingdezhen-ceramics-backend_internal_models.ItineraryReasonRequest:
+    properties:
+      reason:
+        maxLength: 500
+        type: string
+    type: object
+  jingdezhen-ceramics-backend_internal_models.ItineraryRequest:
+    properties:
+      adults:
+        type: integer
+      arrival_date:
+        description: Step 1 — Trip basics
+        type: string
+      assigned_to:
+        type: string
+      budget:
+        items:
+          type: integer
+        type: array
+      cancel_reason:
+        type: string
+      cancelled_at:
+        type: string
+      children:
+        type: integer
+      contact:
+        description: Step 4 — Contact & notes
+        items:
+          type: integer
+        type: array
+      created_at:
+        type: string
+      duration_days:
+        type: integer
+      flexible:
+        type: boolean
+      id:
+        type: integer
+      interests:
+        description: Step 2 — Preferences
+        items:
+          type: integer
+        type: array
+      locale:
+        description: Auto-attached
+        type: string
+      notes:
+        type: string
+      pace:
+        type: string
+      services:
+        description: Step 3 — Services
+        items:
+          type: integer
+        type: array
+      sla_deadline:
+        type: string
+      status:
+        $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ItineraryStatus'
+      submitted_at:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: string
+    type: object
+  jingdezhen-ceramics-backend_internal_models.ItineraryStatus:
+    enum:
+    - pending
+    - processing
+    - quoted
+    - deposit_paid
+    - confirmed
+    - cancelled
+    - closed
+    type: string
+    x-enum-varnames:
+    - StatusItineraryPending
+    - StatusItineraryProcessing
+    - StatusItineraryQuoted
+    - StatusItineraryDepositPaid
+    - StatusItineraryConfirmed
+    - StatusItineraryCancelled
+    - StatusItineraryClosed
+  jingdezhen-ceramics-backend_internal_models.ItinerarySubmitRequest:
+    properties:
+      adults:
+        minimum: 1
+        type: integer
+      arrival_date:
+        description: Step 1 — Trip basics
+        type: string
+      budget:
+        $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.BudgetInput'
+      children:
+        minimum: 0
+        type: integer
+      consent:
+        description: GDPR Privacy Policy checkbox
+        type: boolean
+      contact:
+        allOf:
+        - $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ContactInput'
+        description: Step 4 — Contact & consent
+      duration_days:
+        type: integer
+      flexible:
+        type: boolean
+      interests:
+        description: Step 2 — Preferences
+        items:
+          type: string
+        type: array
+      notes:
+        description: top-level free-text (PRD step 4 "anything else")
+        type: string
+      pace:
+        enum:
+        - relaxed
+        - balanced
+        - packed
+        type: string
+      services:
+        allOf:
+        - $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ServicesInput'
+        description: Step 3 — Services
+    required:
+    - adults
+    - arrival_date
+    - consent
+    - contact
+    - duration_days
+    - pace
+    - services
     type: object
   jingdezhen-ceramics-backend_internal_models.MediaAsset:
     properties:
@@ -345,6 +773,21 @@ definitions:
         items:
           $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.MergeCartItem'
         type: array
+    type: object
+  jingdezhen-ceramics-backend_internal_models.OptionRate:
+    properties:
+      display_label:
+        type: string
+      id:
+        type: integer
+      option_key:
+        type: string
+      rate_cny:
+        description: fen
+        type: integer
+      unit:
+        description: per_person|per_day|flat
+        type: string
     type: object
   jingdezhen-ceramics-backend_internal_models.Order:
     properties:
@@ -464,6 +907,17 @@ definitions:
         type: integer
       total_pages:
         type: integer
+    type: object
+  jingdezhen-ceramics-backend_internal_models.PayDepositRequest:
+    properties:
+      gateway:
+        enum:
+        - airwallex
+        - paypal
+        - mock
+        type: string
+    required:
+    - gateway
     type: object
   jingdezhen-ceramics-backend_internal_models.Product:
     properties:
@@ -586,6 +1040,35 @@ definitions:
       kind:
         $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ProvenanceKind'
     type: object
+  jingdezhen-ceramics-backend_internal_models.QuoteLineItemInput:
+    properties:
+      option_key:
+        type: string
+      qty:
+        minimum: 1
+        type: integer
+    required:
+    - option_key
+    - qty
+    type: object
+  jingdezhen-ceramics-backend_internal_models.QuoteStatus:
+    enum:
+    - sent
+    - deposit_paid
+    - fully_paid
+    - cancelled
+    type: string
+    x-enum-varnames:
+    - QuoteSent
+    - QuoteDepositPaid
+    - QuoteFullyPaid
+    - QuoteCancelled
+  jingdezhen-ceramics-backend_internal_models.RefundDepositRequest:
+    properties:
+      reason:
+        maxLength: 500
+        type: string
+    type: object
   jingdezhen-ceramics-backend_internal_models.RefundOrderRequest:
     properties:
       reason:
@@ -666,6 +1149,51 @@ definitions:
       weight_grams:
         description: packed weight
         type: integer
+    type: object
+  jingdezhen-ceramics-backend_internal_models.SendQuoteRequest:
+    properties:
+      currency:
+        enum:
+        - USD
+        - EUR
+        - GBP
+        type: string
+      line_items:
+        items:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.QuoteLineItemInput'
+        minItems: 1
+        type: array
+      pay_full:
+        description: false → 30% deposit; true → full amount
+        type: boolean
+    required:
+    - currency
+    - line_items
+    type: object
+  jingdezhen-ceramics-backend_internal_models.ServicesInput:
+    properties:
+      dietary_accessibility:
+        type: string
+      experience:
+        type: boolean
+      guide:
+        enum:
+        - none
+        - english
+        - other
+        type: string
+      hotel:
+        type: boolean
+      hotel_level:
+        enum:
+        - budget
+        - comfort
+        - luxury
+        type: string
+      pickup:
+        type: boolean
+    required:
+    - guide
     type: object
   jingdezhen-ceramics-backend_internal_models.ShipOrderRequest:
     properties:
@@ -797,6 +1325,82 @@ definitions:
         type: integer
     required:
     - qty
+    type: object
+  jingdezhen-ceramics-backend_internal_models.UpdateOptionRateRequest:
+    properties:
+      display_label:
+        maxLength: 120
+        type: string
+      rate_cny:
+        description: fen
+        minimum: 0
+        type: integer
+      unit:
+        enum:
+        - per_person
+        - per_day
+        - flat
+        type: string
+    required:
+    - rate_cny
+    - unit
+    type: object
+  jingdezhen-ceramics-backend_internal_models.UpdateProductData:
+    properties:
+      artist_id:
+        type: integer
+      category:
+        maxLength: 100
+        type: string
+      description:
+        type: string
+      display_order:
+        minimum: 0
+        type: integer
+      meta_description:
+        type: string
+      meta_title:
+        maxLength: 255
+        type: string
+      slug:
+        maxLength: 100
+        type: string
+      tags:
+        description: |-
+          Tags replaces the full tag set (absolute, like cart PATCH). nil = leave
+          unchanged; an empty slice = clear all tags. Values are canonical keys.
+        items:
+          type: string
+        type: array
+      thumbnail_url:
+        type: string
+      title:
+        maxLength: 255
+        type: string
+    type: object
+  jingdezhen-ceramics-backend_internal_models.UpdateSKUData:
+    properties:
+      attributes:
+        items:
+          type: integer
+        type: array
+      is_active:
+        type: boolean
+      low_stock_threshold:
+        minimum: 0
+        type: integer
+      price_cny:
+        minimum: 0
+        type: integer
+      sku_code:
+        maxLength: 100
+        type: string
+      stock:
+        minimum: 0
+        type: integer
+      weight_grams:
+        minimum: 0
+        type: integer
     type: object
   jingdezhen-ceramics-backend_internal_models.UpdateShippingTierRequest:
     properties:
@@ -1569,6 +2173,1022 @@ paths:
       tags:
       - admin
       - certificates
+  /admin/itineraries:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Paginated list of all itinerary requests, JOINed with the customer's
+        email/nickname. Filterable by status, assignee, and SLA state.
+        Access: travel_planner, customer_service.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      - description: Filter by assignee (user ID, or 'unassigned')
+        in: query
+        name: assigned_to
+        type: string
+      - description: Filter by SLA state (on_time|approaching|breached|met)
+        in: query
+        name: sla
+        type: string
+      - default: 1
+        description: Page number (1-based)
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Page size (max 100)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.PaginatedResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ItineraryAdminRow'
+                  type: array
+              type: object
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs itinerary.read)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List itinerary requests (planner CRM inbox)
+      tags:
+      - admin
+      - itineraries
+  /admin/itineraries/{id}:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Fetches a single itinerary request (planner detail view).
+        Access: travel_planner, customer_service.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Itinerary request ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ItineraryAdminRow'
+        "400":
+          description: Invalid itinerary id
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs itinerary.read)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Itinerary request not found
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get an itinerary request (admin)
+      tags:
+      - admin
+      - itineraries
+  /admin/itineraries/{id}/assign:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Sets the assigned_to planner. Body {assigned_to: <user_id|nil>}
+        (nil or empty = unassign). Access: travel_planner.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Itinerary request ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: assigned_to (user ID, or empty to unassign)
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.AssignItineraryRequest'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content (empty body)
+        "400":
+          description: Invalid itinerary id / body / validation
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs itinerary.write)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Itinerary request not found
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "409":
+          description: Request is not in a valid state for this operation
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Assign an itinerary request to a planner
+      tags:
+      - admin
+      - itineraries
+  /admin/itineraries/{id}/cancel:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Transitions a pending/processing request to cancelled (by staff).
+        Body {reason} optional. Access: travel_planner.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Itinerary request ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Optional cancel reason
+        in: body
+        name: body
+        schema:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ItineraryReasonRequest'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content (empty body)
+        "400":
+          description: Invalid itinerary id / validation
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs itinerary.write)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Itinerary request not found
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "409":
+          description: Request is not in a valid state for this operation
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Cancel an itinerary request (staff)
+      tags:
+      - admin
+      - itineraries
+  /admin/itineraries/{id}/close:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Transitions a pending/processing request to closed. Body {reason} optional.
+        Access: travel_planner.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Itinerary request ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Optional close reason
+        in: body
+        name: body
+        schema:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ItineraryReasonRequest'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content (empty body)
+        "400":
+          description: Invalid itinerary id / validation
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs itinerary.write)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Itinerary request not found
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "409":
+          description: Request is not in a valid state for this operation
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Close an itinerary request
+      tags:
+      - admin
+      - itineraries
+  /admin/itineraries/{id}/confirm:
+    post:
+      consumes:
+      - application/json
+      description: 'Transitions a deposit-paid request to confirmed. Access: travel_planner.'
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Itinerary request ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content (empty body)
+        "400":
+          description: Invalid itinerary id
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs itinerary.write)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Itinerary request not found
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "409":
+          description: Request is not in a valid state for this operation
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Confirm an itinerary request (deposit_paid → confirmed)
+      tags:
+      - admin
+      - itineraries
+  /admin/itineraries/{id}/notes:
+    get:
+      consumes:
+      - application/json
+      description: 'Returns the internal CRM notes (planner-only). Access: itinerary.read.'
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Itinerary request ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.CRMNote'
+            type: array
+        "400":
+          description: Invalid itinerary id
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs itinerary.read)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List CRM notes for an itinerary request
+      tags:
+      - admin
+      - itineraries
+      - notes
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Appends an internal CRM note (planner-only, not customer-visible).
+        Access: travel_planner, customer_service.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Itinerary request ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Note text
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ItineraryNoteRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.CRMNote'
+        "400":
+          description: Invalid itinerary id / body / validation
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs itinerary.write)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Itinerary request not found
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Add a CRM note to an itinerary request
+      tags:
+      - admin
+      - itineraries
+      - notes
+  /admin/itineraries/{id}/open:
+    post:
+      consumes:
+      - application/json
+      description: 'Explicit state transition (not auto-on-view). Access: travel_planner.'
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Itinerary request ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content (empty body)
+        "400":
+          description: Invalid itinerary id
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs itinerary.write)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Itinerary request not found
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "409":
+          description: Request is not in a valid state for this operation
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Open an itinerary request (pending → processing)
+      tags:
+      - admin
+      - itineraries
+  /admin/itineraries/{id}/quote:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Fetches the quote for a request (planner view; no ownership check).
+        Access: travel_planner, customer_service.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Itinerary request ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ItineraryQuote'
+        "400":
+          description: Invalid itinerary id
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs itinerary.read)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Itinerary request not found / no quote
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get the quote for an itinerary request (planner)
+      tags:
+      - admin
+      - itineraries
+      - quotes
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Builds + sends a quote (line items priced in CNY; presentment + deposit
+        FX-snapshotted at send time). Re-sending replaces the prior quote via
+        ON CONFLICT (only the latest is payable). Enqueues a PDF render.
+        Access: travel_planner (itinerary.write).
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Itinerary request ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Quote line items + deposit toggle + valid_until
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.SendQuoteRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ItineraryQuote'
+        "400":
+          description: Invalid itinerary id / body / validation
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs itinerary.write)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Itinerary request not found
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "409":
+          description: Request is not in a valid state for this operation
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Send a quote to the customer
+      tags:
+      - admin
+      - itineraries
+      - quotes
+  /admin/itineraries/{id}/quote/pdf:
+    get:
+      description: |-
+        Serves the pre-rendered quote PDF (planner view; no ownership check).
+        404 when the PDF has not yet been generated.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Itinerary request ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: '1 = force Content-Disposition: attachment'
+        in: query
+        name: download
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "302":
+          description: Redirect to the PDF storage URL
+          schema:
+            type: string
+        "400":
+          description: Invalid itinerary id
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs itinerary.read)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Itinerary request not found / PDF not yet generated
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Download the itinerary quote PDF (planner)
+      tags:
+      - admin
+      - itineraries
+      - quotes
+  /admin/itineraries/{id}/refund-deposit:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Issues a full refund of the deposit via the gateway (fail-closed:
+        gateway.Refund is called BEFORE the status transition). Body {reason} optional.
+        Access: travel_planner (itinerary.write).
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Itinerary request ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Optional refund reason
+        in: body
+        name: body
+        schema:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.RefundDepositRequest'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content (empty body)
+        "400":
+          description: Invalid itinerary id / validation
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs itinerary.write)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Itinerary request not found / no quote
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "409":
+          description: Request is not in a valid state for this operation
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error (gateway refund failed)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Refund an itinerary deposit (fail-closed)
+      tags:
+      - admin
+      - itineraries
+      - quotes
+  /admin/itineraries/export:
+    get:
+      description: |-
+        Streams a CSV of all matching itinerary requests (no pagination;
+        MVP volume is low). Access: travel_planner, customer_service.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      - description: Filter by assignee
+        in: query
+        name: assigned_to
+        type: string
+      - description: Filter by SLA state
+        in: query
+        name: sla
+        type: string
+      produces:
+      - text/csv
+      responses:
+        "200":
+          description: 'CSV file (Content-Disposition: attachment)'
+          schema:
+            type: file
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs itinerary.read)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Export itinerary requests as CSV
+      tags:
+      - admin
+      - itineraries
+  /admin/itineraries/option-rates:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Returns the option_rates rows (the planner's price book).
+        Access: travel_planner, customer_service (itinerary.read).
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.OptionRate'
+            type: array
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs itinerary.read)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List option rates (planner price book)
+      tags:
+      - admin
+      - itineraries
+      - option-rates
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Adds a rate to the planner's price book. option_key is immutable after create.
+        Access: super_admin (settings.manage — pricing is a business decision).
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Rate to create (option_key + rate_cny + unit + label)
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.CreateOptionRateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.OptionRate'
+        "400":
+          description: Invalid body / validation / bad option_key (lowercase kebab)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs settings.manage)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "409":
+          description: An option rate with that option_key already exists
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create an option rate (admin)
+      tags:
+      - admin
+      - itineraries
+      - option-rates
+  /admin/itineraries/option-rates/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: 'Removes a rate from the price book. Access: super_admin (settings.manage).'
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Option rate ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content (empty body)
+        "400":
+          description: Invalid option rate id
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs settings.manage)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Option rate not found
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete an option rate (admin)
+      tags:
+      - admin
+      - itineraries
+      - option-rates
+    put:
+      consumes:
+      - application/json
+      description: |-
+        Updates rate_cny/unit/display_label. option_key is immutable (renames
+        would orphan historical quote snapshots). Access: super_admin.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Option rate ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Fields to update (rate_cny, unit, display_label)
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.UpdateOptionRateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.OptionRate'
+        "400":
+          description: Invalid id / body / validation
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs settings.manage)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Option rate not found
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update an option rate (admin)
+      tags:
+      - admin
+      - itineraries
+      - option-rates
+  /admin/itineraries/planners:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Returns travel_planner-role users for the assignment dropdown.
+        Access: travel_planner, customer_service.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: object
+            type: array
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs itinerary.read)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List planners (assignment dropdown)
+      tags:
+      - admin
+      - itineraries
   /admin/media/assets:
     get:
       consumes:
@@ -2105,6 +3725,300 @@ paths:
       tags:
       - admin
       - orders
+  /admin/products:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Paginated list of products filtered by locale, status, and tags.
+        Access: ecommerce_operator.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: BCP 47 locale
+        in: query
+        name: locale
+        type: string
+      - description: Filter by workflow status (draft|in_review|published|rejected)
+        in: query
+        name: status
+        type: string
+      - description: Comma-separated canonical tag keys (ANY-match)
+        in: query
+        name: tag
+        type: string
+      - default: 1
+        description: Page number (1-based)
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Page size (max 100)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.PaginatedResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.Product'
+                  type: array
+              type: object
+        "400":
+          description: Invalid locale
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs product.write)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List products (admin, any status)
+      tags:
+      - admin
+      - products
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Creates a product + optional first SKU. Locale defaults to en-US.
+        A certificate is auto-issued (fail-soft). Access: ecommerce_operator.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Product to create
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.CreateProductData'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.Product'
+        "400":
+          description: Invalid body / validation / bad locale
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs product.write)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a product
+      tags:
+      - admin
+      - products
+  /admin/products/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: 'Removes a product (parent + all translations + SKUs). Access:
+        ecommerce_operator.'
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content (empty body)
+        "400":
+          description: Invalid product ID
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs product.write)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Product not found
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a product
+      tags:
+      - admin
+      - products
+    put:
+      consumes:
+      - application/json
+      description: |-
+        Updates a product's translation + parent fields (nil = unchanged).
+        May return 409 if the translation is not editable in its workflow state.
+        Access: ecommerce_operator.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - default: en-US
+        description: BCP 47 locale
+        in: query
+        name: locale
+        type: string
+      - description: Fields to update (nil pointers = unchanged)
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.UpdateProductData'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.Product'
+        "400":
+          description: Invalid product ID / body / bad locale
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs product.write)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Product not found
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "409":
+          description: Translation not editable in its current workflow state
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a product
+      tags:
+      - admin
+      - products
+  /admin/products/{id}/approve:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Transitions an in_review product translation to published.
+        Access: super_admin ONLY (product.publish). Body: {locale}.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: '{locale: en-US}'
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.Product'
+        "400":
+          description: Invalid product ID / body / bad locale
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs product.publish — super_admin only)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Product not found
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "409":
+          description: Invalid workflow transition
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Approve + publish a product
+      tags:
+      - admin
+      - products
+      - workflow
   /admin/products/{id}/media:
     get:
       consumes:
@@ -2315,6 +4229,349 @@ paths:
       - admin
       - products
       - media
+  /admin/products/{id}/reject:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Transitions an in_review product translation to rejected.
+        Access: super_admin ONLY (product.publish). Body: {locale}.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: '{locale: en-US}'
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.Product'
+        "400":
+          description: Invalid product ID / body / bad locale
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs product.publish — super_admin only)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Product not found
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "409":
+          description: Invalid workflow transition
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Reject a product (in_review → rejected)
+      tags:
+      - admin
+      - products
+      - workflow
+  /admin/products/{id}/skus:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Adds a purchasable variant (price in CNY minor units, stock, weight,
+        attribute map). Access: ecommerce_operator.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: SKU to create
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.CreateSKUData'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.SKU'
+        "400":
+          description: Invalid product ID / body / validation
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs product.write)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a SKU on a product
+      tags:
+      - admin
+      - products
+      - skus
+  /admin/products/{id}/submit:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Transitions a draft product translation to in_review. Body: {locale}.
+        Access: ecommerce_operator.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: '{locale: en-US}'
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.Product'
+        "400":
+          description: Invalid product ID / body / bad locale
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs product.write)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Product not found
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "409":
+          description: Invalid workflow transition
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Submit a product for review
+      tags:
+      - admin
+      - products
+      - workflow
+  /admin/products/{id}/unpublish:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Transitions a published product translation back to draft.
+        Access: super_admin ONLY (product.publish). Body: {locale}.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: '{locale: en-US}'
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.Product'
+        "400":
+          description: Invalid product ID / body / bad locale
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs product.publish — super_admin only)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Product not found
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "409":
+          description: Invalid workflow transition
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Unpublish a product (published → draft)
+      tags:
+      - admin
+      - products
+      - workflow
+  /admin/products/{slug}:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Fetches a single product by slug in any workflow status.
+        Access: ecommerce_operator.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Product slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - default: en-US
+        description: BCP 47 locale
+        in: query
+        name: locale
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.Product'
+        "400":
+          description: Invalid locale
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs product.write)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Product not found
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get a product by slug (admin, any status)
+      tags:
+      - admin
+      - products
+  /admin/products/import:
+    post:
+      consumes:
+      - multipart/form-data
+      description: |-
+        Imports products (+ optional first SKU each) from a CSV file
+        (multipart "file" upload, or raw CSV body). Returns a per-row
+        summary (imported / failed / errors). Access: ecommerce_operator.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: CSV file (multipart upload)
+        in: formData
+        name: file
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: '{imported: int, failed: int, errors: []string}'
+          schema:
+            type: object
+        "400":
+          description: Invalid CSV / no rows
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs product.write)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Bulk-import products via CSV
+      tags:
+      - admin
+      - products
   /admin/shipping/tiers:
     get:
       consumes:
@@ -2503,6 +4760,107 @@ paths:
       tags:
       - admin
       - shipping
+  /admin/skus/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: 'Removes a SKU. Access: ecommerce_operator.'
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: SKU ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content (empty body)
+        "400":
+          description: Invalid SKU ID
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs product.write)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: SKU not found
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a SKU
+      tags:
+      - admin
+      - skus
+    put:
+      consumes:
+      - application/json
+      description: 'Updates a SKU (nil pointers = unchanged). Access: ecommerce_operator.'
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: SKU ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Fields to update (nil pointers = unchanged)
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.UpdateSKUData'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.SKU'
+        "400":
+          description: Invalid SKU ID / body
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs product.write)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: SKU not found
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a SKU
+      tags:
+      - admin
+      - skus
   /artists:
     get:
       consumes:
@@ -3230,6 +5588,459 @@ paths:
       tags:
       - orders
       - checkout
+  /itineraries:
+    get:
+      consumes:
+      - application/json
+      description: Paginated list of the signed-in user's itinerary requests.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - default: 1
+        description: Page number (1-based)
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Page size (max 100)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.PaginatedResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ItineraryRequest'
+                  type: array
+              type: object
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List the current user's itinerary requests
+      tags:
+      - itineraries
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Submits the 4-step wizard as a request (pending → awaiting planner).
+        Requires GDPR consent. Locale resolved from ?locale= / Accept-Language.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - default: '"en-US"'
+        description: BCP 47 locale (e.g. en-US).
+        in: query
+        name: locale
+        type: string
+      - description: Full 4-step wizard payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ItinerarySubmitRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ItineraryRequest'
+        "400":
+          description: Invalid body / validation / consent required / invalid operation
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Submit an itinerary request
+      tags:
+      - itineraries
+  /itineraries/{id}:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Fetches a single itinerary request owned by the signed-in user.
+        An unowned request returns 404 (no cross-user access).
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Itinerary request ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ItineraryRequest'
+        "400":
+          description: Invalid itinerary id
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Itinerary request not found (or not owned by user)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get one of the current user's itinerary requests
+      tags:
+      - itineraries
+  /itineraries/{id}/cancel:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Cancels the signed-in user's pending request. Only pending
+        requests are cancellable; other statuses return 409. Body {reason} optional.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Itinerary request ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Optional cancel reason
+        in: body
+        name: body
+        schema:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ItineraryCancelRequest'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content (empty body)
+        "400":
+          description: Invalid itinerary id / validation
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Itinerary request not found (or not owned by user)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "409":
+          description: Itinerary request is not cancellable
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Cancel an itinerary request (customer)
+      tags:
+      - itineraries
+  /itineraries/{id}/pay-deposit:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Pays the deposit (30% by default, or full amount with pay_full=true)
+        via the payment gateway. Returns the hosted checkout URL (sandbox/live)
+        or the paid confirmation (mock mode).
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Itinerary request ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: pay_full toggle + gateway
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.PayDepositRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.DepositPaidResponse'
+        "400":
+          description: Invalid itinerary id / body / validation
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Itinerary request not found / no quote
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "409":
+          description: Request is not in a valid state for this operation
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Pay the itinerary deposit
+      tags:
+      - itineraries
+      - quotes
+  /itineraries/{id}/quote:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Fetches the quote for one of the signed-in user's requests.
+        Ownership-checked; an unowned request returns 404.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Itinerary request ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ItineraryQuote'
+        "400":
+          description: Invalid itinerary id
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Itinerary request not found / no quote
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get the quote for an itinerary request (customer)
+      tags:
+      - itineraries
+      - quotes
+  /itineraries/{id}/quote/pdf:
+    get:
+      description: |-
+        Serves the pre-rendered quote PDF (302 redirect to the storage/CDN URL).
+        Ownership-checked. 404 when the PDF has not yet been generated.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Itinerary request ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: '1 = force Content-Disposition: attachment'
+        in: query
+        name: download
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "302":
+          description: Redirect to the PDF storage URL
+          schema:
+            type: string
+        "400":
+          description: Invalid itinerary id
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Itinerary request not found / PDF not yet generated
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Download the itinerary quote PDF (customer)
+      tags:
+      - itineraries
+      - quotes
+  /itineraries/draft:
+    delete:
+      consumes:
+      - application/json
+      description: Removes the signed-in user's saved draft.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content (empty body)
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete the itinerary draft
+      tags:
+      - itineraries
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Returns the signed-in user's saved 4-step wizard draft (one per user).
+        404 if no draft is saved.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ItineraryDraft'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: No saved draft
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get the current user's itinerary draft
+      tags:
+      - itineraries
+    put:
+      consumes:
+      - application/json
+      description: Upserts the signed-in user's wizard draft (one per user via UNIQUE).
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Draft data (4-step wizard)
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ItineraryDraftData'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ItineraryDraft'
+        "400":
+          description: Invalid body / validation / invalid operation
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Save the itinerary draft
+      tags:
+      - itineraries
   /orders:
     get:
       consumes:
