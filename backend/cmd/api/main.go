@@ -68,6 +68,7 @@ import (
 	"jingdezhen-ceramics-backend/pkg/adapters/payments"
 	"jingdezhen-ceramics-backend/pkg/adapters/pdf"
 	"jingdezhen-ceramics-backend/pkg/adapters/storage"
+	"jingdezhen-ceramics-backend/pkg/adapters/tokenblocklist"
 	"jingdezhen-ceramics-backend/pkg/email"
 
 	"github.com/gofiber/fiber/v2"
@@ -236,6 +237,13 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 	defer redisClient.Close()
 	log.Println("Successfully connected to Redis!")
 	_ = redisClient // consumed by cache/session services as they land
+
+	// --- Token blocklist (TDD §5.1 stopgap) ---
+	// First auth-path Redis consumer: denylist of deleted users whose
+	// outstanding JWT must be invalidated before the token's own expiry. Fail-open
+	// on Redis outage (see pkg/adapters/tokenblocklist). The worker has no auth
+	// middleware, so it gets the Noop blocklist.
+	tokenBlocklist := tokenblocklist.NewRedisBlocklist(redisClient)
 
 	// --- Asynq enqueue client (so handlers can defer flaky/heavy work) ---
 	redisAddr, err := redisAddrFromURL(cfg.RedisURL)
@@ -441,7 +449,7 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 	consentHandler := consent.NewHandler(consentService)
 
 	privacyRepo := privacy.NewRepository(dbPool)
-	privacyService := privacy.NewService(privacyRepo, jobClient)
+	privacyService := privacy.NewService(privacyRepo, jobClient, tokenBlocklist)
 	privacyHandler := privacy.NewHandler(privacyService)
 
 	// --- Analytics (in-house, PRD §3.4.2, TDD §3.4/§4.2) ---
@@ -514,6 +522,7 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 		consentHandler, artistHandler, productHandler, wishlistHandler, cartHandler, fxHandler,
 		shippingHandler, orderHandler, paymentHandler, certificateHandler, mediaHandler, twoFAHandler, privacyHandler,
 		itineraryHandler, analyticsHandler, analyticsDashHandler, auditHandler,
+		tokenBlocklist,
 	)
 
 	// --- Start server (graceful shutdown) ---

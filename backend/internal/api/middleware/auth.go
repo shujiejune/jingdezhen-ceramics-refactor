@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"jingdezhen-ceramics-backend/internal/models"
+	"jingdezhen-ceramics-backend/pkg/adapters/tokenblocklist"
 
 	jwtware "github.com/gofiber/contrib/jwt"
 	"github.com/gofiber/fiber/v2"
@@ -9,8 +10,11 @@ import (
 )
 
 // JWTMAuth configures and returns Fiber's JWT middleware.
-// It uses the jwtSecretKey from the config file (.env).
-func JWTMAuth(jwtSecretKey string) fiber.Handler {
+// It uses the jwtSecretKey from the config file (.env). The blocklist is
+// consulted after signature+expiry pass: a revoked user_id → 401 even with a
+// valid signature (the stopgap for deleted-user token invalidation, TDD §5.1).
+// A nil blocklist skips the check (tests / no-Redis path).
+func JWTMAuth(jwtSecretKey string, bl tokenblocklist.Blocklist) fiber.Handler {
 	return jwtware.New(jwtware.Config{
 		SigningKey: jwtware.SigningKey{Key: []byte(jwtSecretKey)},
 		ContextKey: "user",
@@ -21,6 +25,16 @@ func JWTMAuth(jwtSecretKey string) fiber.Handler {
 			c.Locals("userID", claims["user_id"])
 			c.Locals("userEmail", claims["email"])
 			c.Locals("userRoles", rolesFromClaims(claims["roles"]))
+
+			// Deleted-user token invalidation (TDD §5.1 stopgap). The signature +
+			// expiry already passed; if the user is on the denylist, reject now.
+			if bl != nil {
+				if uid, ok := claims["user_id"].(string); ok && uid != "" {
+					if revoked, _ := bl.IsRevoked(c.UserContext(), uid); revoked {
+						return c.Status(fiber.StatusUnauthorized).JSON(models.ErrorResponse{Message: "Token revoked"})
+					}
+				}
+			}
 
 			return c.Next()
 		},

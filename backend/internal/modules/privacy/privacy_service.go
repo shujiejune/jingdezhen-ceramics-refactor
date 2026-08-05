@@ -4,10 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
+	"time"
 
 	"jingdezhen-ceramics-backend/internal/models"
 	"jingdezhen-ceramics-backend/internal/platform/i18ncontent"
 	"jingdezhen-ceramics-backend/internal/platform/jobs"
+	"jingdezhen-ceramics-backend/pkg/adapters/tokenblocklist"
 )
 
 // EmailEnqueuer is the subset of the Asynq job client the privacy service needs
@@ -15,6 +18,13 @@ import (
 // the email:send queue, never inline (TDD §4.2).
 type EmailEnqueuer interface {
 	EnqueueEmailSend(ctx context.Context, p jobs.EmailSendPayload) error
+}
+
+// TokenRevoker invalidates a user's outstanding access tokens. The privacy
+// service calls it on erasure so a deleted user's existing JWT stops working
+// immediately (TDD §5.1 stopgap) instead of lingering up to the token TTL.
+type TokenRevoker interface {
+	Revoke(ctx context.Context, userID string, ttl time.Duration) error
 }
 
 // ServiceInterface defines GDPR self-service operations (PRD §4.3).
@@ -35,10 +45,11 @@ type ServiceInterface interface {
 type Service struct {
 	repo          RepositoryInterface
 	emailEnqueuer EmailEnqueuer
+	tokenRevoker  TokenRevoker
 }
 
-func NewService(repo RepositoryInterface, emailEnqueuer EmailEnqueuer) ServiceInterface {
-	return &Service{repo: repo, emailEnqueuer: emailEnqueuer}
+func NewService(repo RepositoryInterface, emailEnqueuer EmailEnqueuer, tokenRevoker TokenRevoker) ServiceInterface {
+	return &Service{repo: repo, emailEnqueuer: emailEnqueuer, tokenRevoker: tokenRevoker}
 }
 
 func (s *Service) ExportUserData(ctx context.Context, userID string, locale string) (*models.UserDataExport, error) {
@@ -67,6 +78,16 @@ func (s *Service) DeleteAccount(ctx context.Context, userID string) error {
 
 	if err := s.repo.AnonymizeUser(ctx, userID); err != nil {
 		return err
+	}
+
+	// Revoke the user's outstanding access tokens so they stop working
+	// immediately (TDD §5.1 stopgap). Best-effort: a Redis outage here only
+	// means the deleted user's token lingers up to its own expiry; login is
+	// already blocked by is_active=false. Never blocks the erasure.
+	if s.tokenRevoker != nil {
+		if err := s.tokenRevoker.Revoke(ctx, userID, tokenblocklist.MaxAccessTokenTTL); err != nil {
+			log.Printf("privacy.DeleteAccount: token revoke failed for %s: %v", userID, err)
+		}
 	}
 
 	// Best-effort deletion confirmation email. The user's email was just nulled

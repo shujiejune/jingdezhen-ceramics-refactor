@@ -27,6 +27,7 @@ import (
 	"jingdezhen-ceramics-backend/internal/modules/wishlist"
 	"jingdezhen-ceramics-backend/internal/platform/fx"
 	"jingdezhen-ceramics-backend/internal/ws"
+	"jingdezhen-ceramics-backend/pkg/adapters/tokenblocklist"
 
 	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
@@ -66,6 +67,7 @@ func SetupRoutes(
 	analyticsHandler *analytics.Handler,
 	analyticsDashHandler *analytics.DashboardHandler,
 	auditHandler *audit.Handler,
+	blocklist tokenblocklist.Blocklist,
 ) {
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{"message": "Welcome to the Jingdezhen Ceramics Platform!"})
@@ -79,13 +81,13 @@ func SetupRoutes(
 	// the API is annotated incrementally. Disable in production via a config
 	// gate if needed (TODO: cfg-based toggle once DocsEnabled lands in config). */
 	swaggerGroup := app.Group("/admin/swagger")
-	swaggerGroup.Use(middleware.JWTMAuth(jwtSecretKey))
+	swaggerGroup.Use(middleware.JWTMAuth(jwtSecretKey, blocklist))
 	swaggerGroup.Get("/*", swagger.WrapHandler) // index.html + spec assets
 
 	// --- WebSocket Route ---
 	// This route group ensures the JWT middleware runs first to authenticate the user.
 	wsGroup := app.Group("/ws")
-	wsGroup.Use(middleware.JWTMAuth(jwtSecretKey))
+	wsGroup.Use(middleware.JWTMAuth(jwtSecretKey, blocklist))
 	wsGroup.Use(ws.WsUpgradeMiddleware()) // This middleware checks if it's a valid WebSocket request
 	// Pass the handler's method, not the handler struct itself.
 	// The websocket.New() middleware expects a function argument with signature func(*websocket.Conn)
@@ -141,7 +143,7 @@ func SetupRoutes(
 	/* --- User Profile (Protected) --- */
 	// If need backend routes for auth (e.g., refresh token, logout initiated by backend), define here.
 	profileGroup := app.Group("/profile")
-	profileGroup.Use(middleware.JWTMAuth(jwtSecretKey))
+	profileGroup.Use(middleware.JWTMAuth(jwtSecretKey, blocklist))
 	{
 		profileGroup.Get("", userHandler.GetProfile)
 		profileGroup.Put("", userHandler.UpdateProfile)
@@ -176,7 +178,7 @@ func SetupRoutes(
 
 	/* --- Notification Module (Protected) --- */
 	notifGroup := app.Group("/notifications")
-	notifGroup.Use(middleware.JWTMAuth(jwtSecretKey))
+	notifGroup.Use(middleware.JWTMAuth(jwtSecretKey, blocklist))
 	{
 		notifGroup.Get("", notifHandler.GetNotifications)
 		notifGroup.Get("/unread-count", notifHandler.GetUnreadNotificationCount)
@@ -233,7 +235,7 @@ func SetupRoutes(
 	/* Favorites are keyed on SKU (the purchasable unit). A customer favorites a
 	   specific variant, not a product. Locale-aware read path. */
 	wishlistGroup := app.Group("/wishlist")
-	wishlistGroup.Use(middleware.JWTMAuth(jwtSecretKey))
+	wishlistGroup.Use(middleware.JWTMAuth(jwtSecretKey, blocklist))
 	{
 		wishlistGroup.Get("", wishlistHandler.GetWishlist)
 		wishlistGroup.Post("", wishlistHandler.AddToWishlist)
@@ -245,7 +247,7 @@ func SetupRoutes(
 	   and merge it on login via POST /cart/merge. Items keyed on SKU (the
 	   purchasable unit). POST add is additive; PATCH sets absolute qty. */
 	cartGroup := app.Group("/cart")
-	cartGroup.Use(middleware.JWTMAuth(jwtSecretKey))
+	cartGroup.Use(middleware.JWTMAuth(jwtSecretKey, blocklist))
 	{
 		cartGroup.Get("", cartHandler.GetCart)
 		cartGroup.Post("/items", cartHandler.AddItem)
@@ -276,7 +278,7 @@ func SetupRoutes(
 	   main.go) MUST be registered before this group. Do not add public routes
 	   below here. See TDD §4.3. */
 	checkoutGroup := app.Group("")
-	checkoutGroup.Use(middleware.JWTMAuth(jwtSecretKey))
+	checkoutGroup.Use(middleware.JWTMAuth(jwtSecretKey, blocklist))
 	{
 		checkoutGroup.Post("/checkout", orderHandler.Checkout)
 		checkoutGroup.Get("/orders", orderHandler.ListMine)
@@ -302,7 +304,7 @@ func SetupRoutes(
 	// All /admin routes require auth + the route-specific permission.
 	// Super Administrator bypasses every permission check.
 	adminGroup := app.Group("/admin")
-	adminGroup.Use(middleware.JWTMAuth(jwtSecretKey))
+	adminGroup.Use(middleware.JWTMAuth(jwtSecretKey, blocklist))
 	{
 		// FX rate refresh — settings.manage (operator-triggered; the daily cron
 		// also enqueues fx:refresh from the worker). PRD §3.2.3.
@@ -520,7 +522,7 @@ func SetupRoutes(
 	// Separate from /profile so the route reads as the privacy action it is.
 	// Requires a signed-in user (JWT) + a deliberate {"confirm":"DELETE"} body.
 	privacyGroup := app.Group("/privacy")
-	privacyGroup.Use(middleware.JWTMAuth(jwtSecretKey))
+	privacyGroup.Use(middleware.JWTMAuth(jwtSecretKey, blocklist))
 	{
 		privacyGroup.Post("/delete-account", privacyHandler.DeleteAccount)
 	}

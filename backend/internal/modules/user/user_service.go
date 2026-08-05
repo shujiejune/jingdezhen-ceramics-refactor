@@ -12,6 +12,7 @@ import (
 
 	"jingdezhen-ceramics-backend/internal/models"
 	"jingdezhen-ceramics-backend/internal/platform/jobs"
+	"jingdezhen-ceramics-backend/pkg/adapters/tokenblocklist"
 	emailSvc "jingdezhen-ceramics-backend/pkg/email"
 	"jingdezhen-ceramics-backend/pkg/utils"
 
@@ -217,7 +218,7 @@ func (s *Service) generateAuthResponse(ctx context.Context, user *models.User) (
 		Email:  user.Email,
 		Roles:  roles,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 24 * 30)), // 1 month expiry
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(tokenblocklist.MaxAccessTokenTTL)), // 30d (TDD §5.1)
 		},
 	}
 
