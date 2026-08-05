@@ -2,7 +2,7 @@ module jingdezhen-ceramics-backend
 
 go 1.26
 
-require github.com/gofiber/fiber/v2 v2.52.12 // direct
+require github.com/gofiber/fiber/v2 v2.52.14 // direct
 
 require (
 	github.com/chromedp/cdproto v0.0.0-20260719223732-95f6af754cfe
