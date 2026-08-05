@@ -22,6 +22,20 @@ func NewHandler(service ServiceInterface) *Handler {
 }
 
 // Quote: GET /shipping/quote?country=US&weight=2500 (public preview, TDD §5.2)
+//
+// @Summary      Get a shipping quote
+// @Description  Public preview of the shipping fee for a country + packed weight,
+// @Description  computed from the shipping_fee_tiers table. Returns shippable=false
+// @Description  (with a reason) for unshippable countries or overweight packages.
+// @Tags         shipping
+// @Accept       json
+// @Produce      json
+// @Param        country query string true "Destination country (ISO 3166-1 alpha-2)"
+// @Param        weight  query int    true "Packed weight in grams"
+// @Success      200 {object} models.ShippingQuoteResponse
+// @Failure      400 {object} models.ErrorResponse "Invalid country (must be 2 letters) / weight (must be non-negative grams)"
+// @Failure      500 {object} models.ErrorResponse "Internal error"
+// @Router       /shipping/quote [get]
 func (h *Handler) Quote(c *fiber.Ctx) error {
 	country := c.Query("country")
 	if len(country) != 2 {
@@ -40,6 +54,20 @@ func (h *Handler) Quote(c *fiber.Ctx) error {
 }
 
 // ListTiers: GET /admin/shipping/tiers
+//
+// @Summary      List shipping fee tiers (admin)
+// @Description  Returns all shipping_fee_tiers rows (the shipping-calculator config).
+// @Description  Access: super_admin (settings.manage).
+// @Tags         admin,shipping
+// @Accept       json
+// @Produce      json
+// @Param        Authorization header string true "Bearer <access_token>"
+// @Success      200 {array} models.ShippingFeeTier
+// @Failure      401 {object} models.ErrorResponse "Authentication required"
+// @Failure      403 {object} models.ErrorResponse "Forbidden (needs settings.manage)"
+// @Failure      500 {object} models.ErrorResponse "Internal error"
+// @Security     BearerAuth
+// @Router       /admin/shipping/tiers [get]
 func (h *Handler) ListTiers(c *fiber.Ctx) error {
 	tiers, err := h.service.ListAll(c.Context())
 	if err != nil {
@@ -50,6 +78,21 @@ func (h *Handler) ListTiers(c *fiber.Ctx) error {
 }
 
 // CreateTier: POST /admin/shipping/tiers
+//
+// @Summary      Create a shipping fee tier (admin)
+// @Description  Adds a (country, max_weight_grams) → fee_cny tier. Access: super_admin.
+// @Tags         admin,shipping
+// @Accept       json
+// @Produce      json
+// @Param        Authorization header string true "Bearer <access_token>"
+// @Param        body body models.CreateShippingTierRequest true "Tier to create"
+// @Success      201 {object} models.ShippingFeeTier
+// @Failure      400 {object} models.ErrorResponse "Invalid body / validation"
+// @Failure      401 {object} models.ErrorResponse "Authentication required"
+// @Failure      403 {object} models.ErrorResponse "Forbidden (needs settings.manage)"
+// @Failure      500 {object} models.ErrorResponse "Internal error"
+// @Security     BearerAuth
+// @Router       /admin/shipping/tiers [post]
 func (h *Handler) CreateTier(c *fiber.Ctx) error {
 	var req models.CreateShippingTierRequest
 	if err := c.BodyParser(&req); err != nil {
@@ -67,6 +110,24 @@ func (h *Handler) CreateTier(c *fiber.Ctx) error {
 }
 
 // UpdateTier: PUT /admin/shipping/tiers/:id
+//
+// @Summary      Update a shipping fee tier (admin)
+// @Description  Replaces the (country, max_weight_grams, fee_cny) of a tier.
+// @Description  Access: super_admin (settings.manage).
+// @Tags         admin,shipping
+// @Accept       json
+// @Produce      json
+// @Param        Authorization header string true "Bearer <access_token>"
+// @Param        id   path int true "Tier ID"
+// @Param        body body models.UpdateShippingTierRequest true "Full replacement of tier fields"
+// @Success      200 {object} models.ShippingFeeTier
+// @Failure      400 {object} models.ErrorResponse "Invalid tier ID / body / validation"
+// @Failure      401 {object} models.ErrorResponse "Authentication required"
+// @Failure      403 {object} models.ErrorResponse "Forbidden (needs settings.manage)"
+// @Failure      404 {object} models.ErrorResponse "Shipping tier not found"
+// @Failure      500 {object} models.ErrorResponse "Internal error"
+// @Security     BearerAuth
+// @Router       /admin/shipping/tiers/{id} [put]
 func (h *Handler) UpdateTier(c *fiber.Ctx) error {
 	id, err := strconv.ParseInt(c.Params("id"), 10, 64)
 	if err != nil {
@@ -91,6 +152,22 @@ func (h *Handler) UpdateTier(c *fiber.Ctx) error {
 }
 
 // DeleteTier: DELETE /admin/shipping/tiers/:id
+//
+// @Summary      Delete a shipping fee tier (admin)
+// @Description  Removes a shipping tier. Access: super_admin (settings.manage).
+// @Tags         admin,shipping
+// @Accept       json
+// @Produce      json
+// @Param        Authorization header string true "Bearer <access_token>"
+// @Param        id path int true "Tier ID"
+// @Success      204 "No Content (empty body)"
+// @Failure      400 {object} models.ErrorResponse "Invalid tier ID"
+// @Failure      401 {object} models.ErrorResponse "Authentication required"
+// @Failure      403 {object} models.ErrorResponse "Forbidden (needs settings.manage)"
+// @Failure      404 {object} models.ErrorResponse "Shipping tier not found"
+// @Failure      500 {object} models.ErrorResponse "Internal error"
+// @Security     BearerAuth
+// @Router       /admin/shipping/tiers/{id} [delete]
 func (h *Handler) DeleteTier(c *fiber.Ctx) error {
 	id, err := strconv.ParseInt(c.Params("id"), 10, 64)
 	if err != nil {

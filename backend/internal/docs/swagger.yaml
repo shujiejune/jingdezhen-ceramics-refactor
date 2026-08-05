@@ -10,6 +10,65 @@ definitions:
     required:
     - sku_id
     type: object
+  jingdezhen-ceramics-backend_internal_models.AddWishlistRequest:
+    properties:
+      sku_id:
+        type: integer
+    required:
+    - sku_id
+    type: object
+  jingdezhen-ceramics-backend_internal_models.Artist:
+    properties:
+      avatar_url:
+        description: parent (non-localized media)
+        type: string
+      bio:
+        description: translation
+        type: string
+      created_at:
+        description: parent
+        type: string
+      display_order:
+        description: parent
+        type: integer
+      id:
+        type: integer
+      locale:
+        type: string
+      meta_description:
+        type: string
+      meta_title:
+        type: string
+      name:
+        description: Translation fields.
+        type: string
+      published_at:
+        type: string
+      slug:
+        description: translation (per-locale unique)
+        type: string
+      status:
+        $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ContentStatus'
+      updated_at:
+        description: parent
+        type: string
+      user_id:
+        description: 'parent: link to users.id (UUID)'
+        type: string
+    type: object
+  jingdezhen-ceramics-backend_internal_models.AttachMediaData:
+    properties:
+      caption:
+        type: string
+      media_id:
+        type: integer
+      sort_order:
+        description: defaults to append-last
+        minimum: 0
+        type: integer
+    required:
+    - media_id
+    type: object
   jingdezhen-ceramics-backend_internal_models.BulkRemoveRequest:
     properties:
       sku_ids:
@@ -19,6 +78,12 @@ definitions:
         type: array
     required:
     - sku_ids
+    type: object
+  jingdezhen-ceramics-backend_internal_models.CancelOrderRequest:
+    properties:
+      reason:
+        maxLength: 500
+        type: string
     type: object
   jingdezhen-ceramics-backend_internal_models.Cart:
     properties:
@@ -80,6 +145,61 @@ definitions:
       weight_grams:
         type: integer
     type: object
+  jingdezhen-ceramics-backend_internal_models.Certificate:
+    properties:
+      artist_name:
+        type: string
+      artist_slug:
+        type: string
+      attributes:
+        description: the product's default-SKU attributes
+        items:
+          type: integer
+        type: array
+      cert_code:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      issued_at:
+        type: string
+      pdf_key:
+        type: string
+      product_id:
+        type: integer
+      product_slug:
+        type: string
+      product_title:
+        description: Display fields populated by the locale-aware JOIN (public page)
+          — db:"-"
+        type: string
+      provenance:
+        items:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ProvenanceRecord'
+        type: array
+      qr_key:
+        type: string
+      thumbnail_url:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  jingdezhen-ceramics-backend_internal_models.CheckoutRequest:
+    properties:
+      address_id:
+        type: integer
+      currency:
+        type: string
+      gateway:
+        enum:
+        - airwallex
+        - paypal
+        - mock
+        type: string
+    required:
+    - address_id
+    type: object
   jingdezhen-ceramics-backend_internal_models.ContentStatus:
     enum:
     - draft
@@ -92,6 +212,82 @@ definitions:
     - StatusInReview
     - StatusPublished
     - StatusRejected
+  jingdezhen-ceramics-backend_internal_models.CreateAddressRequest:
+    properties:
+      city:
+        maxLength: 100
+        type: string
+      country:
+        description: alpha-2, e.g. "US"
+        type: string
+      is_default:
+        type: boolean
+      line1:
+        maxLength: 255
+        type: string
+      line2:
+        maxLength: 255
+        type: string
+      phone:
+        maxLength: 30
+        type: string
+      postal_code:
+        maxLength: 30
+        type: string
+      recipient:
+        maxLength: 255
+        type: string
+      region:
+        maxLength: 100
+        type: string
+    required:
+    - city
+    - country
+    - line1
+    - recipient
+    type: object
+  jingdezhen-ceramics-backend_internal_models.CreateArtistData:
+    properties:
+      avatar_url:
+        type: string
+      bio:
+        type: string
+      display_order:
+        minimum: 0
+        type: integer
+      locale:
+        type: string
+      meta_description:
+        type: string
+      meta_title:
+        maxLength: 255
+        type: string
+      name:
+        maxLength: 255
+        type: string
+      slug:
+        maxLength: 100
+        type: string
+      user_id:
+        description: 'optional: link to a platform user'
+        type: string
+    required:
+    - name
+    - slug
+    type: object
+  jingdezhen-ceramics-backend_internal_models.CreateShippingTierRequest:
+    properties:
+      country:
+        type: string
+      fee_cny:
+        minimum: 0
+        type: integer
+      max_weight_grams:
+        type: integer
+    required:
+    - country
+    - max_weight_grams
+    type: object
   jingdezhen-ceramics-backend_internal_models.ErrorResponse:
     properties:
       details:
@@ -150,6 +346,113 @@ definitions:
           $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.MergeCartItem'
         type: array
     type: object
+  jingdezhen-ceramics-backend_internal_models.Order:
+    properties:
+      address:
+        items:
+          type: integer
+        type: array
+      cancel_reason:
+        type: string
+      cancelled_at:
+        type: string
+      carrier_name:
+        type: string
+      completed_at:
+        type: string
+      created_at:
+        type: string
+      currency:
+        type: string
+      fx_rate_used:
+        description: rendered from string
+        type: number
+      hosted_url:
+        description: |-
+          HostedURL is the gateway's hosted-checkout URL (sandbox/live). Empty in
+          mock mode. The client redirects the customer here to pay off-site.
+        type: string
+      id:
+        type: integer
+      items:
+        description: Items loaded by the service (detail view only).
+        items:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.OrderItem'
+        type: array
+      locale:
+        type: string
+      paid_at:
+        type: string
+      placed_at:
+        type: string
+      refunded_at:
+        type: string
+      shipped_at:
+        type: string
+      shipping_cny:
+        type: integer
+      shipping_minor:
+        type: integer
+      status:
+        $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.OrderStatus'
+      subtotal_cny:
+        type: integer
+      subtotal_minor:
+        type: integer
+      total_cny:
+        type: integer
+      total_minor:
+        type: integer
+      tracking_number:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: string
+    type: object
+  jingdezhen-ceramics-backend_internal_models.OrderItem:
+    properties:
+      attributes_snapshot:
+        items:
+          type: integer
+        type: array
+      created_at:
+        type: string
+      id:
+        type: integer
+      order_id:
+        type: integer
+      qty:
+        type: integer
+      sku_id:
+        type: integer
+      title_snapshot:
+        items:
+          type: integer
+        type: array
+      unit_price_cny:
+        description: CNY base
+        type: integer
+      unit_price_minor:
+        description: presentment
+        type: integer
+    type: object
+  jingdezhen-ceramics-backend_internal_models.OrderStatus:
+    enum:
+    - created
+    - paid
+    - shipped
+    - completed
+    - cancelled
+    - refunded
+    type: string
+    x-enum-varnames:
+    - StatusCreated
+    - StatusPaid
+    - StatusShipped
+    - StatusCompleted
+    - StatusCancelled
+    - StatusRefunded
   jingdezhen-ceramics-backend_internal_models.PaginatedResponse:
     properties:
       data: {}
@@ -250,6 +553,81 @@ definitions:
       sort_order:
         type: integer
     type: object
+  jingdezhen-ceramics-backend_internal_models.ProvenanceKind:
+    enum:
+    - created
+    - sold
+    - transferred
+    type: string
+    x-enum-comments:
+      ProvenanceCreated: certificate issued / regenerated
+      ProvenanceSold: order paid (TDD §8)
+      ProvenanceTransferred: future ownership transfer
+    x-enum-descriptions:
+    - certificate issued / regenerated
+    - order paid (TDD §8)
+    - future ownership transfer
+    x-enum-varnames:
+    - ProvenanceCreated
+    - ProvenanceSold
+    - ProvenanceTransferred
+  jingdezhen-ceramics-backend_internal_models.ProvenanceRecord:
+    properties:
+      at:
+        type: string
+      certificate_id:
+        type: integer
+      detail:
+        items:
+          type: integer
+        type: array
+      id:
+        type: integer
+      kind:
+        $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ProvenanceKind'
+    type: object
+  jingdezhen-ceramics-backend_internal_models.RefundOrderRequest:
+    properties:
+      reason:
+        maxLength: 500
+        type: string
+    type: object
+  jingdezhen-ceramics-backend_internal_models.RegisterAssetData:
+    properties:
+      duration:
+        description: videos
+        minimum: 0
+        type: integer
+      height:
+        minimum: 0
+        type: integer
+      kind:
+        enum:
+        - image
+        - video
+        type: string
+      mime:
+        type: string
+      oss_key:
+        type: string
+      width:
+        minimum: 0
+        type: integer
+    required:
+    - kind
+    - mime
+    - oss_key
+    type: object
+  jingdezhen-ceramics-backend_internal_models.ReorderMediaItem:
+    properties:
+      media_id:
+        type: integer
+      sort_order:
+        minimum: 0
+        type: integer
+    required:
+    - media_id
+    type: object
   jingdezhen-ceramics-backend_internal_models.SKU:
     properties:
       attributes:
@@ -289,6 +667,51 @@ definitions:
         description: packed weight
         type: integer
     type: object
+  jingdezhen-ceramics-backend_internal_models.ShipOrderRequest:
+    properties:
+      carrier_name:
+        maxLength: 100
+        type: string
+      tracking_number:
+        maxLength: 200
+        type: string
+    required:
+    - carrier_name
+    - tracking_number
+    type: object
+  jingdezhen-ceramics-backend_internal_models.ShippingFeeTier:
+    properties:
+      country:
+        description: ISO 3166-1 alpha-2
+        type: string
+      created_at:
+        type: string
+      fee_cny:
+        description: minor units (fen)
+        type: integer
+      id:
+        type: integer
+      max_weight_grams:
+        type: integer
+      updated_at:
+        type: string
+    type: object
+  jingdezhen-ceramics-backend_internal_models.ShippingQuoteResponse:
+    properties:
+      country:
+        type: string
+      fee_cny:
+        description: minor units (fen); 0 if unshippable/overweight
+        type: integer
+      reason:
+        description: '"unshippable" | "overweight" | ""'
+        type: string
+      shippable:
+        description: false if unshippable OR overweight
+        type: boolean
+      weight_grams:
+        type: integer
+    type: object
   jingdezhen-ceramics-backend_internal_models.Tag:
     properties:
       id:
@@ -311,6 +734,62 @@ definitions:
       product_count:
         type: integer
     type: object
+  jingdezhen-ceramics-backend_internal_models.UpdateAddressRequest:
+    properties:
+      city:
+        maxLength: 100
+        type: string
+      country:
+        type: string
+      is_default:
+        type: boolean
+      line1:
+        maxLength: 255
+        type: string
+      line2:
+        maxLength: 255
+        type: string
+      phone:
+        maxLength: 30
+        type: string
+      postal_code:
+        maxLength: 30
+        type: string
+      recipient:
+        maxLength: 255
+        type: string
+      region:
+        maxLength: 100
+        type: string
+    required:
+    - city
+    - country
+    - line1
+    - recipient
+    type: object
+  jingdezhen-ceramics-backend_internal_models.UpdateArtistData:
+    properties:
+      avatar_url:
+        type: string
+      bio:
+        type: string
+      display_order:
+        minimum: 0
+        type: integer
+      meta_description:
+        type: string
+      meta_title:
+        maxLength: 255
+        type: string
+      name:
+        maxLength: 255
+        type: string
+      slug:
+        maxLength: 100
+        type: string
+      user_id:
+        type: string
+    type: object
   jingdezhen-ceramics-backend_internal_models.UpdateCartItemRequest:
     properties:
       qty:
@@ -318,6 +797,77 @@ definitions:
         type: integer
     required:
     - qty
+    type: object
+  jingdezhen-ceramics-backend_internal_models.UpdateShippingTierRequest:
+    properties:
+      country:
+        type: string
+      fee_cny:
+        minimum: 0
+        type: integer
+      max_weight_grams:
+        type: integer
+    required:
+    - country
+    - max_weight_grams
+    type: object
+  jingdezhen-ceramics-backend_internal_models.UserAddress:
+    properties:
+      city:
+        type: string
+      country:
+        description: ISO 3166-1 alpha-2
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      is_default:
+        type: boolean
+      line1:
+        type: string
+      line2:
+        type: string
+      phone:
+        type: string
+      postal_code:
+        type: string
+      recipient:
+        type: string
+      region:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  jingdezhen-ceramics-backend_internal_models.WishlistItem:
+    properties:
+      artist_name:
+        type: string
+      attributes:
+        items:
+          type: integer
+        type: array
+      favorited_at:
+        type: string
+      price_cny:
+        description: minor units (fen)
+        type: integer
+      product_id:
+        type: integer
+      product_slug:
+        description: translation
+        type: string
+      product_title:
+        description: translation
+        type: string
+      sku_code:
+        type: string
+      sku_id:
+        type: integer
+      stock:
+        type: integer
+      thumbnail_url:
+        type: string
     type: object
 info:
   contact:
@@ -332,6 +882,1711 @@ info:
   title: Jingdezhen Ceramics Platform API
   version: "1.0"
 paths:
+  /admin/artists:
+    get:
+      consumes:
+      - application/json
+      description: 'Paginated list of artists filtered by locale + status. Access:
+        content_editor.'
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: BCP 47 locale
+        in: query
+        name: locale
+        type: string
+      - description: Filter by workflow status (draft|in_review|published|rejected)
+        in: query
+        name: status
+        type: string
+      - default: 1
+        description: Page number (1-based)
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Page size (max 100)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.PaginatedResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.Artist'
+                  type: array
+              type: object
+        "400":
+          description: Invalid locale
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs content.write)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List artists (admin, any status)
+      tags:
+      - admin
+      - artists
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Creates an artist + its first translation. Locale defaults to en-US.
+        Access: content_editor.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Artist to create
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.CreateArtistData'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.Artist'
+        "400":
+          description: Invalid body / validation / bad locale
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs content.write)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create an artist
+      tags:
+      - admin
+      - artists
+  /admin/artists/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: 'Removes an artist (parent + all translations). Access: content_editor.'
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Artist ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content (empty body)
+        "400":
+          description: Invalid artist ID
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs content.write)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Artist not found
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete an artist
+      tags:
+      - admin
+      - artists
+    put:
+      consumes:
+      - application/json
+      description: |-
+        Updates an artist's translation (localized fields) and/or parent
+        fields. A nil pointer = leave unchanged. The workflow transition
+        guard may return 409 if the translation is not editable in its state.
+        Access: content_editor.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Artist ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - default: en-US
+        description: BCP 47 locale
+        in: query
+        name: locale
+        type: string
+      - description: Fields to update (nil pointers = unchanged)
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.UpdateArtistData'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.Artist'
+        "400":
+          description: Invalid artist ID / body / bad locale
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs content.write)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Artist not found
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "409":
+          description: Translation not editable in its current workflow state
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update an artist
+      tags:
+      - admin
+      - artists
+  /admin/artists/{id}/approve:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Transitions an in_review artist translation to published.
+        Access: super_admin ONLY (content.publish). Body: {locale}.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Artist ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: '{locale: en-US}'
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.Artist'
+        "400":
+          description: Invalid artist ID / body / bad locale
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs content.publish — super_admin only)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Artist not found
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "409":
+          description: Invalid workflow transition
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Approve + publish an artist
+      tags:
+      - admin
+      - artists
+      - workflow
+  /admin/artists/{id}/reject:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Transitions an in_review artist translation to rejected.
+        Access: super_admin ONLY (content.publish). Body: {locale}.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Artist ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: '{locale: en-US}'
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.Artist'
+        "400":
+          description: Invalid artist ID / body / bad locale
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs content.publish — super_admin only)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Artist not found
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "409":
+          description: Invalid workflow transition
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Reject an artist (in_review → rejected)
+      tags:
+      - admin
+      - artists
+      - workflow
+  /admin/artists/{id}/submit:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Transitions a draft artist translation to in_review.
+        Access: content_editor. Body: {locale}.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Artist ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: '{locale: en-US}'
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.Artist'
+        "400":
+          description: Invalid artist ID / body / bad locale
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs content.write)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Artist not found
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "409":
+          description: Invalid workflow transition
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Submit an artist for review
+      tags:
+      - admin
+      - artists
+      - workflow
+  /admin/artists/{id}/unpublish:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Transitions a published artist translation back to draft.
+        Access: super_admin ONLY (content.publish). Body: {locale}.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Artist ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: '{locale: en-US}'
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.Artist'
+        "400":
+          description: Invalid artist ID / body / bad locale
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs content.publish — super_admin only)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Artist not found
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "409":
+          description: Invalid workflow transition
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Unpublish an artist (published → draft)
+      tags:
+      - admin
+      - artists
+      - workflow
+  /admin/artists/{slug}:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Fetches a single artist by slug in any workflow status.
+        Access: content_editor.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Artist slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - default: en-US
+        description: BCP 47 locale
+        in: query
+        name: locale
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.Artist'
+        "400":
+          description: Invalid locale
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs content.write)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Artist not found
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get an artist by slug (admin, any status)
+      tags:
+      - admin
+      - artists
+  /admin/certificates:
+    get:
+      consumes:
+      - application/json
+      description: 'Paginated list of all certificates. Access: ecommerce_operator.'
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - default: 1
+        description: Page number (1-based)
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Page size (max 100)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.PaginatedResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.Certificate'
+                  type: array
+              type: object
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs certificate.manage)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List certificates (admin)
+      tags:
+      - admin
+      - certificates
+  /admin/certificates/{id}:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Fetches a single certificate (with provenance) by its DB ID.
+        Access: ecommerce_operator.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Certificate ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.Certificate'
+        "400":
+          description: Invalid certificate ID
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs certificate.manage)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Certificate not found
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get a certificate by ID (admin)
+      tags:
+      - admin
+      - certificates
+  /admin/certificates/{id}/regenerate:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Issues a new cert_code for an existing certificate (replaces the
+        old code; re-renders the PDF async via the pdf:generate job).
+        Access: ecommerce_operator.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Certificate ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: '{cert_code: \"JDZ-xxxxxx\"}'
+          schema:
+            type: object
+        "400":
+          description: Invalid certificate ID
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs certificate.manage)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Certificate not found
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Regenerate a certificate (admin)
+      tags:
+      - admin
+      - certificates
+  /admin/media/assets:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Paginated list of all media_assets, optionally filtered by kind.
+        Access: content_editor.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Filter by kind (image|video)
+        in: query
+        name: kind
+        type: string
+      - default: 1
+        description: Page number (1-based)
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Page size (max 100)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: '{data: []models.MediaAsset, page, limit, total}'
+          schema:
+            type: object
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs content.write)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List media assets (admin)
+      tags:
+      - admin
+      - media
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Records an already-uploaded file as a media_assets row (after
+        the browser has uploaded via presign or local upload). Access: content_editor.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Asset metadata (oss_key, mime, kind, dimensions)
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.RegisterAssetData'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.MediaAsset'
+        "400":
+          description: Invalid body / validation / invalid media kind
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs content.write)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Register a media asset
+      tags:
+      - admin
+      - media
+  /admin/media/assets/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: |-
+        Removes a media_assets row (and the underlying object in OSS mode).
+        Access: content_editor.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Asset ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content (empty body)
+        "400":
+          description: Invalid id
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs content.write)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Asset not found
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a media asset (admin)
+      tags:
+      - admin
+      - media
+  /admin/media/presign:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Returns a presigned PUT URL (OSS mode) or a local upload URL
+        (local mode) for the browser to upload a media file to.
+        Access: content_editor (content.write).
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: '{kind: image|video, mime: string, size: int}'
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: '{mode: oss|local, upload_url, oss_key, headers, public_url?}'
+          schema:
+            type: object
+        "400":
+          description: Invalid body / validation
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs content.write)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Presign a media upload
+      tags:
+      - admin
+      - media
+  /admin/media/upload:
+    post:
+      consumes:
+      - multipart/form-data
+      description: |-
+        Stores a multipart "file" via the local Store.Put. Returns the
+        {oss_key, public_url, size} so the caller can register the asset.
+        Returns 404 in OSS mode (use presign). Access: content_editor.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Media file
+        in: formData
+        name: file
+        required: true
+        type: file
+      - description: image|video (defaults to image)
+        in: formData
+        name: kind
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: '{oss_key, public_url, size}'
+          schema:
+            type: object
+        "400":
+          description: Invalid kind / missing file
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs content.write)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Direct upload is local-dev only; use presign in OSS mode
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Upload a media file (local-dev only)
+      tags:
+      - admin
+      - media
+  /admin/orders:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Paginated list of all orders, optionally filtered by status.
+        Access: ecommerce_operator, customer_service, travel_planner.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Filter by order status (created|paid|shipped|completed|cancelled|refunded)
+        in: query
+        name: status
+        type: string
+      - default: 1
+        description: Page number (1-based)
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Page size (max 100)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.PaginatedResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.Order'
+                  type: array
+              type: object
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs order.read)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List all orders (admin)
+      tags:
+      - admin
+      - orders
+  /admin/orders/{id}:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Fetches a single order (with items) by ID, regardless of owner.
+        Access: ecommerce_operator, customer_service, travel_planner.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Order ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.Order'
+        "400":
+          description: Invalid order ID
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs order.read)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Order not found
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get any order (admin)
+      tags:
+      - admin
+      - orders
+  /admin/orders/{id}/complete:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Transitions a shipped order to completed.
+        Access: ecommerce_operator.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Order ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content (empty body)
+        "400":
+          description: Invalid order ID
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs order.write)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Order not found
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "409":
+          description: Order is not in the expected state (must be shipped)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Mark an order as completed
+      tags:
+      - admin
+      - orders
+  /admin/orders/{id}/refund:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Issues a full refund via the payment gateway (fail-closed: the
+        gateway.Refund is called BEFORE the status transition; a gateway
+        error leaves the order paid). Tiered partial refunds deferred.
+        Access: ecommerce_operator.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Order ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Optional refund reason
+        in: body
+        name: body
+        schema:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.RefundOrderRequest'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content (empty body)
+        "400":
+          description: Invalid order ID
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs order.refund)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Order not found
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "409":
+          description: Order is not in the expected state (must be paid)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error (gateway refund failed)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Refund an order
+      tags:
+      - admin
+      - orders
+  /admin/orders/{id}/ship:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Transitions a paid order to shipped, recording the carrier +
+        tracking number (manual entry, no carrier API).
+        Access: ecommerce_operator.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Order ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Carrier + tracking number
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ShipOrderRequest'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content (empty body)
+        "400":
+          description: Invalid order ID / body / validation
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs order.write)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Order not found
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "409":
+          description: Order is not in the expected state (must be paid)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Mark an order as shipped
+      tags:
+      - admin
+      - orders
+  /admin/products/{id}/media:
+    get:
+      consumes:
+      - application/json
+      description: 'Returns a product''s ordered gallery. Access: ecommerce_operator.'
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ProductMediaItem'
+            type: array
+        "400":
+          description: Invalid product id
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs product.write)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List a product's media gallery (admin)
+      tags:
+      - admin
+      - products
+      - media
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Attaches a media_assets row to a product's ordered gallery.
+        sort_order defaults to append-last. Access: ecommerce_operator.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: media_id + optional sort_order + caption
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.AttachMediaData'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: '{ok: true}'
+          schema:
+            type: object
+        "400":
+          description: Invalid product id / body / validation
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs product.write)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Attach a media asset to a product gallery
+      tags:
+      - admin
+      - products
+      - media
+  /admin/products/{id}/media/{media_id}:
+    delete:
+      consumes:
+      - application/json
+      description: |-
+        Removes a media_assets row from a product's gallery (does not delete the asset).
+        Access: ecommerce_operator.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Media asset ID
+        in: path
+        name: media_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content (empty body)
+        "400":
+          description: Invalid product/media id
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs product.write)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Media not attached to this product
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Detach a media asset from a product gallery
+      tags:
+      - admin
+      - products
+      - media
+  /admin/products/{id}/media/order:
+    patch:
+      consumes:
+      - application/json
+      description: |-
+        Sets the sort_order for each gallery entry. Body is an array of
+        {product_media_id, sort_order} pairs. Access: ecommerce_operator.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Ordered list of {product_media_id, sort_order}
+        in: body
+        name: body
+        required: true
+        schema:
+          items:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ReorderMediaItem'
+          type: array
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content (empty body)
+        "400":
+          description: Invalid product id / body / validation
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs product.write)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Reorder a product's media gallery
+      tags:
+      - admin
+      - products
+      - media
+  /admin/shipping/tiers:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Returns all shipping_fee_tiers rows (the shipping-calculator config).
+        Access: super_admin (settings.manage).
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ShippingFeeTier'
+            type: array
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs settings.manage)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List shipping fee tiers (admin)
+      tags:
+      - admin
+      - shipping
+    post:
+      consumes:
+      - application/json
+      description: 'Adds a (country, max_weight_grams) → fee_cny tier. Access: super_admin.'
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Tier to create
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.CreateShippingTierRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ShippingFeeTier'
+        "400":
+          description: Invalid body / validation
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs settings.manage)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a shipping fee tier (admin)
+      tags:
+      - admin
+      - shipping
+  /admin/shipping/tiers/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: 'Removes a shipping tier. Access: super_admin (settings.manage).'
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Tier ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content (empty body)
+        "400":
+          description: Invalid tier ID
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs settings.manage)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Shipping tier not found
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a shipping fee tier (admin)
+      tags:
+      - admin
+      - shipping
+    put:
+      consumes:
+      - application/json
+      description: |-
+        Replaces the (country, max_weight_grams, fee_cny) of a tier.
+        Access: super_admin (settings.manage).
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Tier ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Full replacement of tier fields
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.UpdateShippingTierRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ShippingFeeTier'
+        "400":
+          description: Invalid tier ID / body / validation
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs settings.manage)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Shipping tier not found
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a shipping fee tier (admin)
+      tags:
+      - admin
+      - shipping
+  /artists:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Paginated list of published artists in the requested locale.
+        Locale resolution: ?locale= overrides Accept-Language.
+      parameters:
+      - default: '"en-US"'
+        description: BCP 47 locale (e.g. en-US). Overrides Accept-Language.
+        in: query
+        name: locale
+        type: string
+      - default: 1
+        description: Page number (1-based)
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Page size (max 100)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.PaginatedResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.Artist'
+                  type: array
+              type: object
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      summary: List published artists
+      tags:
+      - catalog
+      - artists
+  /artists/{slug}:
+    get:
+      consumes:
+      - application/json
+      description: Fetches a single published artist by its locale-specific slug.
+      parameters:
+      - description: Artist slug (locale-specific)
+        in: path
+        name: slug
+        required: true
+        type: string
+      - default: '"en-US"'
+        description: BCP 47 locale (e.g. en-US). Overrides Accept-Language.
+        in: query
+        name: locale
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.Artist'
+        "400":
+          description: Missing slug
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Artist not found (or not published in this locale)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      summary: Get an artist by slug
+      tags:
+      - catalog
+      - artists
   /cart:
     get:
       consumes:
@@ -696,6 +2951,39 @@ paths:
       tags:
       - catalog
       - products
+  /catalog/products/{id}/media:
+    get:
+      consumes:
+      - application/json
+      description: Returns a product's ordered gallery for the storefront. No auth.
+      parameters:
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ProductMediaItem'
+            type: array
+        "400":
+          description: Invalid product id
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      summary: List a product's media gallery (public)
+      tags:
+      - catalog
+      - products
+      - media
   /catalog/products/{slug}:
     get:
       consumes:
@@ -771,6 +3059,829 @@ paths:
       tags:
       - catalog
       - tags
+  /certificates/{code}:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Public authenticity-certificate lookup by its JDZ-<6-base32> code
+        (the QR target). Returns the cert + product/artist display info +
+        the provenance chain. No auth.
+      parameters:
+      - description: Certificate code (JDZ-<6-base32>)
+        in: path
+        name: code
+        required: true
+        type: string
+      - default: '"en-US"'
+        description: BCP 47 locale (e.g. en-US). Overrides Accept-Language.
+        in: query
+        name: locale
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.Certificate'
+        "400":
+          description: Missing code
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Certificate not found
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      summary: Get a certificate by code (public)
+      tags:
+      - certificates
+  /certificates/{code}/pdf:
+    get:
+      description: |-
+        Serves the pre-rendered certificate PDF (302 redirect to the
+        storage/CDN URL). ?download=1 forces an attachment; otherwise inline.
+        404 when the PDF has not yet been generated (local mode / pre-render).
+        No auth.
+      parameters:
+      - description: Certificate code (JDZ-<6-base32>)
+        in: path
+        name: code
+        required: true
+        type: string
+      - description: '1 = force Content-Disposition: attachment'
+        in: query
+        name: download
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "302":
+          description: Redirect to the PDF storage URL
+          schema:
+            type: string
+        "400":
+          description: Missing code
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Certificate not found / PDF not yet generated
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      summary: Download a certificate PDF (public)
+      tags:
+      - certificates
+  /certificates/{code}/qr:
+    get:
+      description: |-
+        Renders a QR PNG encoding the public certificate URL on-demand.
+        Returns image/png (cached 24h; QR is stable per code). No auth.
+      parameters:
+      - description: Certificate code (JDZ-<6-base32>)
+        in: path
+        name: code
+        required: true
+        type: string
+      produces:
+      - image/png
+      responses:
+        "200":
+          description: QR PNG image
+          schema:
+            type: file
+        "400":
+          description: Missing code
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Certificate not found
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      summary: Get a certificate's QR code (public)
+      tags:
+      - certificates
+  /checkout:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Converts the signed-in user's cart into an order: authoritative
+        atomic stock decrement, FX-snapshot of presentment + CNY totals,
+        address snapshot, shipping calculation. Returns the created
+        order (with a hosted checkout URL in sandbox/live mode; empty
+        in mock mode where the order auto-succeeds).
+        Currency defaults to the user's preferred_currency (or USD).
+        Gateway required in sandbox/live (airwallex|paypal); ignored in mock.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Checkout details (address must belong to the user)
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.CheckoutRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.Order'
+        "400":
+          description: Invalid body / validation / empty cart / unshippable / overweight
+            / unsupported currency
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Address not found
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "409":
+          description: Insufficient stock to place the order
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Place an order from the cart
+      tags:
+      - orders
+      - checkout
+  /orders:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Paginated list of the signed-in user's orders (header only;
+        items loaded on detail view).
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - default: 1
+        description: Page number (1-based)
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Page size (max 100)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.PaginatedResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.Order'
+                  type: array
+              type: object
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List the current user's orders
+      tags:
+      - orders
+  /orders/{id}:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Fetches a single order (with items) owned by the signed-in user.
+        An order not owned by the user returns 404 (no cross-user access).
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Order ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.Order'
+        "400":
+          description: Invalid order ID
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Order not found (or not owned by user)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get one of the current user's orders
+      tags:
+      - orders
+  /orders/{id}/cancel:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Cancels the signed-in user's order. Only unpaid (status=created)
+        orders can be cancelled; any other status returns 409.
+        Body {reason} is optional.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Order ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Optional cancel reason
+        in: body
+        name: body
+        schema:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.CancelOrderRequest'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content (empty body)
+        "400":
+          description: Invalid order ID
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Order not found (or not owned by user)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "409":
+          description: Only unpaid orders can be cancelled
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Cancel an unpaid order
+      tags:
+      - orders
+  /profile/addresses:
+    get:
+      consumes:
+      - application/json
+      description: Returns all shipping addresses for the signed-in user.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: '{data: []models.UserAddress}'
+          schema:
+            type: object
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List the current user's shipping addresses
+      tags:
+      - profile
+      - addresses
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Adds a shipping address to the signed-in user's address book.
+        Set is_default=true to also make it the default.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Address to create (country is ISO 3166-1 alpha-2)
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.CreateAddressRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.UserAddress'
+        "400":
+          description: Invalid body / validation
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a shipping address
+      tags:
+      - profile
+      - addresses
+  /profile/addresses/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Removes one of the signed-in user's addresses.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Address ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content (empty body)
+        "400":
+          description: Invalid address ID
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Address not found (or not owned by user)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a shipping address
+      tags:
+      - profile
+      - addresses
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Fetches one of the signed-in user's addresses by ID. An address
+        not owned by the user returns 404 (no cross-user access).
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Address ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.UserAddress'
+        "400":
+          description: Invalid address ID
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Address not found (or not owned by user)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get one shipping address
+      tags:
+      - profile
+      - addresses
+    put:
+      consumes:
+      - application/json
+      description: |-
+        Replaces all editable fields of an address. is_default is honoured
+        here too (so a full-replace client can set it in one call), though
+        it's also manageable via the set-default endpoint.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Address ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Full replacement of editable fields
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.UpdateAddressRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.UserAddress'
+        "400":
+          description: Invalid address ID / body / validation
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Address not found (or not owned by user)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Replace a shipping address (PUT semantics)
+      tags:
+      - profile
+      - addresses
+  /profile/addresses/{id}/default:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Marks one of the signed-in user's addresses as the default
+        (used as the checkout prefill).
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Address ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: '{message: \"Default address updated\"}'
+          schema:
+            type: object
+        "400":
+          description: Invalid address ID
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Address not found (or not owned by user)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Set the default shipping address
+      tags:
+      - profile
+      - addresses
+  /shipping/quote:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Public preview of the shipping fee for a country + packed weight,
+        computed from the shipping_fee_tiers table. Returns shippable=false
+        (with a reason) for unshippable countries or overweight packages.
+      parameters:
+      - description: Destination country (ISO 3166-1 alpha-2)
+        in: query
+        name: country
+        required: true
+        type: string
+      - description: Packed weight in grams
+        in: query
+        name: weight
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ShippingQuoteResponse'
+        "400":
+          description: Invalid country (must be 2 letters) / weight (must be non-negative
+            grams)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      summary: Get a shipping quote
+      tags:
+      - shipping
+  /webhooks/airwallex:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Receives Airwallex payment events. Verifies the signature via
+        the gateway, then acks 200 immediately (enqueue-and-ack). A
+        signature mismatch returns 400. Idempotent on the idempotency_key.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK (event acknowledged + enqueued)
+        "400":
+          description: Webhook signature verification failed
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "503":
+          description: Payment gateway not configured
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      summary: Airwallex webhook
+      tags:
+      - webhooks
+      - payments
+  /webhooks/paypal:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Receives PayPal payment events. Verifies the signature via the
+        gateway, then acks 200 immediately (enqueue-and-ack). A signature
+        mismatch returns 400. Idempotent on the idempotency_key.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK (event acknowledged + enqueued)
+        "400":
+          description: Webhook signature verification failed
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "503":
+          description: Payment gateway not configured
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      summary: PayPal webhook
+      tags:
+      - webhooks
+      - payments
+  /wishlist:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Paginated list of the signed-in user's favorited SKUs, enriched
+        with the parent product's display info for the requested locale.
+        Locale resolution: ?locale= overrides Accept-Language.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - default: '"en-US"'
+        description: BCP 47 locale (e.g. en-US). Overrides Accept-Language.
+        in: query
+        name: locale
+        type: string
+      - default: 1
+        description: Page number (1-based)
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Page size (max 100)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.PaginatedResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.WishlistItem'
+                  type: array
+              type: object
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List the current user's wishlist
+      tags:
+      - wishlist
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Favorites a SKU. Idempotent: favoriting an already-favorited
+        SKU is a no-op (still returns 201). A nonexistent SKU returns 404.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: SKU to favorite
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.AddWishlistRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created (empty body)
+        "400":
+          description: Invalid body / validation
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: SKU not found
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Add a SKU to the wishlist
+      tags:
+      - wishlist
+  /wishlist/{sku_id}:
+    delete:
+      consumes:
+      - application/json
+      description: Unfavorites a SKU. Removing a SKU not in the wishlist returns 404.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: SKU ID
+        in: path
+        name: sku_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content (empty body)
+        "400":
+          description: Invalid SKU ID
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "404":
+          description: Wishlist item not found
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Remove a SKU from the wishlist
+      tags:
+      - wishlist
 securityDefinitions:
   BearerAuth:
     description: '"Bearer <access_token>" — JWT access token from POST /auth/login

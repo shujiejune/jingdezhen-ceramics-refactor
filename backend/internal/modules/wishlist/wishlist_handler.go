@@ -40,6 +40,23 @@ func requestLocale(c *fiber.Ctx) string {
 }
 
 // GetWishlist: GET /wishlist?locale=en-US&page=&limit=
+//
+// @Summary      List the current user's wishlist
+// @Description  Paginated list of the signed-in user's favorited SKUs, enriched
+// @Description  with the parent product's display info for the requested locale.
+// @Description  Locale resolution: ?locale= overrides Accept-Language.
+// @Tags         wishlist
+// @Accept       json
+// @Produce      json
+// @Param        Authorization header string true "Bearer <access_token>"
+// @Param        locale query string false "BCP 47 locale (e.g. en-US). Overrides Accept-Language." default("en-US")
+// @Param        page   query int    false "Page number (1-based)" default(1)
+// @Param        limit  query int    false "Page size (max 100)" default(20)
+// @Success      200 {object} models.PaginatedResponse{data=[]models.WishlistItem}
+// @Failure      401 {object} models.ErrorResponse "Authentication required"
+// @Failure      500 {object} models.ErrorResponse "Internal error"
+// @Security     BearerAuth
+// @Router       /wishlist [get]
 func (h *Handler) GetWishlist(c *fiber.Ctx) error {
 	userID, err := utils.GetUserIDFromContext(c)
 	if err != nil {
@@ -56,6 +73,22 @@ func (h *Handler) GetWishlist(c *fiber.Ctx) error {
 }
 
 // AddToWishlist: POST /wishlist (body: {"sku_id": 123})
+//
+// @Summary      Add a SKU to the wishlist
+// @Description  Favorites a SKU. Idempotent: favoriting an already-favorited
+// @Description  SKU is a no-op (still returns 201). A nonexistent SKU returns 404.
+// @Tags         wishlist
+// @Accept       json
+// @Produce      json
+// @Param        Authorization header string true "Bearer <access_token>"
+// @Param        body body models.AddWishlistRequest true "SKU to favorite"
+// @Success      201 "Created (empty body)"
+// @Failure      400 {object} models.ErrorResponse "Invalid body / validation"
+// @Failure      401 {object} models.ErrorResponse "Authentication required"
+// @Failure      404 {object} models.ErrorResponse "SKU not found"
+// @Failure      500 {object} models.ErrorResponse "Internal error"
+// @Security     BearerAuth
+// @Router       /wishlist [post]
 func (h *Handler) AddToWishlist(c *fiber.Ctx) error {
 	userID, err := utils.GetUserIDFromContext(c)
 	if err != nil {
@@ -79,6 +112,21 @@ func (h *Handler) AddToWishlist(c *fiber.Ctx) error {
 }
 
 // RemoveFromWishlist: DELETE /wishlist/:sku_id
+//
+// @Summary      Remove a SKU from the wishlist
+// @Description  Unfavorites a SKU. Removing a SKU not in the wishlist returns 404.
+// @Tags         wishlist
+// @Accept       json
+// @Produce      json
+// @Param        Authorization header string true "Bearer <access_token>"
+// @Param        sku_id path int true "SKU ID"
+// @Success      204 "No Content (empty body)"
+// @Failure      400 {object} models.ErrorResponse "Invalid SKU ID"
+// @Failure      401 {object} models.ErrorResponse "Authentication required"
+// @Failure      404 {object} models.ErrorResponse "Wishlist item not found"
+// @Failure      500 {object} models.ErrorResponse "Internal error"
+// @Security     BearerAuth
+// @Router       /wishlist/{sku_id} [delete]
 func (h *Handler) RemoveFromWishlist(c *fiber.Ctx) error {
 	userID, err := utils.GetUserIDFromContext(c)
 	if err != nil {

@@ -31,6 +31,23 @@ func NewHandler(service ServiceInterface, store storage.Store) *Handler {
 // PresignUpload: POST /admin/media/presign
 // Body: {kind, mime, size}. Returns a presigned PUT URL (OSS) or, in local
 // mode, signals the browser to POST the file to /admin/media/upload instead.
+//
+// @Summary      Presign a media upload
+// @Description  Returns a presigned PUT URL (OSS mode) or a local upload URL
+// @Description  (local mode) for the browser to upload a media file to.
+// @Description  Access: content_editor (content.write).
+// @Tags         admin,media
+// @Accept       json
+// @Produce      json
+// @Param        Authorization header string true "Bearer <access_token>"
+// @Param        body body object true "{kind: image|video, mime: string, size: int}"
+// @Success      200 {object} object "{mode: oss|local, upload_url, oss_key, headers, public_url?}"
+// @Failure      400 {object} models.ErrorResponse "Invalid body / validation"
+// @Failure      401 {object} models.ErrorResponse "Authentication required"
+// @Failure      403 {object} models.ErrorResponse "Forbidden (needs content.write)"
+// @Failure      500 {object} models.ErrorResponse "Internal error"
+// @Security     BearerAuth
+// @Router       /admin/media/presign [post]
 func (h *Handler) PresignUpload(c *fiber.Ctx) error {
 	var req struct {
 		Kind string `json:"kind" validate:"required,oneof=image video"`
@@ -78,6 +95,25 @@ func (h *Handler) PresignUpload(c *fiber.Ctx) error {
 // UploadLocal: POST /admin/media/upload (multipart "file") — local-dev only.
 // Stores the file via Store.Put + returns {oss_key, public_url} so the caller
 // can POST /admin/media/assets to register the media_assets row next.
+//
+// @Summary      Upload a media file (local-dev only)
+// @Description  Stores a multipart "file" via the local Store.Put. Returns the
+// @Description  {oss_key, public_url, size} so the caller can register the asset.
+// @Description  Returns 404 in OSS mode (use presign). Access: content_editor.
+// @Tags         admin,media
+// @Accept       multipart/form-data
+// @Produce      json
+// @Param        Authorization header string true "Bearer <access_token>"
+// @Param        file formData file true "Media file"
+// @Param        kind formData string false "image|video (defaults to image)"
+// @Success      200 {object} object "{oss_key, public_url, size}"
+// @Failure      400 {object} models.ErrorResponse "Invalid kind / missing file"
+// @Failure      401 {object} models.ErrorResponse "Authentication required"
+// @Failure      403 {object} models.ErrorResponse "Forbidden (needs content.write)"
+// @Failure      404 {object} models.ErrorResponse "Direct upload is local-dev only; use presign in OSS mode"
+// @Failure      500 {object} models.ErrorResponse "Internal error"
+// @Security     BearerAuth
+// @Router       /admin/media/upload [post]
 func (h *Handler) UploadLocal(c *fiber.Ctx) error {
 	if h.store.Mode() != "local" {
 		return c.Status(fiber.StatusNotFound).JSON(models.ErrorResponse{Message: "Direct upload is local-dev only; use presign in OSS mode"})
@@ -110,6 +146,22 @@ func (h *Handler) UploadLocal(c *fiber.Ctx) error {
 }
 
 // RegisterAsset: POST /admin/media/assets — record an uploaded file.
+//
+// @Summary      Register a media asset
+// @Description  Records an already-uploaded file as a media_assets row (after
+// @Description  the browser has uploaded via presign or local upload). Access: content_editor.
+// @Tags         admin,media
+// @Accept       json
+// @Produce      json
+// @Param        Authorization header string true "Bearer <access_token>"
+// @Param        body body models.RegisterAssetData true "Asset metadata (oss_key, mime, kind, dimensions)"
+// @Success      201 {object} models.MediaAsset
+// @Failure      400 {object} models.ErrorResponse "Invalid body / validation / invalid media kind"
+// @Failure      401 {object} models.ErrorResponse "Authentication required"
+// @Failure      403 {object} models.ErrorResponse "Forbidden (needs content.write)"
+// @Failure      500 {object} models.ErrorResponse "Internal error"
+// @Security     BearerAuth
+// @Router       /admin/media/assets [post]
 func (h *Handler) RegisterAsset(c *fiber.Ctx) error {
 	var data models.RegisterAssetData
 	if err := c.BodyParser(&data); err != nil {
@@ -131,6 +183,23 @@ func (h *Handler) RegisterAsset(c *fiber.Ctx) error {
 }
 
 // ListAssets: GET /admin/media/assets?kind=&page=&limit=
+//
+// @Summary      List media assets (admin)
+// @Description  Paginated list of all media_assets, optionally filtered by kind.
+// @Description  Access: content_editor.
+// @Tags         admin,media
+// @Accept       json
+// @Produce      json
+// @Param        Authorization header string true "Bearer <access_token>"
+// @Param        kind  query string false "Filter by kind (image|video)"
+// @Param        page  query int    false "Page number (1-based)" default(1)
+// @Param        limit query int    false "Page size (max 100)" default(20)
+// @Success      200 {object} object "{data: []models.MediaAsset, page, limit, total}"
+// @Failure      401 {object} models.ErrorResponse "Authentication required"
+// @Failure      403 {object} models.ErrorResponse "Forbidden (needs content.write)"
+// @Failure      500 {object} models.ErrorResponse "Internal error"
+// @Security     BearerAuth
+// @Router       /admin/media/assets [get]
 func (h *Handler) ListAssets(c *fiber.Ctx) error {
 	kind := c.Query("kind")
 	page, limit := utils.GetPageLimit(c)
@@ -145,6 +214,23 @@ func (h *Handler) ListAssets(c *fiber.Ctx) error {
 }
 
 // DeleteAsset: DELETE /admin/media/assets/:id
+//
+// @Summary      Delete a media asset (admin)
+// @Description  Removes a media_assets row (and the underlying object in OSS mode).
+// @Description  Access: content_editor.
+// @Tags         admin,media
+// @Accept       json
+// @Produce      json
+// @Param        Authorization header string true "Bearer <access_token>"
+// @Param        id path int true "Asset ID"
+// @Success      204 "No Content (empty body)"
+// @Failure      400 {object} models.ErrorResponse "Invalid id"
+// @Failure      401 {object} models.ErrorResponse "Authentication required"
+// @Failure      403 {object} models.ErrorResponse "Forbidden (needs content.write)"
+// @Failure      404 {object} models.ErrorResponse "Asset not found"
+// @Failure      500 {object} models.ErrorResponse "Internal error"
+// @Security     BearerAuth
+// @Router       /admin/media/assets/{id} [delete]
 func (h *Handler) DeleteAsset(c *fiber.Ctx) error {
 	id, err := strconv.ParseInt(c.Params("id"), 10, 64)
 	if err != nil {
@@ -163,6 +249,21 @@ func (h *Handler) DeleteAsset(c *fiber.Ctx) error {
 // --- Product gallery ---
 
 // ListProductMedia: GET /admin/products/:id/media
+//
+// @Summary      List a product's media gallery (admin)
+// @Description  Returns a product's ordered gallery. Access: ecommerce_operator.
+// @Tags         admin,products,media
+// @Accept       json
+// @Produce      json
+// @Param        Authorization header string true "Bearer <access_token>"
+// @Param        id path int true "Product ID"
+// @Success      200 {array} models.ProductMediaItem
+// @Failure      400 {object} models.ErrorResponse "Invalid product id"
+// @Failure      401 {object} models.ErrorResponse "Authentication required"
+// @Failure      403 {object} models.ErrorResponse "Forbidden (needs product.write)"
+// @Failure      500 {object} models.ErrorResponse "Internal error"
+// @Security     BearerAuth
+// @Router       /admin/products/{id}/media [get]
 func (h *Handler) ListProductMedia(c *fiber.Ctx) error {
 	productID, err := strconv.ParseInt(c.Params("id"), 10, 64)
 	if err != nil {
@@ -177,6 +278,23 @@ func (h *Handler) ListProductMedia(c *fiber.Ctx) error {
 }
 
 // AttachToProduct: POST /admin/products/:id/media
+//
+// @Summary      Attach a media asset to a product gallery
+// @Description  Attaches a media_assets row to a product's ordered gallery.
+// @Description  sort_order defaults to append-last. Access: ecommerce_operator.
+// @Tags         admin,products,media
+// @Accept       json
+// @Produce      json
+// @Param        Authorization header string true "Bearer <access_token>"
+// @Param        id   path int true "Product ID"
+// @Param        body body models.AttachMediaData true "media_id + optional sort_order + caption"
+// @Success      201 {object} object "{ok: true}"
+// @Failure      400 {object} models.ErrorResponse "Invalid product id / body / validation"
+// @Failure      401 {object} models.ErrorResponse "Authentication required"
+// @Failure      403 {object} models.ErrorResponse "Forbidden (needs product.write)"
+// @Failure      500 {object} models.ErrorResponse "Internal error"
+// @Security     BearerAuth
+// @Router       /admin/products/{id}/media [post]
 func (h *Handler) AttachToProduct(c *fiber.Ctx) error {
 	productID, err := strconv.ParseInt(c.Params("id"), 10, 64)
 	if err != nil {
@@ -197,6 +315,24 @@ func (h *Handler) AttachToProduct(c *fiber.Ctx) error {
 }
 
 // DetachFromProduct: DELETE /admin/products/:id/media/:media_id
+//
+// @Summary      Detach a media asset from a product gallery
+// @Description  Removes a media_assets row from a product's gallery (does not delete the asset).
+// @Description  Access: ecommerce_operator.
+// @Tags         admin,products,media
+// @Accept       json
+// @Produce      json
+// @Param        Authorization header string true "Bearer <access_token>"
+// @Param        id        path int true "Product ID"
+// @Param        media_id  path int true "Media asset ID"
+// @Success      204 "No Content (empty body)"
+// @Failure      400 {object} models.ErrorResponse "Invalid product/media id"
+// @Failure      401 {object} models.ErrorResponse "Authentication required"
+// @Failure      403 {object} models.ErrorResponse "Forbidden (needs product.write)"
+// @Failure      404 {object} models.ErrorResponse "Media not attached to this product"
+// @Failure      500 {object} models.ErrorResponse "Internal error"
+// @Security     BearerAuth
+// @Router       /admin/products/{id}/media/{media_id} [delete]
 func (h *Handler) DetachFromProduct(c *fiber.Ctx) error {
 	productID, err := strconv.ParseInt(c.Params("id"), 10, 64)
 	if err != nil {
@@ -217,6 +353,23 @@ func (h *Handler) DetachFromProduct(c *fiber.Ctx) error {
 }
 
 // ReorderProductMedia: PATCH /admin/products/:id/media/order
+//
+// @Summary      Reorder a product's media gallery
+// @Description  Sets the sort_order for each gallery entry. Body is an array of
+// @Description  {product_media_id, sort_order} pairs. Access: ecommerce_operator.
+// @Tags         admin,products,media
+// @Accept       json
+// @Produce      json
+// @Param        Authorization header string true "Bearer <access_token>"
+// @Param        id   path int true "Product ID"
+// @Param        body body []models.ReorderMediaItem true "Ordered list of {product_media_id, sort_order}"
+// @Success      204 "No Content (empty body)"
+// @Failure      400 {object} models.ErrorResponse "Invalid product id / body / validation"
+// @Failure      401 {object} models.ErrorResponse "Authentication required"
+// @Failure      403 {object} models.ErrorResponse "Forbidden (needs product.write)"
+// @Failure      500 {object} models.ErrorResponse "Internal error"
+// @Security     BearerAuth
+// @Router       /admin/products/{id}/media/order [patch]
 func (h *Handler) ReorderProductMedia(c *fiber.Ctx) error {
 	productID, err := strconv.ParseInt(c.Params("id"), 10, 64)
 	if err != nil {
@@ -240,6 +393,17 @@ func (h *Handler) ReorderProductMedia(c *fiber.Ctx) error {
 
 // PublicListProductMedia: GET /catalog/products/:id/media (public, no auth)
 // Exposes a product's ordered gallery to the storefront.
+//
+// @Summary      List a product's media gallery (public)
+// @Description  Returns a product's ordered gallery for the storefront. No auth.
+// @Tags         catalog,products,media
+// @Accept       json
+// @Produce      json
+// @Param        id path int true "Product ID"
+// @Success      200 {array} models.ProductMediaItem
+// @Failure      400 {object} models.ErrorResponse "Invalid product id"
+// @Failure      500 {object} models.ErrorResponse "Internal error"
+// @Router       /catalog/products/{id}/media [get]
 func (h *Handler) PublicListProductMedia(c *fiber.Ctx) error {
 	productID, err := strconv.ParseInt(c.Params("id"), 10, 64)
 	if err != nil {
