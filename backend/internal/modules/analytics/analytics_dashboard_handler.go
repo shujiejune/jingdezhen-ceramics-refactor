@@ -2,116 +2,14 @@ package analytics
 
 import (
 	"encoding/csv"
-	"errors"
 	"log"
 	"strconv"
-	"time"
 
 	"jingdezhen-ceramics-backend/internal/models"
+	"jingdezhen-ceramics-backend/pkg/utils"
 
 	"github.com/gofiber/fiber/v2"
 )
-
-// maxRangeDays caps the dashboard date range (PRD §3.4.2 custom-range filter).
-// 366 days keeps the response payload bounded + the zero-filled series sane
-// while allowing the `year` preset (which spans 365 raw days + up to 1 day
-// from the inclusive-`to` normalization, i.e. up to 366).
-const maxRangeDays = 366
-
-// errRangeInvalid is returned by parseRange for an unparseable/inverted/oversize
-// range; the handler maps it to 400. Kept package-local (not a domain error in
-// models/errors.go) since it only surfaces as an HTTP 400 from these handlers.
-var errRangeInvalid = errors.New("invalid date range")
-
-// parseRange resolves the dashboard date-range filter (PRD §3.4.2). Supports:
-//   - ?range=day|week|month|quarter|year (server computes [now-start, now))
-//   - ?from=YYYY-MM-DD&to=YYYY-MM-DD  (explicit; from inclusive, to exclusive)
-//
-// Defaults to the last 30 days. The window is returned as UTC start-of-day
-// `from` (inclusive) and exclusive `to` (start-of-day of to+1, or now if `to`
-// is omitted under a preset). Returns ErrValidation on from>to or >365-day span.
-func parseRange(c *fiber.Ctx) (from, to time.Time, err error) {
-	now := time.Now().UTC()
-	preset := c.Query("range")
-	fromStr := c.Query("from")
-	toStr := c.Query("to")
-
-	switch {
-	case preset != "":
-		from, to, err = presetRange(preset, now)
-	case fromStr != "" || toStr != "":
-		from, to, err = explicitRange(fromStr, toStr, now)
-	default:
-		// Last 30 days.
-		to = now
-		from = to.AddDate(0, 0, -30)
-	}
-	if err != nil {
-		return from, to, err
-	}
-
-	// Normalize to UTC day boundaries (inclusive from, exclusive to next day).
-	from = from.UTC().Truncate(24 * time.Hour)
-	if to.IsZero() {
-		to = now
-	}
-	toDay := to.UTC().Truncate(24 * time.Hour)
-	if toDay.Equal(to.UTC()) {
-		// `to` landed exactly on a day boundary → treat as exclusive start of that day.
-		// (The caller passed a bare date, not now.)
-	} else {
-		toDay = toDay.AddDate(0, 0, 1) // include the whole `to` day
-	}
-	to = toDay
-
-	if !to.After(from) {
-		return from, to, errRangeInvalid
-	}
-	if days := int(to.Sub(from) / (24 * time.Hour)); days > maxRangeDays {
-		return from, to, errRangeInvalid
-	}
-	return from, to, nil
-}
-
-// presetRange computes [now-start, now) for a named preset.
-func presetRange(p string, now time.Time) (time.Time, time.Time, error) {
-	to := now
-	var from time.Time
-	switch p {
-	case "day":
-		from = to.AddDate(0, 0, -1)
-	case "week":
-		from = to.AddDate(0, 0, -7)
-	case "month":
-		from = to.AddDate(0, -1, 0)
-	case "quarter":
-		from = to.AddDate(0, -3, 0)
-	case "year":
-		from = to.AddDate(-1, 0, 0)
-	default:
-		return from, to, errRangeInvalid
-	}
-	return from, to, nil
-}
-
-// explicitRange parses YYYY-MM-DD from/to. `to` optional → now.
-func explicitRange(fromStr, toStr string, now time.Time) (time.Time, time.Time, error) {
-	from, err := time.ParseInLocation("2006-01-02", fromStr, time.UTC)
-	if err != nil {
-		return from, now, errRangeInvalid
-	}
-	var to time.Time
-	if toStr == "" {
-		to = now
-	} else {
-		t, err := time.ParseInLocation("2006-01-02", toStr, time.UTC)
-		if err != nil {
-			return from, now, errRangeInvalid
-		}
-		to = t.AddDate(0, 0, 1) // include the whole to-day (make it exclusive)
-	}
-	return from, to, nil
-}
 
 // --- Dashboard handler -------------------------------------------------------
 
@@ -148,7 +46,7 @@ func NewDashboardHandler(service DashboardServiceInterface) *DashboardHandler {
 // @Security     BearerAuth
 // @Router       /admin/analytics/traffic [get]
 func (h *DashboardHandler) Traffic(c *fiber.Ctx) error {
-	from, to, err := parseRange(c)
+	from, to, err := utils.ParseRange(c)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(models.ErrorResponse{Message: "Invalid date range"})
 	}
@@ -185,7 +83,7 @@ func (h *DashboardHandler) Traffic(c *fiber.Ctx) error {
 // @Security     BearerAuth
 // @Router       /admin/analytics/sales [get]
 func (h *DashboardHandler) Sales(c *fiber.Ctx) error {
-	from, to, err := parseRange(c)
+	from, to, err := utils.ParseRange(c)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(models.ErrorResponse{Message: "Invalid date range"})
 	}
@@ -223,7 +121,7 @@ func (h *DashboardHandler) Sales(c *fiber.Ctx) error {
 // @Security     BearerAuth
 // @Router       /admin/analytics/funnel [get]
 func (h *DashboardHandler) Funnel(c *fiber.Ctx) error {
-	from, to, err := parseRange(c)
+	from, to, err := utils.ParseRange(c)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(models.ErrorResponse{Message: "Invalid date range"})
 	}

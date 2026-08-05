@@ -4,13 +4,15 @@ import (
 	"testing"
 	"time"
 
+	"jingdezhen-ceramics-backend/pkg/utils"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestParseRange_Default30Days(t *testing.T) {
 	c := newTestCtx(t, "", "", "")
-	from, to, err := parseRange(c)
+	from, to, err := utils.ParseRange(c)
 	require.NoError(t, err)
 	span := to.Sub(from)
 	assert.GreaterOrEqual(t, span, 30*24*time.Hour, "default range >= 30 days")
@@ -29,7 +31,7 @@ func TestParseRange_Presets(t *testing.T) {
 	for preset, minDays := range cases {
 		t.Run(preset, func(t *testing.T) {
 			c := newTestCtx(t, "", "", preset)
-			from, to, err := parseRange(c)
+			from, to, err := utils.ParseRange(c)
 			require.NoError(t, err)
 			days := to.Sub(from) / (24 * time.Hour)
 			assert.GreaterOrEqualf(t, int(days), minDays, "preset %s span too short", preset)
@@ -39,13 +41,13 @@ func TestParseRange_Presets(t *testing.T) {
 
 func TestParseRange_PresetInvalid(t *testing.T) {
 	c := newTestCtx(t, "", "", "banana")
-	_, _, err := parseRange(c)
+	_, _, err := utils.ParseRange(c)
 	require.Error(t, err)
 }
 
 func TestParseRange_Explicit(t *testing.T) {
 	c := newTestCtx(t, "2026-08-01", "2026-08-10", "")
-	from, to, err := parseRange(c)
+	from, to, err := utils.ParseRange(c)
 	require.NoError(t, err)
 	assert.Equal(t, "2026-08-01", dateDay(from))
 	assert.Equal(t, "2026-08-11", dateDay(to), "to-day is inclusive → exclusive next day")
@@ -54,7 +56,7 @@ func TestParseRange_Explicit(t *testing.T) {
 
 func TestParseRange_ExplicitFromOnly(t *testing.T) {
 	c := newTestCtx(t, "2026-08-01", "", "")
-	from, to, err := parseRange(c)
+	from, to, err := utils.ParseRange(c)
 	require.NoError(t, err)
 	assert.Equal(t, "2026-08-01", dateDay(from))
 	// to defaults to now → end-of-today boundary.
@@ -63,14 +65,14 @@ func TestParseRange_ExplicitFromOnly(t *testing.T) {
 
 func TestParseRange_InvertedIsInvalid(t *testing.T) {
 	c := newTestCtx(t, "2026-08-10", "2026-08-01", "")
-	_, _, err := parseRange(c)
+	_, _, err := utils.ParseRange(c)
 	require.Error(t, err)
 }
 
 func TestParseRange_SameDayIsInvalid(t *testing.T) {
 	// from == to (after normalization) → to not After(from) → invalid.
 	c := newTestCtx(t, "2026-08-10", "2026-08-10", "")
-	_, _, err := parseRange(c)
+	_, _, err := utils.ParseRange(c)
 	// 2026-08-10 inclusive → to becomes 2026-08-11, so from<to → VALID actually.
 	require.NoError(t, err, "same from/to day = one full day (valid)")
 }
@@ -78,20 +80,20 @@ func TestParseRange_SameDayIsInvalid(t *testing.T) {
 func TestParseRange_OverMaxInvalid(t *testing.T) {
 	// 367 days > maxRangeDays (366).
 	c := newTestCtx(t, "2025-01-01", "2026-01-02", "")
-	_, _, err := parseRange(c)
+	_, _, err := utils.ParseRange(c)
 	require.Error(t, err, "range > 366 days is rejected")
 }
 
 func TestParseRange_AtMaxValid(t *testing.T) {
 	// exactly 366 days (the year preset span).
 	c := newTestCtx(t, "2025-01-01", "2026-01-01", "")
-	_, _, err := parseRange(c)
+	_, _, err := utils.ParseRange(c)
 	require.NoError(t, err, "exactly 366 days is valid")
 }
 
 func TestParseRange_BadDateFormat(t *testing.T) {
 	c := newTestCtx(t, "not-a-date", "", "")
-	_, _, err := parseRange(c)
+	_, _, err := utils.ParseRange(c)
 	require.Error(t, err)
 }
 

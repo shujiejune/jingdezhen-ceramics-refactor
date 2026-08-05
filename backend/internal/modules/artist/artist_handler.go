@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"jingdezhen-ceramics-backend/internal/models"
+	"jingdezhen-ceramics-backend/internal/modules/audit"
 	"jingdezhen-ceramics-backend/internal/platform/i18ncontent"
 	"jingdezhen-ceramics-backend/pkg/utils"
 
@@ -17,11 +18,15 @@ import (
 type Handler struct {
 	service  ServiceInterface
 	validate *validator.Validate
+	audit    *audit.Helper
 }
 
 func NewHandler(service ServiceInterface) *Handler {
 	return &Handler{service: service, validate: validator.New()}
 }
+
+// SetAuditLogger injects the audit logger (PRD §3.1.1). Nil = no-op (tests).
+func (h *Handler) SetAuditLogger(l audit.Logger) { h.audit = audit.NewHelper(l) }
 
 // requestLocale returns the locale from ?locale= query param, falling back to
 // Accept-Language header. TDD §5.1: ?locale= overrides Accept-Language.
@@ -301,6 +306,9 @@ func (h *Handler) adminTransition(c *fiber.Ctx, to models.ContentStatus) error {
 		log.Printf("Handler.adminTransition: %v", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(models.ErrorResponse{Message: "Failed to transition artist"})
 	}
+	if act := audit.ActionForTransition(to); act != "" {
+		h.audit.Log(c, act, models.AuditEntityArtist, strconv.FormatInt(id, 10), map[string]any{"locale": body.Locale, "to": string(to)})
+	}
 	return c.Status(fiber.StatusOK).JSON(artist)
 }
 
@@ -429,5 +437,6 @@ func (h *Handler) AdminDeleteArtist(c *fiber.Ctx) error {
 		log.Printf("Handler.AdminDeleteArtist: %v", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(models.ErrorResponse{Message: "Failed to delete artist"})
 	}
+	h.audit.Log(c, models.AuditActionArtistDelete, models.AuditEntityArtist, strconv.FormatInt(id, 10), nil)
 	return c.SendStatus(fiber.StatusNoContent)
 }

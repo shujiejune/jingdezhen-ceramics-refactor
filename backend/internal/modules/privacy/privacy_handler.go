@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"jingdezhen-ceramics-backend/internal/models"
+	"jingdezhen-ceramics-backend/internal/modules/audit"
 	"jingdezhen-ceramics-backend/pkg/utils"
 
 	"github.com/go-playground/validator/v10"
@@ -16,11 +17,15 @@ import (
 type Handler struct {
 	service  ServiceInterface
 	validate *validator.Validate
+	audit    *audit.Helper
 }
 
 func NewHandler(service ServiceInterface) *Handler {
 	return &Handler{service: service, validate: validator.New()}
 }
+
+// SetAuditLogger injects the audit logger (PRD §3.1.1). Nil = no-op (tests).
+func (h *Handler) SetAuditLogger(l audit.Logger) { h.audit = audit.NewHelper(l) }
 
 // ExportUserData: GET /profile/export?locale=en-US
 //
@@ -109,5 +114,6 @@ func (h *Handler) DeleteAccount(c *fiber.Ctx) error {
 		log.Printf("Handler.DeleteAccount: %v", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(models.ErrorResponse{Message: "Failed to delete account"})
 	}
+	h.audit.Log(c, models.AuditActionPrivacyDeleteAccount, models.AuditEntityAccount, userID, nil)
 	return c.SendStatus(fiber.StatusNoContent)
 }

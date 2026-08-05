@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"jingdezhen-ceramics-backend/internal/models"
+	"jingdezhen-ceramics-backend/internal/modules/audit"
 	"jingdezhen-ceramics-backend/internal/platform/i18ncontent"
 	"jingdezhen-ceramics-backend/pkg/utils"
 
@@ -28,11 +29,15 @@ type Handler struct {
 	service        ServiceInterface
 	validate       *validator.Validate
 	priceConverter PriceConverter // optional; nil => no ?currency= conversion
+	audit          *audit.Helper
 }
 
 func NewHandler(service ServiceInterface) *Handler {
 	return &Handler{service: service, validate: validator.New()}
 }
+
+// SetAuditLogger injects the audit logger (PRD §3.1.1). Nil = no-op (tests).
+func (h *Handler) SetAuditLogger(l audit.Logger) { h.audit = audit.NewHelper(l) }
 
 // SetPriceConverter injects the FX converter (called in main.go after both
 // the product and FX services are built). Kept separate from NewHandler so the
@@ -511,6 +516,9 @@ func (h *Handler) adminTransition(c *fiber.Ctx, to models.ContentStatus) error {
 		log.Printf("Handler.adminTransition: %v", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(models.ErrorResponse{Message: "Failed to transition product"})
 	}
+	if act := audit.ActionForTransition(to); act != "" {
+		h.audit.Log(c, act, models.AuditEntityProduct, strconv.FormatInt(id, 10), map[string]any{"locale": body.Locale, "to": string(to)})
+	}
 	return c.Status(fiber.StatusOK).JSON(product)
 }
 
@@ -639,6 +647,7 @@ func (h *Handler) AdminDeleteProduct(c *fiber.Ctx) error {
 		log.Printf("Handler.AdminDeleteProduct: %v", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(models.ErrorResponse{Message: "Failed to delete product"})
 	}
+	h.audit.Log(c, models.AuditActionProductDelete, models.AuditEntityProduct, strconv.FormatInt(id, 10), nil)
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
@@ -751,6 +760,7 @@ func (h *Handler) AdminDeleteSKU(c *fiber.Ctx) error {
 		log.Printf("Handler.AdminDeleteSKU: %v", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(models.ErrorResponse{Message: "Failed to delete SKU"})
 	}
+	h.audit.Log(c, models.AuditActionSKUDelete, models.AuditEntitySKU, strconv.FormatInt(skuID, 10), nil)
 	return c.SendStatus(fiber.StatusNoContent)
 }
 

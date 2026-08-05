@@ -1056,6 +1056,125 @@ const docTemplate = `{
                 }
             }
         },
+        "/admin/audit-log": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns the admin audit log (sensitive actions) with filters + pagination.\nAccess: super_admin (settings.manage). Supports ?format=csv for export.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin",
+                    "audit"
+                ],
+                "summary": "List audit log entries",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer \u003caccess_token\u003e",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by actor (UUID)",
+                        "name": "actor_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by action (e.g. order.refund)",
+                        "name": "action",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by entity type (e.g. order)",
+                        "name": "entity_type",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by entity ID",
+                        "name": "entity_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "day|week|month|quarter|year",
+                        "name": "range",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "YYYY-MM-DD (inclusive)",
+                        "name": "from",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "YYYY-MM-DD (inclusive)",
+                        "name": "to",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number (default 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size (default 20, max 100)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "csv = stream a flattened CSV",
+                        "name": "format",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "data: []models.AuditLog",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.PaginatedResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid date range",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden (needs settings.manage)",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/admin/ceramicstory": {
             "get": {
                 "security": [

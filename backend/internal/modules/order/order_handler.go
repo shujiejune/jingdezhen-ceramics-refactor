@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"jingdezhen-ceramics-backend/internal/models"
+	"jingdezhen-ceramics-backend/internal/modules/audit"
 	"jingdezhen-ceramics-backend/pkg/utils"
 
 	"github.com/go-playground/validator/v10"
@@ -25,11 +26,15 @@ type PriceConverter interface {
 type Handler struct {
 	service  ServiceInterface
 	validate *validator.Validate
+	audit    *audit.Helper
 }
 
 func NewHandler(service ServiceInterface) *Handler {
 	return &Handler{service: service, validate: validator.New()}
 }
+
+// SetAuditLogger injects the audit logger (PRD §3.1.1). Nil = no-op (tests).
+func (h *Handler) SetAuditLogger(l audit.Logger) { h.audit = audit.NewHelper(l) }
 
 func requestLocale(c *fiber.Ctx) string {
 	loc := c.Query("locale")
@@ -362,6 +367,8 @@ func (h *Handler) Refund(c *fiber.Ctx) error {
 	if err := h.service.Refund(c.Context(), id, req); err != nil {
 		return mapOrderErr(c, err)
 	}
+	h.audit.Log(c, models.AuditActionOrderRefund, models.AuditEntityOrder, strconv.FormatInt(id, 10),
+		map[string]any{"reason": req.Reason})
 	return c.SendStatus(fiber.StatusNoContent)
 }
 

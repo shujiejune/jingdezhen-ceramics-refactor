@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"jingdezhen-ceramics-backend/internal/models"
+	"jingdezhen-ceramics-backend/internal/modules/audit"
 	"jingdezhen-ceramics-backend/pkg/adapters/storage"
 	"jingdezhen-ceramics-backend/pkg/utils"
 
@@ -22,11 +23,15 @@ type Handler struct {
 	service  ServiceInterface
 	store    storage.Store // for Mode() check + PresignUpload
 	validate *validator.Validate
+	audit    *audit.Helper
 }
 
 func NewHandler(service ServiceInterface, store storage.Store) *Handler {
 	return &Handler{service: service, store: store, validate: validator.New()}
 }
+
+// SetAuditLogger injects the audit logger (PRD §3.1.1). Nil = no-op (tests).
+func (h *Handler) SetAuditLogger(l audit.Logger) { h.audit = audit.NewHelper(l) }
 
 // PresignUpload: POST /admin/media/presign
 // Body: {kind, mime, size}. Returns a presigned PUT URL (OSS) or, in local
@@ -243,6 +248,7 @@ func (h *Handler) DeleteAsset(c *fiber.Ctx) error {
 		log.Printf("Handler.DeleteAsset: %v", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(models.ErrorResponse{Message: "Failed to delete asset"})
 	}
+	h.audit.Log(c, models.AuditActionMediaDelete, models.AuditEntityMediaAsset, strconv.FormatInt(id, 10), nil)
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
@@ -349,6 +355,7 @@ func (h *Handler) DetachFromProduct(c *fiber.Ctx) error {
 		log.Printf("Handler.DetachFromProduct: %v", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(models.ErrorResponse{Message: "Failed to detach media"})
 	}
+	h.audit.Log(c, models.AuditActionMediaDelete, models.AuditEntityMediaAsset, strconv.FormatInt(mediaID, 10), map[string]any{"product_id": productID})
 	return c.SendStatus(fiber.StatusNoContent)
 }
 

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"jingdezhen-ceramics-backend/internal/models"
+	"jingdezhen-ceramics-backend/internal/modules/audit"
 	"jingdezhen-ceramics-backend/pkg/adapters/storage"
 	"jingdezhen-ceramics-backend/pkg/utils"
 
@@ -21,11 +22,15 @@ type Handler struct {
 	service  ServiceInterface
 	store    storage.Store // resolves quote pdf_key → public URL (local path or CDN)
 	validate *validator.Validate
+	audit    *audit.Helper
 }
 
 func NewHandler(service ServiceInterface, store storage.Store) *Handler {
 	return &Handler{service: service, store: store, validate: validator.New()}
 }
+
+// SetAuditLogger injects the audit logger (PRD §3.1.1). Nil = no-op (tests).
+func (h *Handler) SetAuditLogger(l audit.Logger) { h.audit = audit.NewHelper(l) }
 
 // requestLocale returns ?locale= or falls back to Accept-Language (mirrors order).
 func requestLocale(c *fiber.Ctx) string {
@@ -506,6 +511,7 @@ func (h *Handler) AdminCancel(c *fiber.Ctx) error {
 	if err := h.service.CancelByStaff(c.Context(), id, req); err != nil {
 		return mapItinAdminErr(c, err, "AdminCancel")
 	}
+	h.audit.Log(c, models.AuditActionItineraryCancel, models.AuditEntityItineraryRequest, strconv.FormatInt(id, 10), map[string]any{"reason": req.Reason})
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
@@ -544,6 +550,7 @@ func (h *Handler) AdminAssign(c *fiber.Ctx) error {
 	if err := h.service.Assign(c.Context(), id, req); err != nil {
 		return mapItinAdminErr(c, err, "AdminAssign")
 	}
+	h.audit.Log(c, models.AuditActionItineraryAssign, models.AuditEntityItineraryRequest, strconv.FormatInt(id, 10), map[string]any{"assigned_to": req.AssigneeID})
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
@@ -900,6 +907,7 @@ func (h *Handler) AdminDeleteOptionRate(c *fiber.Ctx) error {
 	if err := h.service.DeleteOptionRate(c.Context(), id); err != nil {
 		return mapOptionRateErr(c, err, "AdminDeleteOptionRate")
 	}
+	h.audit.Log(c, models.AuditActionOptionRateDelete, models.AuditEntityOptionRate, strconv.FormatInt(id, 10), nil)
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
@@ -1106,6 +1114,7 @@ func (h *Handler) AdminConfirm(c *fiber.Ctx) error {
 	if err := h.service.Confirm(c.Context(), id); err != nil {
 		return mapItinAdminErr(c, err, "AdminConfirm")
 	}
+	h.audit.Log(c, models.AuditActionItineraryConfirm, models.AuditEntityItineraryRequest, strconv.FormatInt(id, 10), nil)
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
@@ -1143,5 +1152,6 @@ func (h *Handler) AdminRefundDeposit(c *fiber.Ctx) error {
 	if err := h.service.RefundDeposit(c.Context(), id, req); err != nil {
 		return mapItinAdminErr(c, err, "AdminRefundDeposit")
 	}
+	h.audit.Log(c, models.AuditActionItineraryRefundDeposit, models.AuditEntityItineraryRequest, strconv.FormatInt(id, 10), nil)
 	return c.SendStatus(fiber.StatusNoContent)
 }

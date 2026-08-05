@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"jingdezhen-ceramics-backend/internal/models"
+	"jingdezhen-ceramics-backend/internal/modules/audit"
 	"jingdezhen-ceramics-backend/pkg/utils"
 
 	"github.com/go-playground/validator/v10"
@@ -16,6 +17,7 @@ import (
 type Handler struct {
 	service  ServiceInterface
 	validate *validator.Validate // For request body validation
+	audit    *audit.Helper
 }
 
 // NewHandler creates a new user handler.
@@ -26,6 +28,9 @@ func NewHandler(service ServiceInterface) *Handler {
 		validate: validator.New(),
 	}
 }
+
+// SetAuditLogger injects the audit logger (PRD §3.1.1). Nil = no-op (tests).
+func (h *Handler) SetAuditLogger(l audit.Logger) { h.audit = audit.NewHelper(l) }
 
 // Signup: POST /auth/signup (public). Creates an inactive user + sends activation email.
 //
@@ -661,5 +666,6 @@ func (h *Handler) AdminAssignRole(c *fiber.Ctx) error {
 		log.Printf("Handler.AdminAssignRole: %v", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(models.ErrorResponse{Message: "Failed to assign role"})
 	}
+	h.audit.Log(c, models.AuditActionRoleAssign, models.AuditEntityUser, targetUserID, map[string]any{"role": req.Role})
 	return c.Status(fiber.StatusOK).JSON(map[string]string{"message": "User role updated successfully"})
 }

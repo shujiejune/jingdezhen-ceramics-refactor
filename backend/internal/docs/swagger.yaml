@@ -2921,6 +2921,86 @@ paths:
       tags:
       - admin
       - artists
+  /admin/audit-log:
+    get:
+      description: |-
+        Returns the admin audit log (sensitive actions) with filters + pagination.
+        Access: super_admin (settings.manage). Supports ?format=csv for export.
+      parameters:
+      - description: Bearer <access_token>
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Filter by actor (UUID)
+        in: query
+        name: actor_id
+        type: string
+      - description: Filter by action (e.g. order.refund)
+        in: query
+        name: action
+        type: string
+      - description: Filter by entity type (e.g. order)
+        in: query
+        name: entity_type
+        type: string
+      - description: Filter by entity ID
+        in: query
+        name: entity_id
+        type: string
+      - description: day|week|month|quarter|year
+        in: query
+        name: range
+        type: string
+      - description: YYYY-MM-DD (inclusive)
+        in: query
+        name: from
+        type: string
+      - description: YYYY-MM-DD (inclusive)
+        in: query
+        name: to
+        type: string
+      - description: Page number (default 1)
+        in: query
+        name: page
+        type: integer
+      - description: Page size (default 20, max 100)
+        in: query
+        name: limit
+        type: integer
+      - description: csv = stream a flattened CSV
+        in: query
+        name: format
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'data: []models.AuditLog'
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.PaginatedResponse'
+        "400":
+          description: Invalid date range
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "401":
+          description: Authentication required
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "403":
+          description: Forbidden (needs settings.manage)
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+        "500":
+          description: Internal error
+          schema:
+            $ref: '#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List audit log entries
+      tags:
+      - admin
+      - audit
   /admin/ceramicstory:
     get:
       consumes:

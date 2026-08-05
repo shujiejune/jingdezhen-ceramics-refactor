@@ -8,6 +8,7 @@ import (
 	"jingdezhen-ceramics-backend/internal/modules/address"
 	"jingdezhen-ceramics-backend/internal/modules/analytics"
 	"jingdezhen-ceramics-backend/internal/modules/artist"
+	"jingdezhen-ceramics-backend/internal/modules/audit"
 	"jingdezhen-ceramics-backend/internal/modules/cart"
 	"jingdezhen-ceramics-backend/internal/modules/ceramicstory"
 	"jingdezhen-ceramics-backend/internal/modules/certificate"
@@ -64,6 +65,7 @@ func SetupRoutes(
 	itineraryHandler *itinerary.Handler,
 	analyticsHandler *analytics.Handler,
 	analyticsDashHandler *analytics.DashboardHandler,
+	auditHandler *audit.Handler,
 ) {
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{"message": "Welcome to the Jingdezhen Ceramics Platform!"})
@@ -504,6 +506,14 @@ func SetupRoutes(
 		adminAnalytics.Get("/traffic", analyticsDashHandler.Traffic)
 		adminAnalytics.Get("/sales", analyticsDashHandler.Sales)
 		adminAnalytics.Get("/funnel", analyticsDashHandler.Funnel)
+
+		// --- Audit log (PRD §3.1.1, TDD §135) ---
+		// The accountability trail: who did what sensitive action, when, to what.
+		// Read access is settings.manage (super_admin only — stricter than
+		// dashboard.view; the accountability reviewer is the super_admin).
+		adminAudit := adminGroup.Group("/audit-log")
+		adminAudit.Use(middleware.RequirePermission(models.PermSettingsManage))
+		adminAudit.Get("", auditHandler.List)
 	}
 
 	/* --- GDPR self-service: account erasure (PRD §4.3) --- */

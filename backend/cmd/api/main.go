@@ -41,6 +41,7 @@ import (
 	"jingdezhen-ceramics-backend/internal/modules/address"
 	"jingdezhen-ceramics-backend/internal/modules/analytics"
 	"jingdezhen-ceramics-backend/internal/modules/artist"
+	"jingdezhen-ceramics-backend/internal/modules/audit"
 	"jingdezhen-ceramics-backend/internal/modules/cart"
 	"jingdezhen-ceramics-backend/internal/modules/ceramicstory"
 	"jingdezhen-ceramics-backend/internal/modules/certificate"
@@ -457,6 +458,15 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 	analyticsDashService := analytics.NewDashboardService(analyticsDashRepo)
 	analyticsDashHandler := analytics.NewDashboardHandler(analyticsDashService)
 
+	// --- Audit log (PRD §3.1.1, TDD §135) ---
+	// Records sensitive admin/staff actions (content transitions, deletes, role
+	// changes, refunds, erasure, etc.) for GDPR accountability. The Logger is
+	// injected into each sensitive service. IP hashed with CONSENT_HMAC_KEY
+	// (same short-term audit purpose, one fewer secret).
+	auditRepo := audit.NewRepository(dbPool)
+	auditLogger := audit.NewService(auditRepo, []byte(cfg.ConsentHMACKey), dbPool)
+	auditHandler := audit.NewHandler(auditLogger)
+
 	// --- Itinerary (Custom Travel, PRD §3.3.2) ---
 	// Customer-facing wizard: submit + draft + list/get/cancel. The 24h-SLA ack
 	// email reuses the order email enqueuer; consent recording adapts consent.Service
@@ -477,6 +487,16 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 	itineraryService.SetDepositFinalizeEnqueuer(paymentEnqueuer{jobClient}) // mock-mode auto-finalize seam
 	itineraryService.SetPDFEnqueuer(pdfEnqueuer{jobClient})                 // quote-send PDF render
 
+	// Wire the audit logger into every sensitive handler (PRD §3.1.1). Each
+	// handler's SetAuditLogger accepts the audit.Logger interface; nil-safe.
+	for _, h := range []interface{ SetAuditLogger(audit.Logger) }{
+		orderHandler, privacyHandler, userHandler, productHandler,
+		ceramicStoryHandler, engageHandler, artistHandler,
+		itineraryHandler, mediaHandler, shippingHandler,
+	} {
+		h.SetAuditLogger(auditLogger)
+	}
+
 	// --- Static mount for local-dev media (STORAGE_MODE=local) ---
 	// Registered BEFORE SetupRoutes: Fiber v2 attaches `Group("").Use()` (the
 	// authed checkout group) at the radix root, so it leaks JWTMAuth to every
@@ -493,7 +513,7 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 		ceramicStoryHandler, engageHandler, addressHandler,
 		consentHandler, artistHandler, productHandler, wishlistHandler, cartHandler, fxHandler,
 		shippingHandler, orderHandler, paymentHandler, certificateHandler, mediaHandler, twoFAHandler, privacyHandler,
-		itineraryHandler, analyticsHandler, analyticsDashHandler,
+		itineraryHandler, analyticsHandler, analyticsDashHandler, auditHandler,
 	)
 
 	// --- Start server (graceful shutdown) ---

@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"jingdezhen-ceramics-backend/internal/models"
+	"jingdezhen-ceramics-backend/internal/modules/audit"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
@@ -15,11 +16,15 @@ import (
 type Handler struct {
 	service  ServiceInterface
 	validate *validator.Validate
+	audit    *audit.Helper
 }
 
 func NewHandler(service ServiceInterface) *Handler {
 	return &Handler{service: service, validate: validator.New()}
 }
+
+// SetAuditLogger injects the audit logger (PRD §3.1.1). Nil = no-op (tests).
+func (h *Handler) SetAuditLogger(l audit.Logger) { h.audit = audit.NewHelper(l) }
 
 // Quote: GET /shipping/quote?country=US&weight=2500 (public preview, TDD §5.2)
 //
@@ -180,5 +185,6 @@ func (h *Handler) DeleteTier(c *fiber.Ctx) error {
 		log.Printf("Handler.DeleteTier: %v", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(models.ErrorResponse{Message: "Failed to delete shipping tier"})
 	}
+	h.audit.Log(c, models.AuditActionShippingTierDelete, models.AuditEntityShippingFeeTier, strconv.FormatInt(id, 10), nil)
 	return c.SendStatus(fiber.StatusNoContent)
 }
