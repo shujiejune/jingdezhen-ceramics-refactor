@@ -42,21 +42,18 @@ jobs:
           go-version-file: backend/go.mod
           cache: true
           cache-dependency-path: backend/go.sum
-      - name: golangci-lint
-        # golangci-lint v2.x. install-mode: goinstall builds it from source with
-        # the Go provisioned above (1.26, from go-version-file). This is required
-        # because our go.mod targets `go 1.26` (forced by chromedp v0.16.0), and
-        # golangci-lint refuses to lint a module targeting a Go newer than its
-        # build Go — so the prebuilt v1.64 binary (built with Go 1.24) fails
-        # with "the Go language version used to build golangci-lint is lower
-        # than the targeted Go version". Building from source with Go 1.26
-        # matches the local dev env exactly. Config is v2 format (.golangci.yml).
-        uses: golangci/golangci-lint-action@v6
-        with:
-          version: v2.12.2
-          install-mode: goinstall
-          working-directory: backend
-          args: --timeout 5m
+      - name: Install golangci-lint v2.12.2
+        # Built from source with the Go provisioned above (1.26, from
+        # go-version-file). Required because our go.mod targets `go 1.26`
+        # (forced by chromedp v0.16.0), and golangci-lint refuses to lint a
+        # module targeting a Go newer than its build Go — the prebuilt v1.64
+        # binary (built with Go 1.24) fails with that error. The /v2 module
+        # path is mandatory for v2.x (the golangci-lint-action goinstall mode
+        # omits it — a known limitation — so we install directly).
+        # Config is v2 format (.golangci.yml, migrated + verified locally).
+        run: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.2
+      - name: golangci-lint run
+        run: golangci-lint run --timeout 5m ./...
 
   unit:
     name: Unit tests (-short, no Docker)
@@ -148,10 +145,10 @@ jobs:
         # vulns (deps with no fix available yet). Advisory: reports but does
         # NOT fail the job — the govulncheck gate above is the blocker. Keeps
         # visibility on the transitive surface without blocking on unfixed
-        # upstream CVEs.
+        # upstream CVEs. Installed directly (the google/osv-scanner-action
+        # composite action's action.yml lacks a `runs:` section and fails to
+        # load — a known issue with that action repo).
         continue-on-error: true
-        uses: google/osv-scanner-action@v2.3.8
-        with:
-          scan-args: |-
-            -r
-            .
+        run: |
+          go install github.com/google/osv-scanner/v2/cmd/osv-scanner@v2.4.0
+          osv-scanner -r .
