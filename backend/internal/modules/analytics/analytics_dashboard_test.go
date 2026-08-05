@@ -37,16 +37,21 @@ func dashDB(t *testing.T) (*pgxpool.Pool, time.Time, time.Time) {
 	db := testutil.NewDBPool(t)
 	ctx := context.Background()
 	uid := seedCustomerUUID(t, db) // one customer for all orders + itinerary
+	exec := func(q string, args ...any) {
+		t.Helper()
+		_, err := db.Exec(ctx, q, args...)
+		require.NoError(t, err)
+	}
 
 	// --- seed products, skus, artists (minimal columns) ---
-	_, err := db.Exec(ctx, `
-		INSERT INTO artists (id, name) VALUES (1, 'Artist One');
-		INSERT INTO products (id, artist_id) VALUES (1, 1), (2, NULL);
-		INSERT INTO product_translations (product_id, locale, title, slug, status, published_at)
-			VALUES (1,'en-US','Vase','vase','published','2026-01-01'), (2,'en-US','Bowl','bowl','published','2026-01-01');
-		INSERT INTO skus (id, product_id, sku_code, price_cny, stock, weight_grams, attributes, is_active)
-			VALUES (1,1,'SKU1',500,10,500,'{}'::jsonb,true), (2,2,'SKU2',4000,5,800,'{}'::jsonb,true);`)
-	require.NoError(t, err)
+	// One statement per Exec: pgx uses prepared statements, which reject
+	// multiple commands in one call.
+	exec(`INSERT INTO artists (id, name) VALUES (1, 'Artist One')`)
+	exec(`INSERT INTO products (id, artist_id) VALUES (1, 1), (2, NULL)`)
+	exec(`INSERT INTO product_translations (product_id, locale, title, slug, status, published_at)
+		VALUES (1,'en-US','Vase','vase','published','2026-01-01'), (2,'en-US','Bowl','bowl','published','2026-01-01')`)
+	exec(`INSERT INTO skus (id, product_id, sku_code, price_cny, stock, weight_grams, attributes, is_active)
+		VALUES (1,1,'SKU1',500,10,500,'{}'::jsonb,true), (2,2,'SKU2',4000,5,800,'{}'::jsonb,true)`)
 
 	// --- analytics_events (day1 + day2) ---
 	insertEvent := func(day int, kind, name, country, locale, vhash string) {
@@ -66,47 +71,41 @@ func dashDB(t *testing.T) (*pgxpool.Pool, time.Time, time.Time) {
 	insertEvent(1, "event", "itinerary_form_view", "US", "en-US", "v1")
 	insertEvent(2, "pageview", "", "CN", "zh-CN", "v3")
 
-	// --- orders + order_items ---
+	// --- orders + order_items (one statement per Exec) ---
+	day1 := time.Date(2026, 8, 1, 12, 0, 0, 0, time.UTC)
+	day2 := time.Date(2026, 8, 2, 12, 0, 0, 0, time.UTC)
+	day3 := time.Date(2026, 8, 3, 12, 0, 0, 0, time.UTC)
+
 	// Day1: paid, USD, country US, subtotal_cny=1000, item sku1×2 @500.
-	_, err = db.Exec(ctx, `
-		INSERT INTO orders (id, user_id, status, currency, subtotal_minor, shipping_minor, total_minor,
+	exec(`INSERT INTO orders (id, user_id, status, currency, subtotal_minor, shipping_minor, total_minor,
 		                    subtotal_cny, shipping_cny, total_cny, address, placed_at, paid_at)
 		VALUES (1, $1, 'paid', 'USD', 1400, 100, 1500, 1000, 70, 1070,
-			'{"country":"US"}'::jsonb, $2, $2);
-		INSERT INTO order_items (order_id, sku_id, qty, unit_price_minor, unit_price_cny)
-		VALUES (1, 1, 2, 700, 500);`, uid, time.Date(2026, 8, 1, 12, 0, 0, 0, time.UTC))
-	require.NoError(t, err)
+			'{"country":"US"}'::jsonb, $2, $2)`, uid, day1)
+	exec(`INSERT INTO order_items (order_id, sku_id, qty, unit_price_minor, unit_price_cny)
+		VALUES (1, 1, 2, 700, 500)`)
 
 	// Day2: cancelled (excluded from GMV).
-	_, err = db.Exec(ctx, `
-		INSERT INTO orders (id, user_id, status, currency, subtotal_minor, shipping_minor, total_minor,
+	exec(`INSERT INTO orders (id, user_id, status, currency, subtotal_minor, shipping_minor, total_minor,
 		                    subtotal_cny, shipping_cny, total_cny, address, placed_at, cancelled_at)
 		VALUES (2, $1, 'cancelled', 'EUR', 2800, 0, 2800, 2000, 0, 2000,
-			'{"country":"DE"}'::jsonb, $2, $2);`, uid, time.Date(2026, 8, 2, 12, 0, 0, 0, time.UTC))
-	require.NoError(t, err)
+			'{"country":"DE"}'::jsonb, $2, $2)`, uid, day2)
 
 	// Day3: completed, USD, country US, subtotal_cny=4000, item sku2×1 @4000.
-	_, err = db.Exec(ctx, `
-		INSERT INTO orders (id, user_id, status, currency, subtotal_minor, shipping_minor, total_minor,
+	exec(`INSERT INTO orders (id, user_id, status, currency, subtotal_minor, shipping_minor, total_minor,
 		                    subtotal_cny, shipping_cny, total_cny, address, placed_at, completed_at)
 		VALUES (3, $1, 'completed', 'USD', 5600, 0, 5600, 4000, 0, 4000,
-			'{"country":"US"}'::jsonb, $2, $2);
-		INSERT INTO order_items (order_id, sku_id, qty, unit_price_minor, unit_price_cny)
-		VALUES (3, 2, 1, 5600, 4000);`, uid, time.Date(2026, 8, 3, 12, 0, 0, 0, time.UTC))
-	require.NoError(t, err)
+			'{"country":"US"}'::jsonb, $2, $2)`, uid, day3)
+	exec(`INSERT INTO order_items (order_id, sku_id, qty, unit_price_minor, unit_price_cny)
+		VALUES (3, 2, 1, 5600, 4000)`)
 
 	// --- itinerary_requests (day1 submitted+confirmed, day2 submitted) ---
-	_, err = db.Exec(ctx, `
-		INSERT INTO itinerary_requests (user_id, status, duration_days, adults, pace, interests,
+	exec(`INSERT INTO itinerary_requests (user_id, status, duration_days, adults, pace, interests,
 			budget, services, contact, locale, sla_deadline, submitted_at)
 		VALUES ($1, 'confirmed', 3, 2, 'balanced', '[]'::jsonb, '{}'::jsonb, '{}'::jsonb,
 			'{"channel":"email"}'::jsonb, 'en-US', $2, $2),
 			($1, 'pending', 2, 1, 'relaxed', '[]'::jsonb, '{}'::jsonb, '{}'::jsonb,
-			'{"channel":"email"}'::jsonb, 'zh-CN', $3, $3);`,
-		uid,
-		time.Date(2026, 8, 1, 12, 0, 0, 0, time.UTC),
-		time.Date(2026, 8, 2, 12, 0, 0, 0, time.UTC))
-	require.NoError(t, err)
+			'{"channel":"email"}'::jsonb, 'zh-CN', $3, $3)`,
+		uid, day1, day2)
 
 	from := time.Date(2026, 8, 1, 0, 0, 0, 0, time.UTC)
 	to := time.Date(2026, 8, 4, 0, 0, 0, 0, time.UTC) // exclusive: covers days 1-3
