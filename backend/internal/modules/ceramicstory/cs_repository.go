@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"jingdezhen-ceramics-backend/internal/models"
+	"jingdezhen-ceramics-backend/internal/modules/sitemap"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -22,6 +23,9 @@ type RepositoryInterface interface {
 	// FindPublishedBySlug returns the published translation for (slug, locale),
 	// or ErrNotFound if no published translation exists in that locale.
 	FindPublishedBySlug(ctx context.Context, locale, slug string) (*models.CeramicStory, error)
+	// FindPublishedAlternates returns locale→slug for every OTHER published
+	// translation of this story (excludes currentLocale). For hreflang.
+	FindPublishedAlternates(ctx context.Context, storyID int64, currentLocale string) (map[string]string, error)
 
 	// --- Admin / CMS ---
 	// FindAllAdmin returns translations of ALL statuses, optionally filtered by
@@ -137,6 +141,13 @@ func (r *Repository) FindPublishedBySlug(ctx context.Context, locale, slug strin
 		return nil, fmt.Errorf("repository.FindPublishedBySlug: %w", err)
 	}
 	return s, nil
+}
+
+// FindPublishedAlternates returns locale→slug for every OTHER published
+// translation of this story (excludes currentLocale). Delegates to the
+// shared sitemap.FindAlternates (hreflang, PRD §4.4).
+func (r *Repository) FindPublishedAlternates(ctx context.Context, storyID int64, currentLocale string) (map[string]string, error) {
+	return sitemap.FindAlternates(ctx, r.db, "ceramic_story_translations", "story_id", storyID, currentLocale)
 }
 
 // --- Admin / CMS ---------------------------------------------------------------

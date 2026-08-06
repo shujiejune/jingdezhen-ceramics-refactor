@@ -11,6 +11,14 @@ definitions:
     properties:
       address:
         type: string
+      alternates:
+        additionalProperties:
+          type: string
+        description: |-
+          Alternates: hreflang map (PRD §4.4), locale → slug for every other
+          published translation of this activity. Populated by the service on the
+          detail view.
+        type: object
       body:
         type: string
       brief_introduction:
@@ -97,6 +105,14 @@ definitions:
     type: object
   jingdezhen-ceramics-backend_internal_models.Artist:
     properties:
+      alternates:
+        additionalProperties:
+          type: string
+        description: |-
+          Alternates: hreflang map (PRD §4.4), locale → slug for every other
+          published translation of this artist. Populated by the service on the
+          detail view.
+        type: object
       avatar_url:
         description: parent (non-localized media)
         type: string
@@ -270,6 +286,14 @@ definitions:
     type: object
   jingdezhen-ceramics-backend_internal_models.CeramicStory:
     properties:
+      alternates:
+        additionalProperties:
+          type: string
+        description: |-
+          Alternates: hreflang map (PRD §4.4), locale → slug for every other
+          published translation of this story. Populated by the service on the
+          detail view.
+        type: object
       characteristics_art:
         type: string
       characteristics_craft:
@@ -1306,6 +1330,15 @@ definitions:
     type: object
   jingdezhen-ceramics-backend_internal_models.Product:
     properties:
+      alternates:
+        additionalProperties:
+          type: string
+        description: |-
+          Alternates is the hreflang map (PRD §4.4): locale → slug for every other
+          published translation of this product. Populated by the service on the
+          detail view; empty on the list view. The frontend emits <link rel=alternate
+          hreflang> from this map.
+        type: object
       artist_id:
         description: 'parent: FK to artists.id'
         type: integer
@@ -9436,6 +9469,21 @@ paths:
       tags:
       - profile
       - privacy
+  /robots.txt:
+    get:
+      description: |-
+        Allow public content; disallow /admin + /api + /auth; Sitemap:
+        line points at /sitemap.xml.
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: text/plain
+          schema:
+            type: string
+      summary: robots.txt
+      tags:
+      - seo
   /shipping/quote:
     get:
       consumes:
@@ -9474,6 +9522,22 @@ paths:
       summary: Get a shipping quote
       tags:
       - shipping
+  /sitemap.xml:
+    get:
+      description: |-
+        Returns the sitemap.xml with one <url> per published (entity,
+        locale, slug) and xhtml:link hreflang alternates. Rebuilt on
+        read; also refreshed by the sitemap:rebuild job on publish.
+      produces:
+      - text/xml
+      responses:
+        "200":
+          description: application/xml
+          schema:
+            type: string
+      summary: Sitemap (multi-locale, hreflang)
+      tags:
+      - seo
   /webhooks/airwallex:
     post:
       consumes:

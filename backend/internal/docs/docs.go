@@ -10709,6 +10709,26 @@ const docTemplate = `{
                 }
             }
         },
+        "/robots.txt": {
+            "get": {
+                "description": "Allow public content; disallow /admin + /api + /auth; Sitemap:\nline points at /sitemap.xml.",
+                "produces": [
+                    "text/plain"
+                ],
+                "tags": [
+                    "seo"
+                ],
+                "summary": "robots.txt",
+                "responses": {
+                    "200": {
+                        "description": "text/plain",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/shipping/quote": {
             "get": {
                 "description": "Public preview of the shipping fee for a country + packed weight,\ncomputed from the shipping_fee_tiers table. Returns shippable=false\n(with a reason) for unshippable countries or overweight packages.",
@@ -10755,6 +10775,26 @@ const docTemplate = `{
                         "description": "Internal error",
                         "schema": {
                             "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/sitemap.xml": {
+            "get": {
+                "description": "Returns the sitemap.xml with one \u003curl\u003e per published (entity,\nlocale, slug) and xhtml:link hreflang alternates. Rebuilt on\nread; also refreshed by the sitemap:rebuild job on publish.",
+                "produces": [
+                    "text/xml"
+                ],
+                "tags": [
+                    "seo"
+                ],
+                "summary": "Sitemap (multi-locale, hreflang)",
+                "responses": {
+                    "200": {
+                        "description": "application/xml",
+                        "schema": {
+                            "type": "string"
                         }
                     }
                 }
@@ -11072,6 +11112,13 @@ const docTemplate = `{
                 "address": {
                     "type": "string"
                 },
+                "alternates": {
+                    "description": "Alternates: hreflang map (PRD §4.4), locale → slug for every other\npublished translation of this activity. Populated by the service on the\ndetail view.",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
                 "body": {
                     "type": "string"
                 },
@@ -11198,6 +11245,13 @@ const docTemplate = `{
         "jingdezhen-ceramics-backend_internal_models.Artist": {
             "type": "object",
             "properties": {
+                "alternates": {
+                    "description": "Alternates: hreflang map (PRD §4.4), locale → slug for every other\npublished translation of this artist. Populated by the service on the\ndetail view.",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
                 "avatar_url": {
                     "description": "parent (non-localized media)",
                     "type": "string"
@@ -11450,6 +11504,13 @@ const docTemplate = `{
         "jingdezhen-ceramics-backend_internal_models.CeramicStory": {
             "type": "object",
             "properties": {
+                "alternates": {
+                    "description": "Alternates: hreflang map (PRD §4.4), locale → slug for every other\npublished translation of this story. Populated by the service on the\ndetail view.",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
                 "characteristics_art": {
                     "type": "string"
                 },
@@ -12936,6 +12997,13 @@ const docTemplate = `{
         "jingdezhen-ceramics-backend_internal_models.Product": {
             "type": "object",
             "properties": {
+                "alternates": {
+                    "description": "Alternates is the hreflang map (PRD §4.4): locale → slug for every other\npublished translation of this product. Populated by the service on the\ndetail view; empty on the list view. The frontend emits \u003clink rel=alternate\nhreflang\u003e from this map.",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
                 "artist_id": {
                     "description": "parent: FK to artists.id",
                     "type": "integer"

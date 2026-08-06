@@ -7,6 +7,7 @@ import (
 	"log"
 
 	"jingdezhen-ceramics-backend/internal/models"
+	"jingdezhen-ceramics-backend/internal/modules/sitemap"
 	"jingdezhen-ceramics-backend/internal/platform/i18ncontent"
 )
 
@@ -42,9 +43,10 @@ type CertificateIssuer interface {
 }
 
 type Service struct {
-	repo          RepositoryInterface
-	certIssuer    CertificateIssuer // optional; nil => no auto-issue (e.g. worker mode)
-	galleryLoader GalleryLoader     // optional; nil => no gallery (list view)
+	repo            RepositoryInterface
+	certIssuer      CertificateIssuer // optional; nil => no auto-issue (e.g. worker mode)
+	galleryLoader   GalleryLoader     // optional; nil => no gallery (list view)
+	sitemapEnqueuer sitemap.Enqueuer  // optional; nil => no sitemap rebuild (worker/tests)
 }
 
 // GalleryLoader loads a product's ordered media gallery. Implemented by the
@@ -64,6 +66,23 @@ func (s *Service) SetCertificateIssuer(ci CertificateIssuer) { s.certIssuer = ci
 
 // SetGalleryLoader wires the gallery loader post-construction.
 func (s *Service) SetGalleryLoader(gl GalleryLoader) { s.galleryLoader = gl }
+
+// SetSitemapEnqueuer wires the sitemap-rebuild trigger (PRD §4.4). Called in
+// main.go after the product service + jobs client are built. nil-safe.
+func (s *Service) SetSitemapEnqueuer(e sitemap.Enqueuer) { s.sitemapEnqueuer = e }
+
+// enqueueSitemapRebuild fires a sitemap rebuild best-effort (PRD §4.4). nil-
+// safe (worker/tests); logs on error, never returns one — a Redis blip must
+// not fail a content transition (the next publish rebuilds; /sitemap.xml
+// rebuilds on read).
+func (s *Service) enqueueSitemapRebuild(ctx context.Context) {
+	if s.sitemapEnqueuer == nil {
+		return
+	}
+	if err := s.sitemapEnqueuer.EnqueueSitemapRebuild(ctx); err != nil {
+		log.Printf("product.enqueueSitemapRebuild: %v", err)
+	}
+}
 
 // --- Public ---
 
@@ -126,6 +145,15 @@ func (s *Service) GetProductBySlug(ctx context.Context, slug string, locale stri
 		log.Printf("product.GetProductBySlug.Tags(%d): %v", product.ID, terr)
 	} else {
 		product.Tags = tagMap[product.ID]
+	}
+	// Load hreflang alternates (PRD §4.4): locale→slug for every OTHER published
+	// translation. Best-effort — a failure logs + leaves Alternates empty; the
+	// detail still renders (the frontend just emits no <link rel=alternate>).
+	alts, aerr := s.repo.FindPublishedAlternates(ctx, product.ID, locale)
+	if aerr != nil {
+		log.Printf("product.GetProductBySlug.Alternates(%d): %v", product.ID, aerr)
+	} else if len(alts) > 0 {
+		product.Alternates = alts
 	}
 	return product, nil
 }
@@ -337,6 +365,12 @@ func (s *Service) AdminTransitionProduct(ctx context.Context, productID int64, l
 	}
 	if err := s.repo.UpdateTranslationStatus(ctx, productID, locale, to, reviewer); err != nil {
 		return nil, err
+	}
+	// Rebuild the sitemap on publish or unpublish (PRD §4.4). Best-effort —
+	// a Redis blip logs + doesn't fail the transition (the next publish/
+	// unpublish rebuilds, and /sitemap.xml rebuilds on read anyway).
+	if to == models.StatusPublished || from == models.StatusPublished {
+		s.enqueueSitemapRebuild(ctx)
 	}
 	return s.repo.FindAdminByID(ctx, productID, locale)
 }

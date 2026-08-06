@@ -3,8 +3,10 @@ package engage
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"jingdezhen-ceramics-backend/internal/models"
+	"jingdezhen-ceramics-backend/internal/modules/sitemap"
 	"jingdezhen-ceramics-backend/internal/platform/i18ncontent"
 )
 
@@ -21,17 +23,32 @@ type ServiceInterface interface {
 	AdminUpdateActivity(ctx context.Context, activityID int64, locale string, data models.UpdateActivityData, actor i18ncontent.WorkflowActor) (*models.Activity, error)
 	AdminTransitionActivity(ctx context.Context, activityID int64, locale string, to models.ContentStatus, actor i18ncontent.WorkflowActor, reviewerID string) (*models.Activity, error)
 	AdminDeleteActivity(ctx context.Context, activityID int64) error
+	// SetSitemapEnqueuer wires the sitemap-rebuild trigger (PRD §4.4).
+	SetSitemapEnqueuer(e sitemap.Enqueuer)
 }
 
 type Service struct {
-	repo RepositoryInterface
+	repo            RepositoryInterface
+	sitemapEnqueuer sitemap.Enqueuer // optional; nil => no sitemap rebuild (worker/tests)
 }
 
 func NewService(repo RepositoryInterface) ServiceInterface {
 	return &Service{repo: repo}
 }
 
-// --- Public ---
+// SetSitemapEnqueuer wires the sitemap-rebuild trigger (PRD §4.4). nil-safe.
+func (s *Service) SetSitemapEnqueuer(e sitemap.Enqueuer) { s.sitemapEnqueuer = e }
+
+// enqueueSitemapRebuild fires a sitemap rebuild best-effort (PRD §4.4). nil-
+// safe (worker/tests); logs on error, never returns one.
+func (s *Service) enqueueSitemapRebuild(ctx context.Context) {
+	if s.sitemapEnqueuer == nil {
+		return
+	}
+	if err := s.sitemapEnqueuer.EnqueueSitemapRebuild(ctx); err != nil {
+		log.Printf("engage.enqueueSitemapRebuild: %v", err)
+	}
+}
 
 func (s *Service) GetActivities(ctx context.Context, locale, typeFilter string, page, limit int) ([]models.Activity, int, error) {
 	locale, _ = i18ncontent.NormalizeLocale(locale, false)
@@ -50,6 +67,14 @@ func (s *Service) GetActivityArticle(ctx context.Context, slug string, locale st
 	article, err := s.repo.FindPublishedBySlug(ctx, locale, slug)
 	if err != nil {
 		return nil, fmt.Errorf("service.GetActivityArticle: %w", err)
+	}
+	// hreflang alternates (PRD §4.4): locale→slug for every OTHER published
+	// translation. Best-effort — a failure logs + leaves Alternates empty.
+	alts, aerr := s.repo.FindPublishedAlternates(ctx, article.ID, locale)
+	if aerr != nil {
+		log.Printf("engage.GetActivityArticle.Alternates(%d): %v", article.ID, aerr)
+	} else if len(alts) > 0 {
+		article.Alternates = alts
 	}
 	return article, nil
 }
@@ -117,6 +142,9 @@ func (s *Service) AdminTransitionActivity(ctx context.Context, activityID int64,
 	}
 	if err := s.repo.UpdateTranslationStatus(ctx, activityID, locale, to, reviewer); err != nil {
 		return nil, err
+	}
+	if to == models.StatusPublished || from == models.StatusPublished {
+		s.enqueueSitemapRebuild(ctx)
 	}
 	return s.repo.FindAdminByID(ctx, activityID, locale)
 }

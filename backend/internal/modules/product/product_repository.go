@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"jingdezhen-ceramics-backend/internal/models"
+	"jingdezhen-ceramics-backend/internal/modules/sitemap"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -19,6 +20,9 @@ type RepositoryInterface interface {
 	// --- Public reads ---
 	FindAllPublished(ctx context.Context, locale, category string, artistID int64, tags []string, page, limit int) ([]models.Product, int, error)
 	FindPublishedBySlug(ctx context.Context, locale, slug string) (*models.Product, error)
+	// FindPublishedAlternates returns locale→slug for every OTHER published
+	// translation of this product (excludes currentLocale). For hreflang.
+	FindPublishedAlternates(ctx context.Context, productID int64, currentLocale string) (map[string]string, error)
 	FindSKUsByProductID(ctx context.Context, productID int64) ([]models.SKU, error)
 	FindLowStock(ctx context.Context, skuIDs []int64) ([]models.SKU, error) // stock <= low_stock_threshold
 
@@ -165,6 +169,13 @@ func (r *Repository) FindPublishedBySlug(ctx context.Context, locale, slug strin
 		return nil, fmt.Errorf("repository.FindPublishedBySlug: %w", err)
 	}
 	return pr, nil
+}
+
+// FindPublishedAlternates returns locale→slug for every OTHER published
+// translation of this product (excludes currentLocale). Delegates to the
+// shared sitemap.FindAlternates (hreflang, PRD §4.4).
+func (r *Repository) FindPublishedAlternates(ctx context.Context, productID int64, currentLocale string) (map[string]string, error) {
+	return sitemap.FindAlternates(ctx, r.db, "product_translations", "product_id", productID, currentLocale)
 }
 
 func (r *Repository) FindSKUsByProductID(ctx context.Context, productID int64) ([]models.SKU, error) {

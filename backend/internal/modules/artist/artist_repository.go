@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"jingdezhen-ceramics-backend/internal/models"
+	"jingdezhen-ceramics-backend/internal/modules/sitemap"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -18,6 +19,9 @@ type RepositoryInterface interface {
 	// --- Public reads ---
 	FindAllPublished(ctx context.Context, locale string, page, limit int) ([]models.Artist, int, error)
 	FindPublishedBySlug(ctx context.Context, locale, slug string) (*models.Artist, error)
+	// FindPublishedAlternates returns locale→slug for every OTHER published
+	// translation of this artist (excludes currentLocale). For hreflang.
+	FindPublishedAlternates(ctx context.Context, artistID int64, currentLocale string) (map[string]string, error)
 
 	// --- Admin / CMS ---
 	FindAllAdmin(ctx context.Context, locale, status string, page, limit int) ([]models.Artist, int, error)
@@ -117,6 +121,13 @@ func (r *Repository) FindPublishedBySlug(ctx context.Context, locale, slug strin
 		return nil, fmt.Errorf("repository.FindPublishedBySlug: %w", err)
 	}
 	return ar, nil
+}
+
+// FindPublishedAlternates returns locale→slug for every OTHER published
+// translation of this artist (excludes currentLocale). Delegates to the
+// shared sitemap.FindAlternates (hreflang, PRD §4.4).
+func (r *Repository) FindPublishedAlternates(ctx context.Context, artistID int64, currentLocale string) (map[string]string, error) {
+	return sitemap.FindAlternates(ctx, r.db, "artist_translations", "artist_id", artistID, currentLocale)
 }
 
 // --- Admin / CMS ---

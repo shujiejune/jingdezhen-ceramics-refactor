@@ -32,6 +32,10 @@ type Activity struct {
 	Locale            string        `json:"locale" db:"locale"`
 	Status            ContentStatus `json:"status" db:"status"`
 	PublishedAt       *time.Time    `json:"published_at,omitempty" db:"published_at"`
+	// Alternates: hreflang map (PRD §4.4), locale → slug for every other
+	// published translation of this activity. Populated by the service on the
+	// detail view.
+	Alternates map[string]string `json:"alternates,omitempty" db:"-"`
 	CreatedAt         time.Time     `json:"created_at" db:"created_at"`
 	UpdatedAt         time.Time     `json:"updated_at" db:"updated_at"`
 }

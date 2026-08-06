@@ -15,6 +15,7 @@ type Config struct {
 	// --- Server ---
 	ServerPort   string `mapstructure:"SERVER_PORT"`
 	ClientOrigin string `mapstructure:"CLIENT_ORIGIN"`
+	SiteBaseURL  string `mapstructure:"SITE_BASE_URL"` // canonical public site origin for SEO (sitemap <loc>, robots Sitemap:). The SolidStart SSR site (TDD §2.2).
 	JWTSecret    string `mapstructure:"JWT_SECRET"`
 	AdminEmail   string `mapstructure:"ADMIN_EMAIL"` // inbox for admin notifications
 

@@ -56,6 +56,7 @@ import (
 	"jingdezhen-ceramics-backend/internal/modules/privacy"
 	"jingdezhen-ceramics-backend/internal/modules/product"
 	"jingdezhen-ceramics-backend/internal/modules/shipping"
+	"jingdezhen-ceramics-backend/internal/modules/sitemap"
 	"jingdezhen-ceramics-backend/internal/modules/twofa"
 	"jingdezhen-ceramics-backend/internal/modules/user"
 	"jingdezhen-ceramics-backend/internal/modules/wishlist"
@@ -197,6 +198,14 @@ type pdfEnqueuer struct{ c *jobs.Client }
 
 func (e pdfEnqueuer) EnqueuePDFGenerate(ctx context.Context, kind string, entityID int64, locale string) error {
 	return e.c.EnqueuePDFGenerate(ctx, jobs.PDFGeneratePayload{Kind: kind, EntityID: entityID, Locale: locale})
+}
+
+// sitemapEnqueuer adapts jobs.Client → sitemap.Enqueuer. Serve mode injects
+// this into the 4 content services so publish/unpublish rebuilds the sitemap.
+type sitemapEnqueuer struct{ c *jobs.Client }
+
+func (e sitemapEnqueuer) EnqueueSitemapRebuild(ctx context.Context) error {
+	return e.c.EnqueueSitemapRebuild(ctx)
 }
 
 // --- serve mode (API + WebSocket) --------------------------------------------
@@ -464,6 +473,20 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 	mediaHandler := media.NewHandler(mediaService, storageStore)
 	productService.SetGalleryLoader(mediaService) // surface gallery on product detail
 
+	// --- SEO: sitemap builder + handler (PRD §4.4, TDD §2.2) ---
+	// The builder queries published translations across the 4 content entities
+	// and emits sitemap.xml with hreflang alternates. It rebuilds on publish
+	// (sitemap:rebuild job, wired below) + is served fresh on /sitemap.xml.
+	sitemapBuilder := sitemap.NewBuilder(dbPool, storageStore, cfg.SiteBaseURL)
+	sitemapHandler := sitemap.NewHandler(sitemapBuilder, cfg.SiteBaseURL)
+	// Wire the rebuild trigger into the 4 content services. publish/unpublish
+	// enqueues sitemap:rebuild best-effort (nil-safe; logs on Redis blip).
+	sitemapEnq := sitemapEnqueuer{jobClient}
+	productService.SetSitemapEnqueuer(sitemapEnq)
+	ceramicStoryService.SetSitemapEnqueuer(sitemapEnq)
+	artistService.SetSitemapEnqueuer(sitemapEnq)
+	engageService.SetSitemapEnqueuer(sitemapEnq)
+
 	// Certificate handler (needs storageStore for PDFDownload → public URL) +
 	// the PDF-enqueue seam (TDD §12: issue/regenerate enqueues pdf:generate).
 	certificateHandler := certificate.NewHandler(certService, storageStore)
@@ -547,6 +570,7 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 		consentHandler, artistHandler, productHandler, wishlistHandler, cartHandler, fxHandler,
 		shippingHandler, orderHandler, paymentHandler, certificateHandler, mediaHandler, twoFAHandler, privacyHandler,
 		itineraryHandler, analyticsHandler, analyticsDashHandler, auditHandler,
+		sitemapHandler,
 		tokenBlocklist,
 	)
 
@@ -635,6 +659,11 @@ func runWorker(rootCtx context.Context, cfg config.Config) {
 		return emailer.SendEmail(ctx, p.To, p.Subject, p.PlainText, p.HTML)
 	}
 	jobServer.FXRefresh = fxService.Refresh
+	// sitemap:rebuild — on content publish/unpublish (PRD §4.4). The worker
+	// rebuilds the sitemap from the live DB + writes it to the storage store.
+	jobServer.SitemapRebuild = func(ctx context.Context) error {
+		return sitemap.NewBuilder(dbPool, newWorkerStore(cfg), cfg.SiteBaseURL).Rebuild(ctx)
+	}
 	// payment:finalize drives order created→paid. On success → MarkPaid.
 	// (mock seam enqueues {success:true} from checkout in dev; the gateway
 	// webhook enqueues it in live mode, #6.)

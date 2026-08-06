@@ -22,6 +22,7 @@ import (
 	"jingdezhen-ceramics-backend/internal/modules/privacy"
 	"jingdezhen-ceramics-backend/internal/modules/product"
 	"jingdezhen-ceramics-backend/internal/modules/shipping"
+	"jingdezhen-ceramics-backend/internal/modules/sitemap"
 	"jingdezhen-ceramics-backend/internal/modules/twofa"
 	"jingdezhen-ceramics-backend/internal/modules/user"
 	"jingdezhen-ceramics-backend/internal/modules/wishlist"
@@ -67,6 +68,7 @@ func SetupRoutes(
 	analyticsHandler *analytics.Handler,
 	analyticsDashHandler *analytics.DashboardHandler,
 	auditHandler *audit.Handler,
+	sitemapHandler *sitemap.Handler,
 	blocklist tokenblocklist.Blocklist,
 ) {
 	app.Get("/", func(c *fiber.Ctx) error {
@@ -284,6 +286,13 @@ func SetupRoutes(
 		engageGroup.Get("", engageHandler.GetActivities)            // ?locale=&type=&page=&limit=
 		engageGroup.Get("/:slug", engageHandler.GetActivityArticle) // ?locale=
 	}
+
+	/* --- SEO: sitemap.xml + robots.txt (public, crawlers) — PRD §4.4 --- */
+	/* /sitemap.xml is rebuilt on read (always fresh; also refreshed by the
+	   sitemap:rebuild job on publish). /robots.txt is a static body with the
+	   Sitemap: line. Both public so crawlers can fetch them without auth. */
+	app.Get("/sitemap.xml", sitemapHandler.SitemapXML)
+	app.Get("/robots.txt", sitemapHandler.RobotsTXT)
 
 	/* --- Checkout + Orders (signed-in customers) — PRD §3.2.3, TDD §8 --- */
 	/* Checkout is signed-in-only (PRD §3.2.3). Customer cancels only an unpaid

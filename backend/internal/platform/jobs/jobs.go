@@ -124,6 +124,18 @@ func (c *Client) EnqueueFXRefresh(ctx context.Context) error {
 	return c.enqueue(ctx, TypeFXRefresh, FXRefreshPayload{})
 }
 
+// EnqueueSitemapRebuild enqueues a sitemap.xml rebuild. Called by the 4
+// content services on publish/unpublish (PRD §4.4). Signal job — no payload;
+// the worker's SitemapRebuild handler rebuilds from the live DB. Retried ×5
+// so a transient DB/Redis blip doesn't leave the sitemap stale.
+func (c *Client) EnqueueSitemapRebuild(ctx context.Context) error {
+	return c.enqueue(ctx, TypeSitemapRebuild, SitemapRebuildPayload{})
+}
+
+// SitemapRebuildPayload is empty — the job is a signal (the worker rebuilds
+// from the live DB, no per-event data needed).
+type SitemapRebuildPayload struct{}
+
 // EnqueueStockCheck enqueues a low-stock alert check for a paid order's SKUs
 // (TDD line 234). Retried ×5 — a flaky alert shouldn't be silently lost.
 func (c *Client) EnqueueStockCheck(ctx context.Context, p StockCheckPayload) error {

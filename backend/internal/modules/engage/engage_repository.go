@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"jingdezhen-ceramics-backend/internal/models"
+	"jingdezhen-ceramics-backend/internal/modules/sitemap"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -23,6 +24,9 @@ type RepositoryInterface interface {
 	FindAllPublished(ctx context.Context, locale, typeFilter string, page, limit int) ([]models.Activity, int, error)
 	// FindPublishedBySlug returns the published translation for (slug, locale).
 	FindPublishedBySlug(ctx context.Context, locale, slug string) (*models.Activity, error)
+	// FindPublishedAlternates returns locale→slug for every OTHER published
+	// translation of this activity (excludes currentLocale). For hreflang.
+	FindPublishedAlternates(ctx context.Context, activityID int64, currentLocale string) (map[string]string, error)
 
 	// --- Admin / CMS ---
 	FindAllAdmin(ctx context.Context, locale, status, typeFilter string, page, limit int) ([]models.Activity, int, error)
@@ -135,6 +139,13 @@ func (r *Repository) FindPublishedBySlug(ctx context.Context, locale, slug strin
 		return nil, fmt.Errorf("repository.FindPublishedBySlug: %w", err)
 	}
 	return act, nil
+}
+
+// FindPublishedAlternates returns locale→slug for every OTHER published
+// translation of this activity (excludes currentLocale). Delegates to the
+// shared sitemap.FindAlternates (hreflang, PRD §4.4).
+func (r *Repository) FindPublishedAlternates(ctx context.Context, activityID int64, currentLocale string) (map[string]string, error) {
+	return sitemap.FindAlternates(ctx, r.db, "activity_translations", "activity_id", activityID, currentLocale)
 }
 
 // --- Admin / CMS ---------------------------------------------------------------

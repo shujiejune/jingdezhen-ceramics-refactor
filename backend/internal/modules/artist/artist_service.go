@@ -3,8 +3,10 @@ package artist
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"jingdezhen-ceramics-backend/internal/models"
+	"jingdezhen-ceramics-backend/internal/modules/sitemap"
 	"jingdezhen-ceramics-backend/internal/platform/i18ncontent"
 )
 
@@ -21,17 +23,32 @@ type ServiceInterface interface {
 	AdminUpdateArtist(ctx context.Context, artistID int64, locale string, data models.UpdateArtistData, actor i18ncontent.WorkflowActor) (*models.Artist, error)
 	AdminTransitionArtist(ctx context.Context, artistID int64, locale string, to models.ContentStatus, actor i18ncontent.WorkflowActor, reviewerID string) (*models.Artist, error)
 	AdminDeleteArtist(ctx context.Context, artistID int64) error
+	// SetSitemapEnqueuer wires the sitemap-rebuild trigger (PRD §4.4).
+	SetSitemapEnqueuer(e sitemap.Enqueuer)
 }
 
 type Service struct {
-	repo RepositoryInterface
+	repo            RepositoryInterface
+	sitemapEnqueuer sitemap.Enqueuer // optional; nil => no sitemap rebuild (worker/tests)
 }
 
 func NewService(repo RepositoryInterface) ServiceInterface {
 	return &Service{repo: repo}
 }
 
-// --- Public ---
+// SetSitemapEnqueuer wires the sitemap-rebuild trigger (PRD §4.4). nil-safe.
+func (s *Service) SetSitemapEnqueuer(e sitemap.Enqueuer) { s.sitemapEnqueuer = e }
+
+// enqueueSitemapRebuild fires a sitemap rebuild best-effort (PRD §4.4). nil-
+// safe (worker/tests); logs on error, never returns one.
+func (s *Service) enqueueSitemapRebuild(ctx context.Context) {
+	if s.sitemapEnqueuer == nil {
+		return
+	}
+	if err := s.sitemapEnqueuer.EnqueueSitemapRebuild(ctx); err != nil {
+		log.Printf("artist.enqueueSitemapRebuild: %v", err)
+	}
+}
 
 func (s *Service) GetArtists(ctx context.Context, locale string, page, limit int) ([]models.Artist, int, error) {
 	locale, _ = i18ncontent.NormalizeLocale(locale, false)
@@ -50,6 +67,14 @@ func (s *Service) GetArtistBySlug(ctx context.Context, slug string, locale strin
 	artist, err := s.repo.FindPublishedBySlug(ctx, locale, slug)
 	if err != nil {
 		return nil, fmt.Errorf("service.GetArtistBySlug: %w", err)
+	}
+	// hreflang alternates (PRD §4.4): locale→slug for every OTHER published
+	// translation. Best-effort — a failure logs + leaves Alternates empty.
+	alts, aerr := s.repo.FindPublishedAlternates(ctx, artist.ID, locale)
+	if aerr != nil {
+		log.Printf("artist.GetArtistBySlug.Alternates(%d): %v", artist.ID, aerr)
+	} else if len(alts) > 0 {
+		artist.Alternates = alts
 	}
 	return artist, nil
 }
@@ -117,6 +142,9 @@ func (s *Service) AdminTransitionArtist(ctx context.Context, artistID int64, loc
 	}
 	if err := s.repo.UpdateTranslationStatus(ctx, artistID, locale, to, reviewer); err != nil {
 		return nil, err
+	}
+	if to == models.StatusPublished || from == models.StatusPublished {
+		s.enqueueSitemapRebuild(ctx)
 	}
 	return s.repo.FindAdminByID(ctx, artistID, locale)
 }
