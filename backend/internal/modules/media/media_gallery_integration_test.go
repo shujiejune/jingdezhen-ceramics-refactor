@@ -165,9 +165,11 @@ func TestEntityGallery_CascadeDeleteParent(t *testing.T) {
 func seedArtist(t *testing.T, pool *pgxpool.Pool) int64 {
 	t.Helper()
 	var id int64
-	// artists has no NOT NULL cols except defaults; insert a bare row.
+	// artists.name is a legacy NOT NULL column (kept dead after i18n migration
+	// 000011 moved localized name to artist_translations); display_order is
+	// NOT NULL DEFAULT 0. Insert a bare row satisfying the NOT NULL constraints.
 	err := pool.QueryRow(context.Background(),
-		`INSERT INTO artists (display_order) VALUES (0) RETURNING id`).Scan(&id)
+		`INSERT INTO artists (name, display_order) VALUES ('seed-artist', 0) RETURNING id`).Scan(&id)
 	require.NoError(t, err)
 	return id
 }
@@ -175,8 +177,10 @@ func seedArtist(t *testing.T, pool *pgxpool.Pool) int64 {
 func seedStory(t *testing.T, pool *pgxpool.Pool) int64 {
 	t.Helper()
 	var id int64
+	// ceramic_stories has legacy NOT NULL columns dynasty_name/slug/description
+	// (kept dead after i18n migration 000007 moved them to translations).
 	err := pool.QueryRow(context.Background(),
-		`INSERT INTO ceramic_stories (display_order) VALUES (0) RETURNING id`).Scan(&id)
+		`INSERT INTO ceramic_stories (dynasty_name, slug, description) VALUES ('seed-dynasty', 'seed-slug', 'seed') RETURNING id`).Scan(&id)
 	require.NoError(t, err)
 	return id
 }
@@ -184,8 +188,10 @@ func seedStory(t *testing.T, pool *pgxpool.Pool) int64 {
 func seedActivity(t *testing.T, pool *pgxpool.Pool) int64 {
 	t.Helper()
 	var id int64
+	// activities has legacy NOT NULL columns title/type/article_slug (kept dead
+	// after i18n migration 000008 moved title/brief to translations).
 	err := pool.QueryRow(context.Background(),
-		`INSERT INTO activities (type) VALUES ('Destination') RETURNING id`).Scan(&id)
+		`INSERT INTO activities (title, type, article_slug) VALUES ('seed-activity', 'Destination', 'seed-activity-slug') RETURNING id`).Scan(&id)
 	require.NoError(t, err)
 	return id
 }
