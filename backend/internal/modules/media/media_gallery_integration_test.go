@@ -47,11 +47,11 @@ func TestArtistGallery_FullLifecycle(t *testing.T) {
 	items, err := svc.ListArtistMedia(ctx, artistID)
 	require.NoError(t, err)
 	require.Len(t, items, 3)
-	assert.Equal(t, int64(0), items[0].SortOrder)
+	assert.Equal(t, 0, items[0].SortOrder)
 	assert.Equal(t, media1, items[0].MediaID)
 	assert.Equal(t, "first", *items[0].Caption)
 	assert.Equal(t, media2, items[1].MediaID)
-	assert.Equal(t, int64(2), items[2].SortOrder)
+	assert.Equal(t, 2, items[2].SortOrder)
 	assert.Equal(t, "artists/a3.jpg", items[2].MediaAsset.OSSKey)
 
 	// Reorder: reverse the order.
@@ -83,7 +83,7 @@ func TestArtistGallery_FullLifecycle(t *testing.T) {
 	require.NoError(t, err)
 	// media1 now has sort_order 5; it sorts last (5 > the others' 0/2).
 	require.Len(t, items, 2)
-	assert.Equal(t, int64(5), items[1].SortOrder)
+	assert.Equal(t, 5, items[1].SortOrder)
 	assert.Equal(t, "moved", *items[1].Caption)
 }
 
