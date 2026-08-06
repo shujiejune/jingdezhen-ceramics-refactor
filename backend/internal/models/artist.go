@@ -35,8 +35,8 @@ type Artist struct {
 	// published translation of this artist. Populated by the service on the
 	// detail view.
 	Alternates map[string]string `json:"alternates,omitempty" db:"-"`
-	CreatedAt       time.Time     `json:"created_at" db:"created_at"` // parent
-	UpdatedAt       time.Time     `json:"updated_at" db:"updated_at"` // parent
+	CreatedAt  time.Time         `json:"created_at" db:"created_at"` // parent
+	UpdatedAt  time.Time         `json:"updated_at" db:"updated_at"` // parent
 }
 
 // --- Admin / CMS DTOs ---

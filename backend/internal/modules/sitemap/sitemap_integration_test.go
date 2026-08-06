@@ -35,7 +35,7 @@ func (f *fakeStore) Put(_ context.Context, _ string, r io.Reader, _ string) erro
 	f.putBody = buf
 	return nil
 }
-func (f *fakeStore) Delete(context.Context, string) error { return nil }
+func (f *fakeStore) Delete(context.Context, string) error     { return nil }
 func (f *fakeStore) Key(storage.Kind, string) (string, error) { return "", nil }
 
 const siteBase = "https://jingdezhen.example.com"
@@ -191,5 +191,5 @@ type iurlEntry struct {
 }
 type iurlSet struct {
 	XMLName xml.Name    `xml:"urlset"`
-	URLs   []iurlEntry `xml:"url"`
+	URLs    []iurlEntry `xml:"url"`
 }

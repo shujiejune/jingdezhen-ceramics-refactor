@@ -57,14 +57,14 @@ type Product struct {
 	Gallery []ProductMediaItem `json:"gallery,omitempty" db:"-"`
 	// Tags loaded by the service (list + detail views; batch-loaded to avoid N+1).
 	// `Name` is the locale-resolved display name (en-US → key fallback).
-	Tags      []Tag     `json:"tags,omitempty" db:"-"`
+	Tags []Tag `json:"tags,omitempty" db:"-"`
 	// Alternates is the hreflang map (PRD §4.4): locale → slug for every other
 	// published translation of this product. Populated by the service on the
 	// detail view; empty on the list view. The frontend emits <link rel=alternate
 	// hreflang> from this map.
 	Alternates map[string]string `json:"alternates,omitempty" db:"-"`
-	CreatedAt time.Time `json:"created_at" db:"created_at"` // parent
-	UpdatedAt time.Time `json:"updated_at" db:"updated_at"` // parent
+	CreatedAt  time.Time         `json:"created_at" db:"created_at"` // parent
+	UpdatedAt  time.Time         `json:"updated_at" db:"updated_at"` // parent
 }
 
 // SKU is a purchasable variant of a product. Money is stored as BIGINT minor

@@ -36,8 +36,8 @@ type Activity struct {
 	// published translation of this activity. Populated by the service on the
 	// detail view.
 	Alternates map[string]string `json:"alternates,omitempty" db:"-"`
-	CreatedAt         time.Time     `json:"created_at" db:"created_at"`
-	UpdatedAt         time.Time     `json:"updated_at" db:"updated_at"`
+	CreatedAt  time.Time         `json:"created_at" db:"created_at"`
+	UpdatedAt  time.Time         `json:"updated_at" db:"updated_at"`
 }
 
 // Article is retained as a type alias to Activity for backward compatibility
