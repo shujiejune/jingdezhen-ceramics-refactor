@@ -51,15 +51,15 @@ func requestLocale(c *fiber.Ctx) string {
 
 // GetAllDynasties: GET /ceramicstory?locale=en-US
 //
-// @Summary      List ceramic stories
-// @Description  Returns all published ceramic-story/dynasty entries for the requested locale.
-// @Tags         ceramicstory
-// @Accept       json
-// @Produce      json
-// @Param        locale query string false "BCP 47 locale (e.g. en-US). Overrides Accept-Language." default("en-US")
-// @Success      200 {array}  models.CeramicStory
-// @Failure      500 {object} models.ErrorResponse "Internal error"
-// @Router       /ceramicstory [get]
+//	@Summary		List ceramic stories
+//	@Description	Returns all published ceramic-story/dynasty entries for the requested locale.
+//	@Tags			ceramicstory
+//	@Accept			json
+//	@Produce		json
+//	@Param			locale	query		string	false	"BCP 47 locale (e.g. en-US). Overrides Accept-Language."	default("en-US")
+//	@Success		200		{array}		models.CeramicStory
+//	@Failure		500		{object}	models.ErrorResponse	"Internal error"
+//	@Router			/ceramicstory [get]
 func (h *Handler) GetAllDynasties(c *fiber.Ctx) error {
 	locale := requestLocale(c)
 	stories, err := h.service.GetAllCeramicStories(c.Context(), locale)
@@ -75,18 +75,18 @@ func (h *Handler) GetAllDynasties(c *fiber.Ctx) error {
 
 // GetDynastyDetail: GET /ceramicstory/:slug?locale=en-US
 //
-// @Summary      Get a ceramic story by slug
-// @Description  Fetches a single published ceramic story by its locale-specific slug.
-// @Tags         ceramicstory
-// @Accept       json
-// @Produce      json
-// @Param        slug   path string true "Story slug (locale-specific)"
-// @Param        locale query string false "BCP 47 locale (e.g. en-US). Overrides Accept-Language." default("en-US")
-// @Success      200 {object} models.CeramicStory
-// @Failure      400 {object} models.ErrorResponse "Missing slug"
-// @Failure      404 {object} models.ErrorResponse "Ceramic story not found"
-// @Failure      500 {object} models.ErrorResponse "Internal error"
-// @Router       /ceramicstory/{slug} [get]
+//	@Summary		Get a ceramic story by slug
+//	@Description	Fetches a single published ceramic story by its locale-specific slug.
+//	@Tags			ceramicstory
+//	@Accept			json
+//	@Produce		json
+//	@Param			slug	path		string	true	"Story slug (locale-specific)"
+//	@Param			locale	query		string	false	"BCP 47 locale (e.g. en-US). Overrides Accept-Language."	default("en-US")
+//	@Success		200		{object}	models.CeramicStory
+//	@Failure		400		{object}	models.ErrorResponse	"Missing slug"
+//	@Failure		404		{object}	models.ErrorResponse	"Ceramic story not found"
+//	@Failure		500		{object}	models.ErrorResponse	"Internal error"
+//	@Router			/ceramicstory/{slug} [get]
 func (h *Handler) GetDynastyDetail(c *fiber.Ctx) error {
 	slug := c.Params("slug")
 	if slug == "" {
@@ -127,23 +127,23 @@ type localeBody struct {
 
 // AdminListStories: GET /admin/ceramicstory?locale=&status=&page=&limit=
 //
-// @Summary      List ceramic stories (admin, any status)
-// @Description  Paginated list of stories filtered by locale + status. Access: content_editor.
-// @Tags         admin,ceramicstory
-// @Accept       json
-// @Produce      json
-// @Param        Authorization header string true "Bearer <access_token>"
-// @Param        locale query string false "BCP 47 locale"
-// @Param        status query string false "Filter by workflow status"
-// @Param        page   query int    false "Page number (1-based)" default(1)
-// @Param        limit  query int    false "Page size (max 100)" default(20)
-// @Success      200 {object} models.PaginatedResponse{data=[]models.CeramicStory}
-// @Failure      400 {object} models.ErrorResponse "Invalid locale"
-// @Failure      401 {object} models.ErrorResponse "Authentication required"
-// @Failure      403 {object} models.ErrorResponse "Forbidden (needs content.write)"
-// @Failure      500 {object} models.ErrorResponse "Internal error"
-// @Security     BearerAuth
-// @Router       /admin/ceramicstory [get]
+//	@Summary		List ceramic stories (admin, any status)
+//	@Description	Paginated list of stories filtered by locale + status. Access: content_editor.
+//	@Tags			admin,ceramicstory
+//	@Accept			json
+//	@Produce		json
+//	@Param			Authorization	header		string	true	"Bearer <access_token>"
+//	@Param			locale			query		string	false	"BCP 47 locale"
+//	@Param			status			query		string	false	"Filter by workflow status"
+//	@Param			page			query		int		false	"Page number (1-based)"	default(1)
+//	@Param			limit			query		int		false	"Page size (max 100)"	default(20)
+//	@Success		200				{object}	models.PaginatedResponse{data=[]models.CeramicStory}
+//	@Failure		400				{object}	models.ErrorResponse	"Invalid locale"
+//	@Failure		401				{object}	models.ErrorResponse	"Authentication required"
+//	@Failure		403				{object}	models.ErrorResponse	"Forbidden (needs content.write)"
+//	@Failure		500				{object}	models.ErrorResponse	"Internal error"
+//	@Security		BearerAuth
+//	@Router			/admin/ceramicstory [get]
 func (h *Handler) AdminListStories(c *fiber.Ctx) error {
 	page, limit := utils.GetPageLimit(c)
 	locale := c.Query("locale") // optional filter
@@ -161,22 +161,22 @@ func (h *Handler) AdminListStories(c *fiber.Ctx) error {
 
 // AdminGetStory: GET /admin/ceramicstory/:slug?locale=en-US (any status)
 //
-// @Summary      Get a ceramic story by slug (admin, any status)
-// @Description  Fetches a single story by slug in any workflow status. Access: content_editor.
-// @Tags         admin,ceramicstory
-// @Accept       json
-// @Produce      json
-// @Param        Authorization header string true "Bearer <access_token>"
-// @Param        slug   path string  true "Story slug"
-// @Param        locale query string false "BCP 47 locale" default(en-US)
-// @Success      200 {object} models.CeramicStory
-// @Failure      400 {object} models.ErrorResponse "Invalid locale"
-// @Failure      401 {object} models.ErrorResponse "Authentication required"
-// @Failure      403 {object} models.ErrorResponse "Forbidden (needs content.write)"
-// @Failure      404 {object} models.ErrorResponse "Ceramic story not found"
-// @Failure      500 {object} models.ErrorResponse "Internal error"
-// @Security     BearerAuth
-// @Router       /admin/ceramicstory/{slug} [get]
+//	@Summary		Get a ceramic story by slug (admin, any status)
+//	@Description	Fetches a single story by slug in any workflow status. Access: content_editor.
+//	@Tags			admin,ceramicstory
+//	@Accept			json
+//	@Produce		json
+//	@Param			Authorization	header		string	true	"Bearer <access_token>"
+//	@Param			slug			path		string	true	"Story slug"
+//	@Param			locale			query		string	false	"BCP 47 locale"	default(en-US)
+//	@Success		200				{object}	models.CeramicStory
+//	@Failure		400				{object}	models.ErrorResponse	"Invalid locale"
+//	@Failure		401				{object}	models.ErrorResponse	"Authentication required"
+//	@Failure		403				{object}	models.ErrorResponse	"Forbidden (needs content.write)"
+//	@Failure		404				{object}	models.ErrorResponse	"Ceramic story not found"
+//	@Failure		500				{object}	models.ErrorResponse	"Internal error"
+//	@Security		BearerAuth
+//	@Router			/admin/ceramicstory/{slug} [get]
 func (h *Handler) AdminGetStory(c *fiber.Ctx) error {
 	slug := c.Params("slug")
 	locale := c.Query("locale", models.DefaultLocale)
@@ -196,20 +196,20 @@ func (h *Handler) AdminGetStory(c *fiber.Ctx) error {
 
 // AdminCreateStory: POST /admin/ceramicstory
 //
-// @Summary      Create a ceramic story
-// @Description  Creates a story + its first translation. Access: content_editor.
-// @Tags         admin,ceramicstory
-// @Accept       json
-// @Produce      json
-// @Param        Authorization header string true "Bearer <access_token>"
-// @Param        body body models.CreateCeramicStoryData true "Story to create"
-// @Success      201 {object} models.CeramicStory
-// @Failure      400 {object} models.ErrorResponse "Invalid body / validation / bad locale"
-// @Failure      401 {object} models.ErrorResponse "Authentication required"
-// @Failure      403 {object} models.ErrorResponse "Forbidden (needs content.write)"
-// @Failure      500 {object} models.ErrorResponse "Internal error"
-// @Security     BearerAuth
-// @Router       /admin/ceramicstory [post]
+//	@Summary		Create a ceramic story
+//	@Description	Creates a story + its first translation. Access: content_editor.
+//	@Tags			admin,ceramicstory
+//	@Accept			json
+//	@Produce		json
+//	@Param			Authorization	header		string							true	"Bearer <access_token>"
+//	@Param			body			body		models.CreateCeramicStoryData	true	"Story to create"
+//	@Success		201				{object}	models.CeramicStory
+//	@Failure		400				{object}	models.ErrorResponse	"Invalid body / validation / bad locale"
+//	@Failure		401				{object}	models.ErrorResponse	"Authentication required"
+//	@Failure		403				{object}	models.ErrorResponse	"Forbidden (needs content.write)"
+//	@Failure		500				{object}	models.ErrorResponse	"Internal error"
+//	@Security		BearerAuth
+//	@Router			/admin/ceramicstory [post]
 func (h *Handler) AdminCreateStory(c *fiber.Ctx) error {
 	var req models.CreateCeramicStoryData
 	if err := c.BodyParser(&req); err != nil {
@@ -231,24 +231,24 @@ func (h *Handler) AdminCreateStory(c *fiber.Ctx) error {
 
 // AdminUpdateStory: PUT /admin/ceramicstory/:id?locale=en-US
 //
-// @Summary      Update a ceramic story
-// @Description  Updates a story's translation + parent fields (nil = unchanged). Access: content_editor.
-// @Tags         admin,ceramicstory
-// @Accept       json
-// @Produce      json
-// @Param        Authorization header string true "Bearer <access_token>"
-// @Param        id     path int true "Story ID"
-// @Param        locale query string false "BCP 47 locale" default(en-US)
-// @Param        body   body models.UpdateCeramicStoryData true "Fields to update (nil pointers = unchanged)"
-// @Success      200 {object} models.CeramicStory
-// @Failure      400 {object} models.ErrorResponse "Invalid story ID / body / bad locale"
-// @Failure      401 {object} models.ErrorResponse "Authentication required"
-// @Failure      403 {object} models.ErrorResponse "Forbidden (needs content.write)"
-// @Failure      404 {object} models.ErrorResponse "Ceramic story not found"
-// @Failure      409 {object} models.ErrorResponse "Translation not editable in its current workflow state"
-// @Failure      500 {object} models.ErrorResponse "Internal error"
-// @Security     BearerAuth
-// @Router       /admin/ceramicstory/{id} [put]
+//	@Summary		Update a ceramic story
+//	@Description	Updates a story's translation + parent fields (nil = unchanged). Access: content_editor.
+//	@Tags			admin,ceramicstory
+//	@Accept			json
+//	@Produce		json
+//	@Param			Authorization	header		string							true	"Bearer <access_token>"
+//	@Param			id				path		int								true	"Story ID"
+//	@Param			locale			query		string							false	"BCP 47 locale"	default(en-US)
+//	@Param			body			body		models.UpdateCeramicStoryData	true	"Fields to update (nil pointers = unchanged)"
+//	@Success		200				{object}	models.CeramicStory
+//	@Failure		400				{object}	models.ErrorResponse	"Invalid story ID / body / bad locale"
+//	@Failure		401				{object}	models.ErrorResponse	"Authentication required"
+//	@Failure		403				{object}	models.ErrorResponse	"Forbidden (needs content.write)"
+//	@Failure		404				{object}	models.ErrorResponse	"Ceramic story not found"
+//	@Failure		409				{object}	models.ErrorResponse	"Translation not editable in its current workflow state"
+//	@Failure		500				{object}	models.ErrorResponse	"Internal error"
+//	@Security		BearerAuth
+//	@Router			/admin/ceramicstory/{id} [put]
 func (h *Handler) AdminUpdateStory(c *fiber.Ctx) error {
 	id, err := strconv.ParseInt(c.Params("id"), 10, 64)
 	if err != nil {
@@ -312,113 +312,113 @@ func (h *Handler) adminTransition(c *fiber.Ctx, to models.ContentStatus) error {
 
 // AdminSubmitStory: POST /admin/ceramicstory/:id/submit (draft → in_review)
 //
-// @Summary      Submit a ceramic story for review
-// @Description  Transitions a draft story translation to in_review. Body: {locale}. Access: content_editor.
-// @Tags         admin,ceramicstory,workflow
-// @Accept       json
-// @Produce      json
-// @Param        Authorization header string true "Bearer <access_token>"
-// @Param        id   path int true "Story ID"
-// @Param        body body object true "{locale: en-US}"
-// @Success      200 {object} models.CeramicStory
-// @Failure      400 {object} models.ErrorResponse "Invalid story ID / body / bad locale"
-// @Failure      401 {object} models.ErrorResponse "Authentication required"
-// @Failure      403 {object} models.ErrorResponse "Forbidden (needs content.write)"
-// @Failure      404 {object} models.ErrorResponse "Ceramic story not found"
-// @Failure      409 {object} models.ErrorResponse "Invalid workflow transition"
-// @Failure      500 {object} models.ErrorResponse "Internal error"
-// @Security     BearerAuth
-// @Router       /admin/ceramicstory/{id}/submit [post]
+//	@Summary		Submit a ceramic story for review
+//	@Description	Transitions a draft story translation to in_review. Body: {locale}. Access: content_editor.
+//	@Tags			admin,ceramicstory,workflow
+//	@Accept			json
+//	@Produce		json
+//	@Param			Authorization	header		string	true	"Bearer <access_token>"
+//	@Param			id				path		int		true	"Story ID"
+//	@Param			body			body		object	true	"{locale: en-US}"
+//	@Success		200				{object}	models.CeramicStory
+//	@Failure		400				{object}	models.ErrorResponse	"Invalid story ID / body / bad locale"
+//	@Failure		401				{object}	models.ErrorResponse	"Authentication required"
+//	@Failure		403				{object}	models.ErrorResponse	"Forbidden (needs content.write)"
+//	@Failure		404				{object}	models.ErrorResponse	"Ceramic story not found"
+//	@Failure		409				{object}	models.ErrorResponse	"Invalid workflow transition"
+//	@Failure		500				{object}	models.ErrorResponse	"Internal error"
+//	@Security		BearerAuth
+//	@Router			/admin/ceramicstory/{id}/submit [post]
 func (h *Handler) AdminSubmitStory(c *fiber.Ctx) error {
 	return h.adminTransition(c, models.StatusInReview)
 }
 
 // AdminApproveStory: POST /admin/ceramicstory/:id/approve (in_review → published)
 //
-// @Summary      Approve + publish a ceramic story
-// @Description  Transitions an in_review story translation to published. Access: super_admin ONLY.
-// @Tags         admin,ceramicstory,workflow
-// @Accept       json
-// @Produce      json
-// @Param        Authorization header string true "Bearer <access_token>"
-// @Param        id   path int true "Story ID"
-// @Param        body body object true "{locale: en-US}"
-// @Success      200 {object} models.CeramicStory
-// @Failure      400 {object} models.ErrorResponse "Invalid story ID / body / bad locale"
-// @Failure      401 {object} models.ErrorResponse "Authentication required"
-// @Failure      403 {object} models.ErrorResponse "Forbidden (needs content.publish — super_admin only)"
-// @Failure      404 {object} models.ErrorResponse "Ceramic story not found"
-// @Failure      409 {object} models.ErrorResponse "Invalid workflow transition"
-// @Failure      500 {object} models.ErrorResponse "Internal error"
-// @Security     BearerAuth
-// @Router       /admin/ceramicstory/{id}/approve [post]
+//	@Summary		Approve + publish a ceramic story
+//	@Description	Transitions an in_review story translation to published. Access: super_admin ONLY.
+//	@Tags			admin,ceramicstory,workflow
+//	@Accept			json
+//	@Produce		json
+//	@Param			Authorization	header		string	true	"Bearer <access_token>"
+//	@Param			id				path		int		true	"Story ID"
+//	@Param			body			body		object	true	"{locale: en-US}"
+//	@Success		200				{object}	models.CeramicStory
+//	@Failure		400				{object}	models.ErrorResponse	"Invalid story ID / body / bad locale"
+//	@Failure		401				{object}	models.ErrorResponse	"Authentication required"
+//	@Failure		403				{object}	models.ErrorResponse	"Forbidden (needs content.publish — super_admin only)"
+//	@Failure		404				{object}	models.ErrorResponse	"Ceramic story not found"
+//	@Failure		409				{object}	models.ErrorResponse	"Invalid workflow transition"
+//	@Failure		500				{object}	models.ErrorResponse	"Internal error"
+//	@Security		BearerAuth
+//	@Router			/admin/ceramicstory/{id}/approve [post]
 func (h *Handler) AdminApproveStory(c *fiber.Ctx) error {
 	return h.adminTransition(c, models.StatusPublished)
 }
 
 // AdminRejectStory: POST /admin/ceramicstory/:id/reject (in_review → rejected)
 //
-// @Summary      Reject a ceramic story (in_review → rejected)
-// @Description  Transitions an in_review story translation to rejected. Access: super_admin ONLY.
-// @Tags         admin,ceramicstory,workflow
-// @Accept       json
-// @Produce      json
-// @Param        Authorization header string true "Bearer <access_token>"
-// @Param        id   path int true "Story ID"
-// @Param        body body object true "{locale: en-US}"
-// @Success      200 {object} models.CeramicStory
-// @Failure      400 {object} models.ErrorResponse "Invalid story ID / body / bad locale"
-// @Failure      401 {object} models.ErrorResponse "Authentication required"
-// @Failure      403 {object} models.ErrorResponse "Forbidden (needs content.publish — super_admin only)"
-// @Failure      404 {object} models.ErrorResponse "Ceramic story not found"
-// @Failure      409 {object} models.ErrorResponse "Invalid workflow transition"
-// @Failure      500 {object} models.ErrorResponse "Internal error"
-// @Security     BearerAuth
-// @Router       /admin/ceramicstory/{id}/reject [post]
+//	@Summary		Reject a ceramic story (in_review → rejected)
+//	@Description	Transitions an in_review story translation to rejected. Access: super_admin ONLY.
+//	@Tags			admin,ceramicstory,workflow
+//	@Accept			json
+//	@Produce		json
+//	@Param			Authorization	header		string	true	"Bearer <access_token>"
+//	@Param			id				path		int		true	"Story ID"
+//	@Param			body			body		object	true	"{locale: en-US}"
+//	@Success		200				{object}	models.CeramicStory
+//	@Failure		400				{object}	models.ErrorResponse	"Invalid story ID / body / bad locale"
+//	@Failure		401				{object}	models.ErrorResponse	"Authentication required"
+//	@Failure		403				{object}	models.ErrorResponse	"Forbidden (needs content.publish — super_admin only)"
+//	@Failure		404				{object}	models.ErrorResponse	"Ceramic story not found"
+//	@Failure		409				{object}	models.ErrorResponse	"Invalid workflow transition"
+//	@Failure		500				{object}	models.ErrorResponse	"Internal error"
+//	@Security		BearerAuth
+//	@Router			/admin/ceramicstory/{id}/reject [post]
 func (h *Handler) AdminRejectStory(c *fiber.Ctx) error {
 	return h.adminTransition(c, models.StatusRejected)
 }
 
 // AdminUnpublishStory: POST /admin/ceramicstory/:id/unpublish (published → draft)
 //
-// @Summary      Unpublish a ceramic story (published → draft)
-// @Description  Transitions a published story translation back to draft. Access: super_admin ONLY.
-// @Tags         admin,ceramicstory,workflow
-// @Accept       json
-// @Produce      json
-// @Param        Authorization header string true "Bearer <access_token>"
-// @Param        id   path int true "Story ID"
-// @Param        body body object true "{locale: en-US}"
-// @Success      200 {object} models.CeramicStory
-// @Failure      400 {object} models.ErrorResponse "Invalid story ID / body / bad locale"
-// @Failure      401 {object} models.ErrorResponse "Authentication required"
-// @Failure      403 {object} models.ErrorResponse "Forbidden (needs content.publish — super_admin only)"
-// @Failure      404 {object} models.ErrorResponse "Ceramic story not found"
-// @Failure      409 {object} models.ErrorResponse "Invalid workflow transition"
-// @Failure      500 {object} models.ErrorResponse "Internal error"
-// @Security     BearerAuth
-// @Router       /admin/ceramicstory/{id}/unpublish [post]
+//	@Summary		Unpublish a ceramic story (published → draft)
+//	@Description	Transitions a published story translation back to draft. Access: super_admin ONLY.
+//	@Tags			admin,ceramicstory,workflow
+//	@Accept			json
+//	@Produce		json
+//	@Param			Authorization	header		string	true	"Bearer <access_token>"
+//	@Param			id				path		int		true	"Story ID"
+//	@Param			body			body		object	true	"{locale: en-US}"
+//	@Success		200				{object}	models.CeramicStory
+//	@Failure		400				{object}	models.ErrorResponse	"Invalid story ID / body / bad locale"
+//	@Failure		401				{object}	models.ErrorResponse	"Authentication required"
+//	@Failure		403				{object}	models.ErrorResponse	"Forbidden (needs content.publish — super_admin only)"
+//	@Failure		404				{object}	models.ErrorResponse	"Ceramic story not found"
+//	@Failure		409				{object}	models.ErrorResponse	"Invalid workflow transition"
+//	@Failure		500				{object}	models.ErrorResponse	"Internal error"
+//	@Security		BearerAuth
+//	@Router			/admin/ceramicstory/{id}/unpublish [post]
 func (h *Handler) AdminUnpublishStory(c *fiber.Ctx) error {
 	return h.adminTransition(c, models.StatusDraft)
 }
 
 // AdminDeleteStory: DELETE /admin/ceramicstory/:id
 //
-// @Summary      Delete a ceramic story
-// @Description  Removes a story (parent + all translations). Access: content_editor.
-// @Tags         admin,ceramicstory
-// @Accept       json
-// @Produce      json
-// @Param        Authorization header string true "Bearer <access_token>"
-// @Param        id path int true "Story ID"
-// @Success      204 "No Content (empty body)"
-// @Failure      400 {object} models.ErrorResponse "Invalid story ID"
-// @Failure      401 {object} models.ErrorResponse "Authentication required"
-// @Failure      403 {object} models.ErrorResponse "Forbidden (needs content.write)"
-// @Failure      404 {object} models.ErrorResponse "Ceramic story not found"
-// @Failure      500 {object} models.ErrorResponse "Internal error"
-// @Security     BearerAuth
-// @Router       /admin/ceramicstory/{id} [delete]
+//	@Summary		Delete a ceramic story
+//	@Description	Removes a story (parent + all translations). Access: content_editor.
+//	@Tags			admin,ceramicstory
+//	@Accept			json
+//	@Produce		json
+//	@Param			Authorization	header	string	true	"Bearer <access_token>"
+//	@Param			id				path	int		true	"Story ID"
+//	@Success		204				"No Content (empty body)"
+//	@Failure		400				{object}	models.ErrorResponse	"Invalid story ID"
+//	@Failure		401				{object}	models.ErrorResponse	"Authentication required"
+//	@Failure		403				{object}	models.ErrorResponse	"Forbidden (needs content.write)"
+//	@Failure		404				{object}	models.ErrorResponse	"Ceramic story not found"
+//	@Failure		500				{object}	models.ErrorResponse	"Internal error"
+//	@Security		BearerAuth
+//	@Router			/admin/ceramicstory/{id} [delete]
 func (h *Handler) AdminDeleteStory(c *fiber.Ctx) error {
 	id, err := strconv.ParseInt(c.Params("id"), 10, 64)
 	if err != nil {

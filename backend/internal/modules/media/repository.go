@@ -25,4 +25,22 @@ type RepositoryInterface interface {
 	DetachFromProduct(ctx context.Context, productID, mediaID int64) error
 	// ReorderProductMedia sets sort_order for a batch of media on a product.
 	ReorderProductMedia(ctx context.Context, productID int64, items []models.ReorderMediaItem) error
+
+	// --- Artist gallery (mirrors product_media; PRD §3.1.3) ---
+	AttachToArtist(ctx context.Context, artistID, mediaID int64, sortOrder *int, caption *string) error
+	ListArtistMedia(ctx context.Context, artistID int64) ([]models.GalleryItem, error)
+	DetachFromArtist(ctx context.Context, artistID, mediaID int64) error
+	ReorderArtistMedia(ctx context.Context, artistID int64, items []models.ReorderMediaItem) error
+
+	// --- Ceramic story gallery (History & Heritage, PRD §3.1.2) ---
+	AttachToStory(ctx context.Context, storyID, mediaID int64, sortOrder *int, caption *string) error
+	ListStoryMedia(ctx context.Context, storyID int64) ([]models.GalleryItem, error)
+	DetachFromStory(ctx context.Context, storyID, mediaID int64) error
+	ReorderStoryMedia(ctx context.Context, storyID int64, items []models.ReorderMediaItem) error
+
+	// --- Activity gallery (Destinations & Local Lifestyle, PRD §3.1.2/§3.1.3) ---
+	AttachToActivity(ctx context.Context, activityID, mediaID int64, sortOrder *int, caption *string) error
+	ListActivityMedia(ctx context.Context, activityID int64) ([]models.GalleryItem, error)
+	DetachFromActivity(ctx context.Context, activityID, mediaID int64) error
+	ReorderActivityMedia(ctx context.Context, activityID int64, items []models.ReorderMediaItem) error
 }

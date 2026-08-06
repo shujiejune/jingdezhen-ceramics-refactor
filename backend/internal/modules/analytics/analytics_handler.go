@@ -27,20 +27,20 @@ func NewHandler(service ServiceInterface) *Handler {
 // request is acknowledged with 204 No Content and the event is dropped — the
 // client should not retry, this is not an error.
 //
-// @Summary      Record an analytics event
-// @Description  Records a pseudonymous analytics event (pageview or named event).
-// @Description  Public + consent-gated: the visitor must have granted cookie_analytics
-// @Description  consent (checked by IP hash). Not-consented → 204, event dropped.
-// @Description  Country is resolved server-side from GeoLite2 (no raw IP stored).
-// @Tags         analytics
-// @Accept       json
-// @Produce      json
-// @Param        body body models.AnalyticsEventRequest true "Event (kind, path; name for events)"
-// @Success      201 {object} object "{id: <int64>}"
-// @Success      204 "Consent not granted — event silently dropped (not an error)"
-// @Failure      400 {object} models.ErrorResponse "Invalid body / validation"
-// @Failure      500 {object} models.ErrorResponse "Internal error"
-// @Router       /analytics/events [post]
+//	@Summary		Record an analytics event
+//	@Description	Records a pseudonymous analytics event (pageview or named event).
+//	@Description	Public + consent-gated: the visitor must have granted cookie_analytics
+//	@Description	consent (checked by IP hash). Not-consented → 204, event dropped.
+//	@Description	Country is resolved server-side from GeoLite2 (no raw IP stored).
+//	@Tags			analytics
+//	@Accept			json
+//	@Produce		json
+//	@Param			body	body		models.AnalyticsEventRequest	true	"Event (kind, path; name for events)"
+//	@Success		201		{object}	object							"{id: <int64>}"
+//	@Success		204		"Consent not granted — event silently dropped (not an error)"
+//	@Failure		400		{object}	models.ErrorResponse	"Invalid body / validation"
+//	@Failure		500		{object}	models.ErrorResponse	"Internal error"
+//	@Router			/analytics/events [post]
 func (h *Handler) RecordEvent(c *fiber.Ctx) error {
 	var req models.AnalyticsEventRequest
 	if err := c.BodyParser(&req); err != nil {

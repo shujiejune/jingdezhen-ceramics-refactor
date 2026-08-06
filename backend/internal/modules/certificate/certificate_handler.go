@@ -45,20 +45,20 @@ func requestLocale(c *fiber.Ctx) string {
 
 // GetByCode: GET /certificates/:code?locale= (public QR target, no auth — PRD §3.2.1)
 //
-// @Summary      Get a certificate by code (public)
-// @Description  Public authenticity-certificate lookup by its JDZ-<6-base32> code
-// @Description  (the QR target). Returns the cert + product/artist display info +
-// @Description  the provenance chain. No auth.
-// @Tags         certificates
-// @Accept       json
-// @Produce      json
-// @Param        code   path string true "Certificate code (JDZ-<6-base32>)"
-// @Param        locale query string false "BCP 47 locale (e.g. en-US). Overrides Accept-Language." default("en-US")
-// @Success      200 {object} models.Certificate
-// @Failure      400 {object} models.ErrorResponse "Missing code"
-// @Failure      404 {object} models.ErrorResponse "Certificate not found"
-// @Failure      500 {object} models.ErrorResponse "Internal error"
-// @Router       /certificates/{code} [get]
+//	@Summary		Get a certificate by code (public)
+//	@Description	Public authenticity-certificate lookup by its JDZ-<6-base32> code
+//	@Description	(the QR target). Returns the cert + product/artist display info +
+//	@Description	the provenance chain. No auth.
+//	@Tags			certificates
+//	@Accept			json
+//	@Produce		json
+//	@Param			code	path		string	true	"Certificate code (JDZ-<6-base32>)"
+//	@Param			locale	query		string	false	"BCP 47 locale (e.g. en-US). Overrides Accept-Language."	default("en-US")
+//	@Success		200		{object}	models.Certificate
+//	@Failure		400		{object}	models.ErrorResponse	"Missing code"
+//	@Failure		404		{object}	models.ErrorResponse	"Certificate not found"
+//	@Failure		500		{object}	models.ErrorResponse	"Internal error"
+//	@Router			/certificates/{code} [get]
 func (h *Handler) GetByCode(c *fiber.Ctx) error {
 	code := c.Params("code")
 	if code == "" {
@@ -79,17 +79,17 @@ func (h *Handler) GetByCode(c *fiber.Ctx) error {
 // Renders a QR encoding the public certificate URL on-demand (no OSS storage
 // needed; qr_key is populated when the storage adapter lands).
 //
-// @Summary      Get a certificate's QR code (public)
-// @Description  Renders a QR PNG encoding the public certificate URL on-demand.
-// @Description  Returns image/png (cached 24h; QR is stable per code). No auth.
-// @Tags         certificates
-// @Produce      png
-// @Param        code path string true "Certificate code (JDZ-<6-base32>)"
-// @Success      200 {file} binary "QR PNG image"
-// @Failure      400 {object} models.ErrorResponse "Missing code"
-// @Failure      404 {object} models.ErrorResponse "Certificate not found"
-// @Failure      500 {object} models.ErrorResponse "Internal error"
-// @Router       /certificates/{code}/qr [get]
+//	@Summary		Get a certificate's QR code (public)
+//	@Description	Renders a QR PNG encoding the public certificate URL on-demand.
+//	@Description	Returns image/png (cached 24h; QR is stable per code). No auth.
+//	@Tags			certificates
+//	@Produce		png
+//	@Param			code	path		string					true	"Certificate code (JDZ-<6-base32>)"
+//	@Success		200		{file}		binary					"QR PNG image"
+//	@Failure		400		{object}	models.ErrorResponse	"Missing code"
+//	@Failure		404		{object}	models.ErrorResponse	"Certificate not found"
+//	@Failure		500		{object}	models.ErrorResponse	"Internal error"
+//	@Router			/certificates/{code}/qr [get]
 func (h *Handler) QRCode(c *fiber.Ctx) error {
 	code := c.Params("code")
 	if code == "" {
@@ -129,20 +129,20 @@ func (h *Handler) QRCode(c *fiber.Ctx) error {
 // cert endpoints still work. A planner can trigger regeneration in chromedp
 // mode to (re)render.
 //
-// @Summary      Download a certificate PDF (public)
-// @Description  Serves the pre-rendered certificate PDF (302 redirect to the
-// @Description  storage/CDN URL). ?download=1 forces an attachment; otherwise inline.
-// @Description  404 when the PDF has not yet been generated (local mode / pre-render).
-// @Description  No auth.
-// @Tags         certificates
-// @Produce      json
-// @Param        code     path string true "Certificate code (JDZ-<6-base32>)"
-// @Param        download query int  false "1 = force Content-Disposition: attachment"
-// @Success      302 {string} string "Redirect to the PDF storage URL"
-// @Failure      400 {object} models.ErrorResponse "Missing code"
-// @Failure      404 {object} models.ErrorResponse "Certificate not found / PDF not yet generated"
-// @Failure      500 {object} models.ErrorResponse "Internal error"
-// @Router       /certificates/{code}/pdf [get]
+//	@Summary		Download a certificate PDF (public)
+//	@Description	Serves the pre-rendered certificate PDF (302 redirect to the
+//	@Description	storage/CDN URL). ?download=1 forces an attachment; otherwise inline.
+//	@Description	404 when the PDF has not yet been generated (local mode / pre-render).
+//	@Description	No auth.
+//	@Tags			certificates
+//	@Produce		json
+//	@Param			code		path		string					true	"Certificate code (JDZ-<6-base32>)"
+//	@Param			download	query		int						false	"1 = force Content-Disposition: attachment"
+//	@Success		302			{string}	string					"Redirect to the PDF storage URL"
+//	@Failure		400			{object}	models.ErrorResponse	"Missing code"
+//	@Failure		404			{object}	models.ErrorResponse	"Certificate not found / PDF not yet generated"
+//	@Failure		500			{object}	models.ErrorResponse	"Internal error"
+//	@Router			/certificates/{code}/pdf [get]
 func (h *Handler) PDFDownload(c *fiber.Ctx) error {
 	code := c.Params("code")
 	if code == "" {
@@ -171,20 +171,20 @@ func (h *Handler) PDFDownload(c *fiber.Ctx) error {
 
 // ListCertificates: GET /admin/certificates?page=&limit= (PermCertificateManage)
 //
-// @Summary      List certificates (admin)
-// @Description  Paginated list of all certificates. Access: ecommerce_operator.
-// @Tags         admin,certificates
-// @Accept       json
-// @Produce      json
-// @Param        Authorization header string true "Bearer <access_token>"
-// @Param        page  query int false "Page number (1-based)" default(1)
-// @Param        limit query int false "Page size (max 100)" default(20)
-// @Success      200 {object} models.PaginatedResponse{data=[]models.Certificate}
-// @Failure      401 {object} models.ErrorResponse "Authentication required"
-// @Failure      403 {object} models.ErrorResponse "Forbidden (needs certificate.manage)"
-// @Failure      500 {object} models.ErrorResponse "Internal error"
-// @Security     BearerAuth
-// @Router       /admin/certificates [get]
+//	@Summary		List certificates (admin)
+//	@Description	Paginated list of all certificates. Access: ecommerce_operator.
+//	@Tags			admin,certificates
+//	@Accept			json
+//	@Produce		json
+//	@Param			Authorization	header		string	true	"Bearer <access_token>"
+//	@Param			page			query		int		false	"Page number (1-based)"	default(1)
+//	@Param			limit			query		int		false	"Page size (max 100)"	default(20)
+//	@Success		200				{object}	models.PaginatedResponse{data=[]models.Certificate}
+//	@Failure		401				{object}	models.ErrorResponse	"Authentication required"
+//	@Failure		403				{object}	models.ErrorResponse	"Forbidden (needs certificate.manage)"
+//	@Failure		500				{object}	models.ErrorResponse	"Internal error"
+//	@Security		BearerAuth
+//	@Router			/admin/certificates [get]
 func (h *Handler) ListCertificates(c *fiber.Ctx) error {
 	page, limit := utils.GetPageLimit(c)
 	certs, total, err := h.service.ListAdmin(c.Context(), page, limit)
@@ -197,22 +197,22 @@ func (h *Handler) ListCertificates(c *fiber.Ctx) error {
 
 // GetCertificate: GET /admin/certificates/:id (PermCertificateManage)
 //
-// @Summary      Get a certificate by ID (admin)
-// @Description  Fetches a single certificate (with provenance) by its DB ID.
-// @Description  Access: ecommerce_operator.
-// @Tags         admin,certificates
-// @Accept       json
-// @Produce      json
-// @Param        Authorization header string true "Bearer <access_token>"
-// @Param        id path int true "Certificate ID"
-// @Success      200 {object} models.Certificate
-// @Failure      400 {object} models.ErrorResponse "Invalid certificate ID"
-// @Failure      401 {object} models.ErrorResponse "Authentication required"
-// @Failure      403 {object} models.ErrorResponse "Forbidden (needs certificate.manage)"
-// @Failure      404 {object} models.ErrorResponse "Certificate not found"
-// @Failure      500 {object} models.ErrorResponse "Internal error"
-// @Security     BearerAuth
-// @Router       /admin/certificates/{id} [get]
+//	@Summary		Get a certificate by ID (admin)
+//	@Description	Fetches a single certificate (with provenance) by its DB ID.
+//	@Description	Access: ecommerce_operator.
+//	@Tags			admin,certificates
+//	@Accept			json
+//	@Produce		json
+//	@Param			Authorization	header		string	true	"Bearer <access_token>"
+//	@Param			id				path		int		true	"Certificate ID"
+//	@Success		200				{object}	models.Certificate
+//	@Failure		400				{object}	models.ErrorResponse	"Invalid certificate ID"
+//	@Failure		401				{object}	models.ErrorResponse	"Authentication required"
+//	@Failure		403				{object}	models.ErrorResponse	"Forbidden (needs certificate.manage)"
+//	@Failure		404				{object}	models.ErrorResponse	"Certificate not found"
+//	@Failure		500				{object}	models.ErrorResponse	"Internal error"
+//	@Security		BearerAuth
+//	@Router			/admin/certificates/{id} [get]
 func (h *Handler) GetCertificate(c *fiber.Ctx) error {
 	id, err := strconv.ParseInt(c.Params("id"), 10, 64)
 	if err != nil {
@@ -231,23 +231,23 @@ func (h *Handler) GetCertificate(c *fiber.Ctx) error {
 
 // Regenerate: POST /admin/certificates/:id/regenerate (PRD: operators can regenerate)
 //
-// @Summary      Regenerate a certificate (admin)
-// @Description  Issues a new cert_code for an existing certificate (replaces the
-// @Description  old code; re-renders the PDF async via the pdf:generate job).
-// @Description  Access: ecommerce_operator.
-// @Tags         admin,certificates
-// @Accept       json
-// @Produce      json
-// @Param        Authorization header string true "Bearer <access_token>"
-// @Param        id path int true "Certificate ID"
-// @Success      200 {object} object "{cert_code: \"JDZ-xxxxxx\"}"
-// @Failure      400 {object} models.ErrorResponse "Invalid certificate ID"
-// @Failure      401 {object} models.ErrorResponse "Authentication required"
-// @Failure      403 {object} models.ErrorResponse "Forbidden (needs certificate.manage)"
-// @Failure      404 {object} models.ErrorResponse "Certificate not found"
-// @Failure      500 {object} models.ErrorResponse "Internal error"
-// @Security     BearerAuth
-// @Router       /admin/certificates/{id}/regenerate [post]
+//	@Summary		Regenerate a certificate (admin)
+//	@Description	Issues a new cert_code for an existing certificate (replaces the
+//	@Description	old code; re-renders the PDF async via the pdf:generate job).
+//	@Description	Access: ecommerce_operator.
+//	@Tags			admin,certificates
+//	@Accept			json
+//	@Produce		json
+//	@Param			Authorization	header		string					true	"Bearer <access_token>"
+//	@Param			id				path		int						true	"Certificate ID"
+//	@Success		200				{object}	object					"{cert_code: \"JDZ-xxxxxx\"}"
+//	@Failure		400				{object}	models.ErrorResponse	"Invalid certificate ID"
+//	@Failure		401				{object}	models.ErrorResponse	"Authentication required"
+//	@Failure		403				{object}	models.ErrorResponse	"Forbidden (needs certificate.manage)"
+//	@Failure		404				{object}	models.ErrorResponse	"Certificate not found"
+//	@Failure		500				{object}	models.ErrorResponse	"Internal error"
+//	@Security		BearerAuth
+//	@Router			/admin/certificates/{id}/regenerate [post]
 func (h *Handler) Regenerate(c *fiber.Ctx) error {
 	id, err := strconv.ParseInt(c.Params("id"), 10, 64)
 	if err != nil {

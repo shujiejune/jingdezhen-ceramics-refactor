@@ -25,11 +25,20 @@ type ServiceInterface interface {
 	AdminDeleteArtist(ctx context.Context, artistID int64) error
 	// SetSitemapEnqueuer wires the sitemap-rebuild trigger (PRD §4.4).
 	SetSitemapEnqueuer(e sitemap.Enqueuer)
+	// SetGalleryLoader wires the ordered-media-gallery loader (PRD §3.1.3).
+	SetGalleryLoader(gl GalleryLoader)
 }
 
 type Service struct {
 	repo            RepositoryInterface
 	sitemapEnqueuer sitemap.Enqueuer // optional; nil => no sitemap rebuild (worker/tests)
+	galleryLoader   GalleryLoader    // optional; nil => no gallery (list view/tests)
+}
+
+// GalleryLoader loads an artist's ordered media gallery. Implemented by the
+// media service; injected post-construction to avoid an artist→media import edge.
+type GalleryLoader interface {
+	ListArtistMedia(ctx context.Context, artistID int64) ([]models.GalleryItem, error)
 }
 
 func NewService(repo RepositoryInterface) ServiceInterface {
@@ -38,6 +47,9 @@ func NewService(repo RepositoryInterface) ServiceInterface {
 
 // SetSitemapEnqueuer wires the sitemap-rebuild trigger (PRD §4.4). nil-safe.
 func (s *Service) SetSitemapEnqueuer(e sitemap.Enqueuer) { s.sitemapEnqueuer = e }
+
+// SetGalleryLoader wires the gallery loader (PRD §3.1.3). nil-safe.
+func (s *Service) SetGalleryLoader(gl GalleryLoader) { s.galleryLoader = gl }
 
 // enqueueSitemapRebuild fires a sitemap rebuild best-effort (PRD §4.4). nil-
 // safe (worker/tests); logs on error, never returns one.
@@ -75,6 +87,20 @@ func (s *Service) GetArtistBySlug(ctx context.Context, slug string, locale strin
 		log.Printf("artist.GetArtistBySlug.Alternates(%d): %v", artist.ID, aerr)
 	} else if len(alts) > 0 {
 		artist.Alternates = alts
+	}
+	// Load the ordered media gallery (detail view). The first item's media
+	// PublicURL is the preferred avatar; AvatarURL is the fallback.
+	if s.galleryLoader != nil {
+		gallery, gerr := s.galleryLoader.ListArtistMedia(ctx, artist.ID)
+		if gerr != nil {
+			log.Printf("artist.GetArtistBySlug.Gallery(%d): %v", artist.ID, gerr)
+		} else if len(gallery) > 0 {
+			artist.Gallery = gallery
+			if gallery[0].MediaAsset.PublicURL != "" {
+				u := gallery[0].MediaAsset.PublicURL
+				artist.AvatarURL = &u
+			}
+		}
 	}
 	return artist, nil
 }

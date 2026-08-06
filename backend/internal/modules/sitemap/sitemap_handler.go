@@ -26,14 +26,14 @@ func NewHandler(builder *Builder, siteBaseURL string) *Handler {
 // SitemapXML returns the sitemap built on-read (always current). 4 small
 // SELECTs at MVP volume — a cache can be added if a crawler hammers this.
 //
-// @Summary      Sitemap (multi-locale, hreflang)
-// @Description  Returns the sitemap.xml with one <url> per published (entity,
-// @Description  locale, slug) and xhtml:link hreflang alternates. Rebuilt on
-// @Description  read; also refreshed by the sitemap:rebuild job on publish.
-// @Tags         seo
-// @Produce      xml
-// @Success      200 {string} string "application/xml"
-// @Router       /sitemap.xml [get]
+//	@Summary		Sitemap (multi-locale, hreflang)
+//	@Description	Returns the sitemap.xml with one <url> per published (entity,
+//	@Description	locale, slug) and xhtml:link hreflang alternates. Rebuilt on
+//	@Description	read; also refreshed by the sitemap:rebuild job on publish.
+//	@Tags			seo
+//	@Produce		xml
+//	@Success		200	{string}	string	"application/xml"
+//	@Router			/sitemap.xml [get]
 func (h *Handler) SitemapXML(c *fiber.Ctx) error {
 	xmlBytes, err := h.builder.BuildXML(c.Context())
 	if err != nil {
@@ -50,13 +50,13 @@ func (h *Handler) SitemapXML(c *fiber.Ctx) error {
 // /admin (CMS) + /api (non-SEO API surface) + the auth paths, and point at
 // the sitemap. PRD §4.4.
 //
-// @Summary      robots.txt
-// @Description  Allow public content; disallow /admin + /api + /auth; Sitemap:
-// @Description  line points at /sitemap.xml.
-// @Tags         seo
-// @Produce      plain
-// @Success      200 {string} string "text/plain"
-// @Router       /robots.txt [get]
+//	@Summary		robots.txt
+//	@Description	Allow public content; disallow /admin + /api + /auth; Sitemap:
+//	@Description	line points at /sitemap.xml.
+//	@Tags			seo
+//	@Produce		plain
+//	@Success		200	{string}	string	"text/plain"
+//	@Router			/robots.txt [get]
 func (h *Handler) RobotsTXT(c *fiber.Ctx) error {
 	base := strings.TrimRight(h.siteBaseURL, "/")
 	body := "User-agent: *\n" +

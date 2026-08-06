@@ -22,36 +22,36 @@ func NewHandler(service ServiceInterface) *Handler {
 // Reads the raw body + headers, verifies via the gateway, acks 200 immediately
 // (enqueue-and-ack per TDD §2.2). A signature mismatch → 400 (rejected).
 //
-// @Summary      Airwallex webhook
-// @Description  Receives Airwallex payment events. Verifies the signature via
-// @Description  the gateway, then acks 200 immediately (enqueue-and-ack). A
-// @Description  signature mismatch returns 400. Idempotent on the idempotency_key.
-// @Tags         webhooks,payments
-// @Accept       json
-// @Produce      json
-// @Success      200 "OK (event acknowledged + enqueued)"
-// @Failure      400 {object} models.ErrorResponse "Webhook signature verification failed"
-// @Failure      503 {object} models.ErrorResponse "Payment gateway not configured"
-// @Failure      500 {object} models.ErrorResponse "Internal error"
-// @Router       /webhooks/airwallex [post]
+//	@Summary		Airwallex webhook
+//	@Description	Receives Airwallex payment events. Verifies the signature via
+//	@Description	the gateway, then acks 200 immediately (enqueue-and-ack). A
+//	@Description	signature mismatch returns 400. Idempotent on the idempotency_key.
+//	@Tags			webhooks,payments
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	"OK (event acknowledged + enqueued)"
+//	@Failure		400	{object}	models.ErrorResponse	"Webhook signature verification failed"
+//	@Failure		503	{object}	models.ErrorResponse	"Payment gateway not configured"
+//	@Failure		500	{object}	models.ErrorResponse	"Internal error"
+//	@Router			/webhooks/airwallex [post]
 func (h *Handler) AirwallexWebhook(c *fiber.Ctx) error {
 	return h.handleWebhook(c, models.GatewayAirwallex)
 }
 
 // PayPalWebhook: POST /webhooks/paypal (public, signature-verified).
 //
-// @Summary      PayPal webhook
-// @Description  Receives PayPal payment events. Verifies the signature via the
-// @Description  gateway, then acks 200 immediately (enqueue-and-ack). A signature
-// @Description  mismatch returns 400. Idempotent on the idempotency_key.
-// @Tags         webhooks,payments
-// @Accept       json
-// @Produce      json
-// @Success      200 "OK (event acknowledged + enqueued)"
-// @Failure      400 {object} models.ErrorResponse "Webhook signature verification failed"
-// @Failure      503 {object} models.ErrorResponse "Payment gateway not configured"
-// @Failure      500 {object} models.ErrorResponse "Internal error"
-// @Router       /webhooks/paypal [post]
+//	@Summary		PayPal webhook
+//	@Description	Receives PayPal payment events. Verifies the signature via the
+//	@Description	gateway, then acks 200 immediately (enqueue-and-ack). A signature
+//	@Description	mismatch returns 400. Idempotent on the idempotency_key.
+//	@Tags			webhooks,payments
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	"OK (event acknowledged + enqueued)"
+//	@Failure		400	{object}	models.ErrorResponse	"Webhook signature verification failed"
+//	@Failure		503	{object}	models.ErrorResponse	"Payment gateway not configured"
+//	@Failure		500	{object}	models.ErrorResponse	"Internal error"
+//	@Router			/webhooks/paypal [post]
 func (h *Handler) PayPalWebhook(c *fiber.Ctx) error {
 	return h.handleWebhook(c, models.GatewayPayPal)
 }

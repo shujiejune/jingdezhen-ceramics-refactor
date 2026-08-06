@@ -51,18 +51,18 @@ func requestLocale(c *fiber.Ctx) string {
 
 // GetArtists: GET /artists?locale=en-US&page=&limit=
 //
-// @Summary      List published artists
-// @Description  Paginated list of published artists in the requested locale.
-// @Description  Locale resolution: ?locale= overrides Accept-Language.
-// @Tags         catalog,artists
-// @Accept       json
-// @Produce      json
-// @Param        locale query string false "BCP 47 locale (e.g. en-US). Overrides Accept-Language." default("en-US")
-// @Param        page   query int    false "Page number (1-based)" default(1)
-// @Param        limit  query int    false "Page size (max 100)" default(20)
-// @Success      200 {object} models.PaginatedResponse{data=[]models.Artist}
-// @Failure      500 {object} models.ErrorResponse "Internal error"
-// @Router       /artists [get]
+//	@Summary		List published artists
+//	@Description	Paginated list of published artists in the requested locale.
+//	@Description	Locale resolution: ?locale= overrides Accept-Language.
+//	@Tags			catalog,artists
+//	@Accept			json
+//	@Produce		json
+//	@Param			locale	query		string	false	"BCP 47 locale (e.g. en-US). Overrides Accept-Language."	default("en-US")
+//	@Param			page	query		int		false	"Page number (1-based)"										default(1)
+//	@Param			limit	query		int		false	"Page size (max 100)"										default(20)
+//	@Success		200		{object}	models.PaginatedResponse{data=[]models.Artist}
+//	@Failure		500		{object}	models.ErrorResponse	"Internal error"
+//	@Router			/artists [get]
 func (h *Handler) GetArtists(c *fiber.Ctx) error {
 	page, limit := utils.GetPageLimit(c)
 	locale := requestLocale(c)
@@ -76,18 +76,18 @@ func (h *Handler) GetArtists(c *fiber.Ctx) error {
 
 // GetArtistBySlug: GET /artists/:slug?locale=en-US
 //
-// @Summary      Get an artist by slug
-// @Description  Fetches a single published artist by its locale-specific slug.
-// @Tags         catalog,artists
-// @Accept       json
-// @Produce      json
-// @Param        slug   path string true "Artist slug (locale-specific)"
-// @Param        locale query string false "BCP 47 locale (e.g. en-US). Overrides Accept-Language." default("en-US")
-// @Success      200 {object} models.Artist
-// @Failure      400 {object} models.ErrorResponse "Missing slug"
-// @Failure      404 {object} models.ErrorResponse "Artist not found (or not published in this locale)"
-// @Failure      500 {object} models.ErrorResponse "Internal error"
-// @Router       /artists/{slug} [get]
+//	@Summary		Get an artist by slug
+//	@Description	Fetches a single published artist by its locale-specific slug.
+//	@Tags			catalog,artists
+//	@Accept			json
+//	@Produce		json
+//	@Param			slug	path		string	true	"Artist slug (locale-specific)"
+//	@Param			locale	query		string	false	"BCP 47 locale (e.g. en-US). Overrides Accept-Language."	default("en-US")
+//	@Success		200		{object}	models.Artist
+//	@Failure		400		{object}	models.ErrorResponse	"Missing slug"
+//	@Failure		404		{object}	models.ErrorResponse	"Artist not found (or not published in this locale)"
+//	@Failure		500		{object}	models.ErrorResponse	"Internal error"
+//	@Router			/artists/{slug} [get]
 func (h *Handler) GetArtistBySlug(c *fiber.Ctx) error {
 	slug := c.Params("slug")
 	if slug == "" {
@@ -125,23 +125,23 @@ type localeBody struct {
 
 // AdminListArtists: GET /admin/artists?locale=&status=&page=&limit=
 //
-// @Summary      List artists (admin, any status)
-// @Description  Paginated list of artists filtered by locale + status. Access: content_editor.
-// @Tags         admin,artists
-// @Accept       json
-// @Produce      json
-// @Param        Authorization header string true "Bearer <access_token>"
-// @Param        locale query string false "BCP 47 locale"
-// @Param        status query string false "Filter by workflow status (draft|in_review|published|rejected)"
-// @Param        page   query int    false "Page number (1-based)" default(1)
-// @Param        limit  query int    false "Page size (max 100)" default(20)
-// @Success      200 {object} models.PaginatedResponse{data=[]models.Artist}
-// @Failure      400 {object} models.ErrorResponse "Invalid locale"
-// @Failure      401 {object} models.ErrorResponse "Authentication required"
-// @Failure      403 {object} models.ErrorResponse "Forbidden (needs content.write)"
-// @Failure      500 {object} models.ErrorResponse "Internal error"
-// @Security     BearerAuth
-// @Router       /admin/artists [get]
+//	@Summary		List artists (admin, any status)
+//	@Description	Paginated list of artists filtered by locale + status. Access: content_editor.
+//	@Tags			admin,artists
+//	@Accept			json
+//	@Produce		json
+//	@Param			Authorization	header		string	true	"Bearer <access_token>"
+//	@Param			locale			query		string	false	"BCP 47 locale"
+//	@Param			status			query		string	false	"Filter by workflow status (draft|in_review|published|rejected)"
+//	@Param			page			query		int		false	"Page number (1-based)"	default(1)
+//	@Param			limit			query		int		false	"Page size (max 100)"	default(20)
+//	@Success		200				{object}	models.PaginatedResponse{data=[]models.Artist}
+//	@Failure		400				{object}	models.ErrorResponse	"Invalid locale"
+//	@Failure		401				{object}	models.ErrorResponse	"Authentication required"
+//	@Failure		403				{object}	models.ErrorResponse	"Forbidden (needs content.write)"
+//	@Failure		500				{object}	models.ErrorResponse	"Internal error"
+//	@Security		BearerAuth
+//	@Router			/admin/artists [get]
 func (h *Handler) AdminListArtists(c *fiber.Ctx) error {
 	page, limit := utils.GetPageLimit(c)
 	locale := c.Query("locale")
@@ -159,23 +159,23 @@ func (h *Handler) AdminListArtists(c *fiber.Ctx) error {
 
 // AdminGetArtist: GET /admin/artists/:slug?locale=en-US (any status)
 //
-// @Summary      Get an artist by slug (admin, any status)
-// @Description  Fetches a single artist by slug in any workflow status.
-// @Description  Access: content_editor.
-// @Tags         admin,artists
-// @Accept       json
-// @Produce      json
-// @Param        Authorization header string true "Bearer <access_token>"
-// @Param        slug   path string  true "Artist slug"
-// @Param        locale query string false "BCP 47 locale" default(en-US)
-// @Success      200 {object} models.Artist
-// @Failure      400 {object} models.ErrorResponse "Invalid locale"
-// @Failure      401 {object} models.ErrorResponse "Authentication required"
-// @Failure      403 {object} models.ErrorResponse "Forbidden (needs content.write)"
-// @Failure      404 {object} models.ErrorResponse "Artist not found"
-// @Failure      500 {object} models.ErrorResponse "Internal error"
-// @Security     BearerAuth
-// @Router       /admin/artists/{slug} [get]
+//	@Summary		Get an artist by slug (admin, any status)
+//	@Description	Fetches a single artist by slug in any workflow status.
+//	@Description	Access: content_editor.
+//	@Tags			admin,artists
+//	@Accept			json
+//	@Produce		json
+//	@Param			Authorization	header		string	true	"Bearer <access_token>"
+//	@Param			slug			path		string	true	"Artist slug"
+//	@Param			locale			query		string	false	"BCP 47 locale"	default(en-US)
+//	@Success		200				{object}	models.Artist
+//	@Failure		400				{object}	models.ErrorResponse	"Invalid locale"
+//	@Failure		401				{object}	models.ErrorResponse	"Authentication required"
+//	@Failure		403				{object}	models.ErrorResponse	"Forbidden (needs content.write)"
+//	@Failure		404				{object}	models.ErrorResponse	"Artist not found"
+//	@Failure		500				{object}	models.ErrorResponse	"Internal error"
+//	@Security		BearerAuth
+//	@Router			/admin/artists/{slug} [get]
 func (h *Handler) AdminGetArtist(c *fiber.Ctx) error {
 	slug := c.Params("slug")
 	locale := c.Query("locale", models.DefaultLocale)
@@ -195,21 +195,21 @@ func (h *Handler) AdminGetArtist(c *fiber.Ctx) error {
 
 // AdminCreateArtist: POST /admin/artists
 //
-// @Summary      Create an artist
-// @Description  Creates an artist + its first translation. Locale defaults to en-US.
-// @Description  Access: content_editor.
-// @Tags         admin,artists
-// @Accept       json
-// @Produce      json
-// @Param        Authorization header string true "Bearer <access_token>"
-// @Param        body body models.CreateArtistData true "Artist to create"
-// @Success      201 {object} models.Artist
-// @Failure      400 {object} models.ErrorResponse "Invalid body / validation / bad locale"
-// @Failure      401 {object} models.ErrorResponse "Authentication required"
-// @Failure      403 {object} models.ErrorResponse "Forbidden (needs content.write)"
-// @Failure      500 {object} models.ErrorResponse "Internal error"
-// @Security     BearerAuth
-// @Router       /admin/artists [post]
+//	@Summary		Create an artist
+//	@Description	Creates an artist + its first translation. Locale defaults to en-US.
+//	@Description	Access: content_editor.
+//	@Tags			admin,artists
+//	@Accept			json
+//	@Produce		json
+//	@Param			Authorization	header		string					true	"Bearer <access_token>"
+//	@Param			body			body		models.CreateArtistData	true	"Artist to create"
+//	@Success		201				{object}	models.Artist
+//	@Failure		400				{object}	models.ErrorResponse	"Invalid body / validation / bad locale"
+//	@Failure		401				{object}	models.ErrorResponse	"Authentication required"
+//	@Failure		403				{object}	models.ErrorResponse	"Forbidden (needs content.write)"
+//	@Failure		500				{object}	models.ErrorResponse	"Internal error"
+//	@Security		BearerAuth
+//	@Router			/admin/artists [post]
 func (h *Handler) AdminCreateArtist(c *fiber.Ctx) error {
 	var req models.CreateArtistData
 	if err := c.BodyParser(&req); err != nil {
@@ -231,27 +231,27 @@ func (h *Handler) AdminCreateArtist(c *fiber.Ctx) error {
 
 // AdminUpdateArtist: PUT /admin/artists/:id?locale=en-US
 //
-// @Summary      Update an artist
-// @Description  Updates an artist's translation (localized fields) and/or parent
-// @Description  fields. A nil pointer = leave unchanged. The workflow transition
-// @Description  guard may return 409 if the translation is not editable in its state.
-// @Description  Access: content_editor.
-// @Tags         admin,artists
-// @Accept       json
-// @Produce      json
-// @Param        Authorization header string true "Bearer <access_token>"
-// @Param        id     path int true "Artist ID"
-// @Param        locale query string false "BCP 47 locale" default(en-US)
-// @Param        body   body models.UpdateArtistData true "Fields to update (nil pointers = unchanged)"
-// @Success      200 {object} models.Artist
-// @Failure      400 {object} models.ErrorResponse "Invalid artist ID / body / bad locale"
-// @Failure      401 {object} models.ErrorResponse "Authentication required"
-// @Failure      403 {object} models.ErrorResponse "Forbidden (needs content.write)"
-// @Failure      404 {object} models.ErrorResponse "Artist not found"
-// @Failure      409 {object} models.ErrorResponse "Translation not editable in its current workflow state"
-// @Failure      500 {object} models.ErrorResponse "Internal error"
-// @Security     BearerAuth
-// @Router       /admin/artists/{id} [put]
+//	@Summary		Update an artist
+//	@Description	Updates an artist's translation (localized fields) and/or parent
+//	@Description	fields. A nil pointer = leave unchanged. The workflow transition
+//	@Description	guard may return 409 if the translation is not editable in its state.
+//	@Description	Access: content_editor.
+//	@Tags			admin,artists
+//	@Accept			json
+//	@Produce		json
+//	@Param			Authorization	header		string					true	"Bearer <access_token>"
+//	@Param			id				path		int						true	"Artist ID"
+//	@Param			locale			query		string					false	"BCP 47 locale"	default(en-US)
+//	@Param			body			body		models.UpdateArtistData	true	"Fields to update (nil pointers = unchanged)"
+//	@Success		200				{object}	models.Artist
+//	@Failure		400				{object}	models.ErrorResponse	"Invalid artist ID / body / bad locale"
+//	@Failure		401				{object}	models.ErrorResponse	"Authentication required"
+//	@Failure		403				{object}	models.ErrorResponse	"Forbidden (needs content.write)"
+//	@Failure		404				{object}	models.ErrorResponse	"Artist not found"
+//	@Failure		409				{object}	models.ErrorResponse	"Translation not editable in its current workflow state"
+//	@Failure		500				{object}	models.ErrorResponse	"Internal error"
+//	@Security		BearerAuth
+//	@Router			/admin/artists/{id} [put]
 func (h *Handler) AdminUpdateArtist(c *fiber.Ctx) error {
 	id, err := strconv.ParseInt(c.Params("id"), 10, 64)
 	if err != nil {
@@ -314,117 +314,117 @@ func (h *Handler) adminTransition(c *fiber.Ctx, to models.ContentStatus) error {
 
 // AdminSubmitArtist: POST /admin/artists/:id/submit (draft → in_review)
 //
-// @Summary      Submit an artist for review
-// @Description  Transitions a draft artist translation to in_review.
-// @Description  Access: content_editor. Body: {locale}.
-// @Tags         admin,artists,workflow
-// @Accept       json
-// @Produce      json
-// @Param        Authorization header string true "Bearer <access_token>"
-// @Param        id   path int true "Artist ID"
-// @Param        body body object true "{locale: en-US}"
-// @Success      200 {object} models.Artist
-// @Failure      400 {object} models.ErrorResponse "Invalid artist ID / body / bad locale"
-// @Failure      401 {object} models.ErrorResponse "Authentication required"
-// @Failure      403 {object} models.ErrorResponse "Forbidden (needs content.write)"
-// @Failure      404 {object} models.ErrorResponse "Artist not found"
-// @Failure      409 {object} models.ErrorResponse "Invalid workflow transition"
-// @Failure      500 {object} models.ErrorResponse "Internal error"
-// @Security     BearerAuth
-// @Router       /admin/artists/{id}/submit [post]
+//	@Summary		Submit an artist for review
+//	@Description	Transitions a draft artist translation to in_review.
+//	@Description	Access: content_editor. Body: {locale}.
+//	@Tags			admin,artists,workflow
+//	@Accept			json
+//	@Produce		json
+//	@Param			Authorization	header		string	true	"Bearer <access_token>"
+//	@Param			id				path		int		true	"Artist ID"
+//	@Param			body			body		object	true	"{locale: en-US}"
+//	@Success		200				{object}	models.Artist
+//	@Failure		400				{object}	models.ErrorResponse	"Invalid artist ID / body / bad locale"
+//	@Failure		401				{object}	models.ErrorResponse	"Authentication required"
+//	@Failure		403				{object}	models.ErrorResponse	"Forbidden (needs content.write)"
+//	@Failure		404				{object}	models.ErrorResponse	"Artist not found"
+//	@Failure		409				{object}	models.ErrorResponse	"Invalid workflow transition"
+//	@Failure		500				{object}	models.ErrorResponse	"Internal error"
+//	@Security		BearerAuth
+//	@Router			/admin/artists/{id}/submit [post]
 func (h *Handler) AdminSubmitArtist(c *fiber.Ctx) error {
 	return h.adminTransition(c, models.StatusInReview)
 }
 
 // AdminApproveArtist: POST /admin/artists/:id/approve (in_review → published)
 //
-// @Summary      Approve + publish an artist
-// @Description  Transitions an in_review artist translation to published.
-// @Description  Access: super_admin ONLY (content.publish). Body: {locale}.
-// @Tags         admin,artists,workflow
-// @Accept       json
-// @Produce      json
-// @Param        Authorization header string true "Bearer <access_token>"
-// @Param        id   path int true "Artist ID"
-// @Param        body body object true "{locale: en-US}"
-// @Success      200 {object} models.Artist
-// @Failure      400 {object} models.ErrorResponse "Invalid artist ID / body / bad locale"
-// @Failure      401 {object} models.ErrorResponse "Authentication required"
-// @Failure      403 {object} models.ErrorResponse "Forbidden (needs content.publish — super_admin only)"
-// @Failure      404 {object} models.ErrorResponse "Artist not found"
-// @Failure      409 {object} models.ErrorResponse "Invalid workflow transition"
-// @Failure      500 {object} models.ErrorResponse "Internal error"
-// @Security     BearerAuth
-// @Router       /admin/artists/{id}/approve [post]
+//	@Summary		Approve + publish an artist
+//	@Description	Transitions an in_review artist translation to published.
+//	@Description	Access: super_admin ONLY (content.publish). Body: {locale}.
+//	@Tags			admin,artists,workflow
+//	@Accept			json
+//	@Produce		json
+//	@Param			Authorization	header		string	true	"Bearer <access_token>"
+//	@Param			id				path		int		true	"Artist ID"
+//	@Param			body			body		object	true	"{locale: en-US}"
+//	@Success		200				{object}	models.Artist
+//	@Failure		400				{object}	models.ErrorResponse	"Invalid artist ID / body / bad locale"
+//	@Failure		401				{object}	models.ErrorResponse	"Authentication required"
+//	@Failure		403				{object}	models.ErrorResponse	"Forbidden (needs content.publish — super_admin only)"
+//	@Failure		404				{object}	models.ErrorResponse	"Artist not found"
+//	@Failure		409				{object}	models.ErrorResponse	"Invalid workflow transition"
+//	@Failure		500				{object}	models.ErrorResponse	"Internal error"
+//	@Security		BearerAuth
+//	@Router			/admin/artists/{id}/approve [post]
 func (h *Handler) AdminApproveArtist(c *fiber.Ctx) error {
 	return h.adminTransition(c, models.StatusPublished)
 }
 
 // AdminRejectArtist: POST /admin/artists/:id/reject (in_review → rejected)
 //
-// @Summary      Reject an artist (in_review → rejected)
-// @Description  Transitions an in_review artist translation to rejected.
-// @Description  Access: super_admin ONLY (content.publish). Body: {locale}.
-// @Tags         admin,artists,workflow
-// @Accept       json
-// @Produce      json
-// @Param        Authorization header string true "Bearer <access_token>"
-// @Param        id   path int true "Artist ID"
-// @Param        body body object true "{locale: en-US}"
-// @Success      200 {object} models.Artist
-// @Failure      400 {object} models.ErrorResponse "Invalid artist ID / body / bad locale"
-// @Failure      401 {object} models.ErrorResponse "Authentication required"
-// @Failure      403 {object} models.ErrorResponse "Forbidden (needs content.publish — super_admin only)"
-// @Failure      404 {object} models.ErrorResponse "Artist not found"
-// @Failure      409 {object} models.ErrorResponse "Invalid workflow transition"
-// @Failure      500 {object} models.ErrorResponse "Internal error"
-// @Security     BearerAuth
-// @Router       /admin/artists/{id}/reject [post]
+//	@Summary		Reject an artist (in_review → rejected)
+//	@Description	Transitions an in_review artist translation to rejected.
+//	@Description	Access: super_admin ONLY (content.publish). Body: {locale}.
+//	@Tags			admin,artists,workflow
+//	@Accept			json
+//	@Produce		json
+//	@Param			Authorization	header		string	true	"Bearer <access_token>"
+//	@Param			id				path		int		true	"Artist ID"
+//	@Param			body			body		object	true	"{locale: en-US}"
+//	@Success		200				{object}	models.Artist
+//	@Failure		400				{object}	models.ErrorResponse	"Invalid artist ID / body / bad locale"
+//	@Failure		401				{object}	models.ErrorResponse	"Authentication required"
+//	@Failure		403				{object}	models.ErrorResponse	"Forbidden (needs content.publish — super_admin only)"
+//	@Failure		404				{object}	models.ErrorResponse	"Artist not found"
+//	@Failure		409				{object}	models.ErrorResponse	"Invalid workflow transition"
+//	@Failure		500				{object}	models.ErrorResponse	"Internal error"
+//	@Security		BearerAuth
+//	@Router			/admin/artists/{id}/reject [post]
 func (h *Handler) AdminRejectArtist(c *fiber.Ctx) error {
 	return h.adminTransition(c, models.StatusRejected)
 }
 
 // AdminUnpublishArtist: POST /admin/artists/:id/unpublish (published → draft)
 //
-// @Summary      Unpublish an artist (published → draft)
-// @Description  Transitions a published artist translation back to draft.
-// @Description  Access: super_admin ONLY (content.publish). Body: {locale}.
-// @Tags         admin,artists,workflow
-// @Accept       json
-// @Produce      json
-// @Param        Authorization header string true "Bearer <access_token>"
-// @Param        id   path int true "Artist ID"
-// @Param        body body object true "{locale: en-US}"
-// @Success      200 {object} models.Artist
-// @Failure      400 {object} models.ErrorResponse "Invalid artist ID / body / bad locale"
-// @Failure      401 {object} models.ErrorResponse "Authentication required"
-// @Failure      403 {object} models.ErrorResponse "Forbidden (needs content.publish — super_admin only)"
-// @Failure      404 {object} models.ErrorResponse "Artist not found"
-// @Failure      409 {object} models.ErrorResponse "Invalid workflow transition"
-// @Failure      500 {object} models.ErrorResponse "Internal error"
-// @Security     BearerAuth
-// @Router       /admin/artists/{id}/unpublish [post]
+//	@Summary		Unpublish an artist (published → draft)
+//	@Description	Transitions a published artist translation back to draft.
+//	@Description	Access: super_admin ONLY (content.publish). Body: {locale}.
+//	@Tags			admin,artists,workflow
+//	@Accept			json
+//	@Produce		json
+//	@Param			Authorization	header		string	true	"Bearer <access_token>"
+//	@Param			id				path		int		true	"Artist ID"
+//	@Param			body			body		object	true	"{locale: en-US}"
+//	@Success		200				{object}	models.Artist
+//	@Failure		400				{object}	models.ErrorResponse	"Invalid artist ID / body / bad locale"
+//	@Failure		401				{object}	models.ErrorResponse	"Authentication required"
+//	@Failure		403				{object}	models.ErrorResponse	"Forbidden (needs content.publish — super_admin only)"
+//	@Failure		404				{object}	models.ErrorResponse	"Artist not found"
+//	@Failure		409				{object}	models.ErrorResponse	"Invalid workflow transition"
+//	@Failure		500				{object}	models.ErrorResponse	"Internal error"
+//	@Security		BearerAuth
+//	@Router			/admin/artists/{id}/unpublish [post]
 func (h *Handler) AdminUnpublishArtist(c *fiber.Ctx) error {
 	return h.adminTransition(c, models.StatusDraft)
 }
 
 // AdminDeleteArtist: DELETE /admin/artists/:id
 //
-// @Summary      Delete an artist
-// @Description  Removes an artist (parent + all translations). Access: content_editor.
-// @Tags         admin,artists
-// @Accept       json
-// @Produce      json
-// @Param        Authorization header string true "Bearer <access_token>"
-// @Param        id path int true "Artist ID"
-// @Success      204 "No Content (empty body)"
-// @Failure      400 {object} models.ErrorResponse "Invalid artist ID"
-// @Failure      401 {object} models.ErrorResponse "Authentication required"
-// @Failure      403 {object} models.ErrorResponse "Forbidden (needs content.write)"
-// @Failure      404 {object} models.ErrorResponse "Artist not found"
-// @Failure      500 {object} models.ErrorResponse "Internal error"
-// @Security     BearerAuth
-// @Router       /admin/artists/{id} [delete]
+//	@Summary		Delete an artist
+//	@Description	Removes an artist (parent + all translations). Access: content_editor.
+//	@Tags			admin,artists
+//	@Accept			json
+//	@Produce		json
+//	@Param			Authorization	header	string	true	"Bearer <access_token>"
+//	@Param			id				path	int		true	"Artist ID"
+//	@Success		204				"No Content (empty body)"
+//	@Failure		400				{object}	models.ErrorResponse	"Invalid artist ID"
+//	@Failure		401				{object}	models.ErrorResponse	"Authentication required"
+//	@Failure		403				{object}	models.ErrorResponse	"Forbidden (needs content.write)"
+//	@Failure		404				{object}	models.ErrorResponse	"Artist not found"
+//	@Failure		500				{object}	models.ErrorResponse	"Internal error"
+//	@Security		BearerAuth
+//	@Router			/admin/artists/{id} [delete]
 func (h *Handler) AdminDeleteArtist(c *fiber.Ctx) error {
 	id, err := strconv.ParseInt(c.Params("id"), 10, 64)
 	if err != nil {

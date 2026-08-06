@@ -39,8 +39,11 @@ type CeramicStory struct {
 	// published translation of this story. Populated by the service on the
 	// detail view.
 	Alternates map[string]string `json:"alternates,omitempty" db:"-"`
-	CreatedAt  time.Time         `json:"created_at" db:"created_at"` // parent
-	UpdatedAt  time.Time         `json:"updated_at" db:"updated_at"` // parent
+	// Gallery: ordered media gallery (loaded by the service on the detail view
+	// via the media module's GalleryLoader; empty on the list view).
+	Gallery   []GalleryItem `json:"gallery,omitempty" db:"-"`
+	CreatedAt time.Time     `json:"created_at" db:"created_at"` // parent
+	UpdatedAt time.Time     `json:"updated_at" db:"updated_at"` // parent
 }
 
 // --- Admin / CMS DTOs (for future admin endpoints) ---------------------------

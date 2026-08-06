@@ -210,6 +210,7 @@ func SetupRoutes(
 	{
 		csGroup.Get("", csHandler.GetAllDynasties)
 		csGroup.Get("/:slug", csHandler.GetDynastyDetail)
+		csGroup.Get("/:id/media", mediaHandler.PublicListStoryMedia)
 	}
 
 	/* --- Artist profiles (Public) — PRD §3.1.3 / §3.2.1 --- */
@@ -218,6 +219,7 @@ func SetupRoutes(
 	   products (PRD §3.2.1). */
 	app.Get("/artists", artistHandler.GetArtists)
 	app.Get("/artists/:slug", artistHandler.GetArtistBySlug)
+	app.Get("/artists/:id/media", mediaHandler.PublicListArtistMedia)
 
 	/* --- Product Catalog (Public) — PRD §3.2.1 --- */
 	/* Locale-aware (?locale= / Accept-Language), published-only. The detail view
@@ -285,6 +287,7 @@ func SetupRoutes(
 	{
 		engageGroup.Get("", engageHandler.GetActivities)            // ?locale=&type=&page=&limit=
 		engageGroup.Get("/:slug", engageHandler.GetActivityArticle) // ?locale=
+		engageGroup.Get("/:id/media", mediaHandler.PublicListActivityMedia)
 	}
 
 	/* --- SEO: sitemap.xml + robots.txt (public, crawlers) — PRD §4.4 --- */
@@ -439,6 +442,11 @@ func SetupRoutes(
 			adminStories.Put("/:id", csHandler.AdminUpdateStory)
 			adminStories.Delete("/:id", csHandler.AdminDeleteStory)
 			adminStories.Post("/:id/submit", csHandler.AdminSubmitStory)
+			// Ordered media gallery (attach/detach/reorder/list).
+			adminStories.Get("/:id/media", mediaHandler.ListStoryMedia)
+			adminStories.Post("/:id/media", mediaHandler.AttachToStory)
+			adminStories.Delete("/:id/media/:media_id", mediaHandler.DetachFromStory)
+			adminStories.Patch("/:id/media/order", mediaHandler.ReorderStoryMedia)
 		}
 		// Publish-gated transitions: separate sub-group with stricter permission.
 		adminStoriesPublish := adminGroup.Group("/ceramicstory")
@@ -459,6 +467,11 @@ func SetupRoutes(
 			adminEngage.Put("/:id", engageHandler.AdminUpdateActivity)
 			adminEngage.Delete("/:id", engageHandler.AdminDeleteActivity)
 			adminEngage.Post("/:id/submit", engageHandler.AdminSubmitActivity)
+			// Ordered media gallery (attach/detach/reorder/list).
+			adminEngage.Get("/:id/media", mediaHandler.ListActivityMedia)
+			adminEngage.Post("/:id/media", mediaHandler.AttachToActivity)
+			adminEngage.Delete("/:id/media/:media_id", mediaHandler.DetachFromActivity)
+			adminEngage.Patch("/:id/media/order", mediaHandler.ReorderActivityMedia)
 		}
 		adminEngagePublish := adminGroup.Group("/engage")
 		adminEngagePublish.Use(middleware.RequirePermission(models.PermContentPublish))
@@ -478,6 +491,11 @@ func SetupRoutes(
 			adminArtists.Put("/:id", artistHandler.AdminUpdateArtist)
 			adminArtists.Delete("/:id", artistHandler.AdminDeleteArtist)
 			adminArtists.Post("/:id/submit", artistHandler.AdminSubmitArtist)
+			// Ordered media gallery (attach/detach/reorder/list).
+			adminArtists.Get("/:id/media", mediaHandler.ListArtistMedia)
+			adminArtists.Post("/:id/media", mediaHandler.AttachToArtist)
+			adminArtists.Delete("/:id/media/:media_id", mediaHandler.DetachFromArtist)
+			adminArtists.Patch("/:id/media/order", mediaHandler.ReorderArtistMedia)
 		}
 		adminArtistsPublish := adminGroup.Group("/artists")
 		adminArtistsPublish.Use(middleware.RequirePermission(models.PermContentPublish))

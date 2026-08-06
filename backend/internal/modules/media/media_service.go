@@ -36,6 +36,24 @@ type ServiceInterface interface {
 	DetachFromProduct(ctx context.Context, productID, mediaID int64) error
 	// ReorderProductMedia sets sort_order for a batch.
 	ReorderProductMedia(ctx context.Context, productID int64, items []models.ReorderMediaItem) error
+
+	// --- Artist gallery (PRD §3.1.3) ---
+	AttachToArtist(ctx context.Context, artistID, mediaID int64, sortOrder *int, caption string) error
+	ListArtistMedia(ctx context.Context, artistID int64) ([]models.GalleryItem, error)
+	DetachFromArtist(ctx context.Context, artistID, mediaID int64) error
+	ReorderArtistMedia(ctx context.Context, artistID int64, items []models.ReorderMediaItem) error
+
+	// --- Ceramic story gallery (PRD §3.1.2) ---
+	AttachToStory(ctx context.Context, storyID, mediaID int64, sortOrder *int, caption string) error
+	ListStoryMedia(ctx context.Context, storyID int64) ([]models.GalleryItem, error)
+	DetachFromStory(ctx context.Context, storyID, mediaID int64) error
+	ReorderStoryMedia(ctx context.Context, storyID int64, items []models.ReorderMediaItem) error
+
+	// --- Activity gallery (PRD §3.1.2/§3.1.3) ---
+	AttachToActivity(ctx context.Context, activityID, mediaID int64, sortOrder *int, caption string) error
+	ListActivityMedia(ctx context.Context, activityID int64) ([]models.GalleryItem, error)
+	DetachFromActivity(ctx context.Context, activityID, mediaID int64) error
+	ReorderActivityMedia(ctx context.Context, activityID int64, items []models.ReorderMediaItem) error
 }
 
 type Service struct {
@@ -154,6 +172,125 @@ func (s *Service) DetachFromProduct(ctx context.Context, productID, mediaID int6
 func (s *Service) ReorderProductMedia(ctx context.Context, productID int64, items []models.ReorderMediaItem) error {
 	if err := s.repo.ReorderProductMedia(ctx, productID, items); err != nil {
 		return fmt.Errorf("media.ReorderProductMedia: %w", err)
+	}
+	return nil
+}
+
+// =============================================================================
+// Entity galleries (artist / ceramic-story / activity) — mirror product_media.
+// Each List*Media resolves the media asset PublicURLs via the storage adapter.
+// =============================================================================
+
+func resolveGalleryURLs(items []models.GalleryItem, store storage.Store) {
+	if store == nil {
+		return
+	}
+	for i := range items {
+		items[i].MediaAsset.PublicURL = store.PublicURL(items[i].MediaAsset.OSSKey)
+	}
+}
+
+func (s *Service) AttachToArtist(ctx context.Context, artistID, mediaID int64, sortOrder *int, caption string) error {
+	var cap *string
+	if caption != "" {
+		c := caption
+		cap = &c
+	}
+	if err := s.repo.AttachToArtist(ctx, artistID, mediaID, sortOrder, cap); err != nil {
+		return fmt.Errorf("media.AttachToArtist: %w", err)
+	}
+	return nil
+}
+
+func (s *Service) ListArtistMedia(ctx context.Context, artistID int64) ([]models.GalleryItem, error) {
+	items, err := s.repo.ListArtistMedia(ctx, artistID)
+	if err != nil {
+		return nil, err
+	}
+	resolveGalleryURLs(items, s.store)
+	return items, nil
+}
+
+func (s *Service) DetachFromArtist(ctx context.Context, artistID, mediaID int64) error {
+	if err := s.repo.DetachFromArtist(ctx, artistID, mediaID); err != nil {
+		return fmt.Errorf("media.DetachFromArtist: %w", err)
+	}
+	return nil
+}
+
+func (s *Service) ReorderArtistMedia(ctx context.Context, artistID int64, items []models.ReorderMediaItem) error {
+	if err := s.repo.ReorderArtistMedia(ctx, artistID, items); err != nil {
+		return fmt.Errorf("media.ReorderArtistMedia: %w", err)
+	}
+	return nil
+}
+
+func (s *Service) AttachToStory(ctx context.Context, storyID, mediaID int64, sortOrder *int, caption string) error {
+	var cap *string
+	if caption != "" {
+		c := caption
+		cap = &c
+	}
+	if err := s.repo.AttachToStory(ctx, storyID, mediaID, sortOrder, cap); err != nil {
+		return fmt.Errorf("media.AttachToStory: %w", err)
+	}
+	return nil
+}
+
+func (s *Service) ListStoryMedia(ctx context.Context, storyID int64) ([]models.GalleryItem, error) {
+	items, err := s.repo.ListStoryMedia(ctx, storyID)
+	if err != nil {
+		return nil, err
+	}
+	resolveGalleryURLs(items, s.store)
+	return items, nil
+}
+
+func (s *Service) DetachFromStory(ctx context.Context, storyID, mediaID int64) error {
+	if err := s.repo.DetachFromStory(ctx, storyID, mediaID); err != nil {
+		return fmt.Errorf("media.DetachFromStory: %w", err)
+	}
+	return nil
+}
+
+func (s *Service) ReorderStoryMedia(ctx context.Context, storyID int64, items []models.ReorderMediaItem) error {
+	if err := s.repo.ReorderStoryMedia(ctx, storyID, items); err != nil {
+		return fmt.Errorf("media.ReorderStoryMedia: %w", err)
+	}
+	return nil
+}
+
+func (s *Service) AttachToActivity(ctx context.Context, activityID, mediaID int64, sortOrder *int, caption string) error {
+	var cap *string
+	if caption != "" {
+		c := caption
+		cap = &c
+	}
+	if err := s.repo.AttachToActivity(ctx, activityID, mediaID, sortOrder, cap); err != nil {
+		return fmt.Errorf("media.AttachToActivity: %w", err)
+	}
+	return nil
+}
+
+func (s *Service) ListActivityMedia(ctx context.Context, activityID int64) ([]models.GalleryItem, error) {
+	items, err := s.repo.ListActivityMedia(ctx, activityID)
+	if err != nil {
+		return nil, err
+	}
+	resolveGalleryURLs(items, s.store)
+	return items, nil
+}
+
+func (s *Service) DetachFromActivity(ctx context.Context, activityID, mediaID int64) error {
+	if err := s.repo.DetachFromActivity(ctx, activityID, mediaID); err != nil {
+		return fmt.Errorf("media.DetachFromActivity: %w", err)
+	}
+	return nil
+}
+
+func (s *Service) ReorderActivityMedia(ctx context.Context, activityID int64, items []models.ReorderMediaItem) error {
+	if err := s.repo.ReorderActivityMedia(ctx, activityID, items); err != nil {
+		return fmt.Errorf("media.ReorderActivityMedia: %w", err)
 	}
 	return nil
 }

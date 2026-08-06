@@ -486,6 +486,12 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 	ceramicStoryService.SetSitemapEnqueuer(sitemapEnq)
 	artistService.SetSitemapEnqueuer(sitemapEnq)
 	engageService.SetSitemapEnqueuer(sitemapEnq)
+	// Wire the ordered-media gallery loader into the 3 content services (product
+	// already wired above). The media service implements each entity's
+	// GalleryLoader interface (ListArtistMedia / ListStoryMedia / ListActivityMedia).
+	artistService.SetGalleryLoader(mediaService)
+	ceramicStoryService.SetGalleryLoader(mediaService)
+	engageService.SetGalleryLoader(mediaService)
 
 	// Certificate handler (needs storageStore for PDFDownload → public URL) +
 	// the PDF-enqueue seam (TDD §12: issue/regenerate enqueues pdf:generate).

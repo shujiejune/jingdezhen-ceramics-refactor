@@ -222,3 +222,156 @@ func nullableStr(s *string) any {
 	}
 	return *s
 }
+
+// =============================================================================
+// Entity galleries (artist / ceramic-story / activity) — PRD §3.1.2/§3.1.3.
+//
+// These mirror product_media exactly; only the join table + FK column differ.
+// The shared helpers below (attachGallery / listGallery / detachGallery /
+// reorderGallery) take the table + FK-column names so the three entities reuse
+// one code path. GalleryItem drops the per-entity FK (the caller already knows
+// which entity it asked for); product_media keeps its own ProductMediaItem
+// (with ProductID) for API stability.
+// =============================================================================
+
+// galleryMediaCols selects the *_media columns + the joined media_assets cols.
+// The scan order must match the SELECT order in listGallery.
+const galleryMediaCols = `g.id, g.media_id, g.sort_order, g.caption, g.created_at,
+    m.id, m.kind, m.oss_key, m.mime, m.width, m.height, m.duration, m.hls_key, m.uploaded_by, m.created_at, m.updated_at`
+
+func scanGalleryItem(row pgx.Row) (*models.GalleryItem, error) {
+	var g models.GalleryItem
+	if err := row.Scan(&g.ID, &g.MediaID, &g.SortOrder, &g.Caption, &g.CreatedAt,
+		&g.MediaAsset.ID, &g.MediaAsset.Kind, &g.MediaAsset.OSSKey, &g.MediaAsset.MIME,
+		&g.MediaAsset.Width, &g.MediaAsset.Height, &g.MediaAsset.Duration,
+		&g.MediaAsset.HLSKey, &g.MediaAsset.UploadedBy,
+		&g.MediaAsset.CreatedAt, &g.MediaAsset.UpdatedAt); err != nil {
+		return nil, err
+	}
+	return &g, nil
+}
+
+// attachGallery inserts a *_media row; sortOrder nil = append-last.
+func (r *Repository) attachGallery(ctx context.Context, table, fkCol string, entityID, mediaID int64, sortOrder *int, caption *string) error {
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("media.attachGallery.Begin: %w", err)
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck
+
+	so := 0
+	if sortOrder != nil {
+		so = *sortOrder
+	} else {
+		// Append-last: current max + 1.
+		q := fmt.Sprintf(`SELECT COALESCE(MAX(sort_order), -1) FROM %s WHERE %s = $1`, table, fkCol)
+		var maxOrder int
+		if err := tx.QueryRow(ctx, q, entityID).Scan(&maxOrder); err != nil {
+			return fmt.Errorf("media.attachGallery.Max: %w", err)
+		}
+		so = maxOrder + 1
+	}
+	// table + fkCol are internal constants (never user input) → safe to interpolate.
+	q := fmt.Sprintf(`INSERT INTO %s (%s, media_id, sort_order, caption)
+		VALUES ($1, $2, $3, $4)
+		ON CONFLICT (%s, media_id) DO UPDATE SET sort_order = EXCLUDED.sort_order, caption = EXCLUDED.caption`,
+		table, fkCol, fkCol)
+	if _, err := tx.Exec(ctx, q, entityID, mediaID, so, nullableStr(caption)); err != nil {
+		return fmt.Errorf("media.attachGallery.Insert: %w", err)
+	}
+	return tx.Commit(ctx)
+}
+
+// listGallery loads an entity's ordered gallery (media joined in).
+func (r *Repository) listGallery(ctx context.Context, table, fkCol string, entityID int64) ([]models.GalleryItem, error) {
+	q := fmt.Sprintf(`SELECT %s FROM %s g JOIN media_assets m ON m.id = g.media_id
+		WHERE g.%s = $1 ORDER BY g.sort_order ASC, g.id ASC`, galleryMediaCols, table, fkCol)
+	rows, err := r.db.Query(ctx, q, entityID)
+	if err != nil {
+		return nil, fmt.Errorf("media.listGallery: %w", err)
+	}
+	defer rows.Close()
+	out := []models.GalleryItem{}
+	for rows.Next() {
+		g, err := scanGalleryItem(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, *g)
+	}
+	return out, rows.Err()
+}
+
+// detachGallery deletes a *_media row.
+func (r *Repository) detachGallery(ctx context.Context, table, fkCol string, entityID, mediaID int64) error {
+	q := fmt.Sprintf(`DELETE FROM %s WHERE %s = $1 AND media_id = $2`, table, fkCol)
+	ct, err := r.db.Exec(ctx, q, entityID, mediaID)
+	if err != nil {
+		return fmt.Errorf("media.detachGallery: %w", err)
+	}
+	if ct.RowsAffected() == 0 {
+		return models.ErrNotFound
+	}
+	return nil
+}
+
+// reorderGallery sets sort_order for a batch in one tx.
+func (r *Repository) reorderGallery(ctx context.Context, table, fkCol string, entityID int64, items []models.ReorderMediaItem) error {
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("media.reorderGallery.Begin: %w", err)
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck
+	q := fmt.Sprintf(`UPDATE %s SET sort_order = $1 WHERE %s = $2 AND media_id = $3`, table, fkCol)
+	for _, it := range items {
+		if _, err := tx.Exec(ctx, q, it.SortOrder, entityID, it.MediaID); err != nil {
+			return fmt.Errorf("media.reorderGallery.Update: %w", err)
+		}
+	}
+	return tx.Commit(ctx)
+}
+
+// --- Artist gallery ---
+
+func (r *Repository) AttachToArtist(ctx context.Context, artistID, mediaID int64, sortOrder *int, caption *string) error {
+	return r.attachGallery(ctx, "artist_media", "artist_id", artistID, mediaID, sortOrder, caption)
+}
+func (r *Repository) ListArtistMedia(ctx context.Context, artistID int64) ([]models.GalleryItem, error) {
+	return r.listGallery(ctx, "artist_media", "artist_id", artistID)
+}
+func (r *Repository) DetachFromArtist(ctx context.Context, artistID, mediaID int64) error {
+	return r.detachGallery(ctx, "artist_media", "artist_id", artistID, mediaID)
+}
+func (r *Repository) ReorderArtistMedia(ctx context.Context, artistID int64, items []models.ReorderMediaItem) error {
+	return r.reorderGallery(ctx, "artist_media", "artist_id", artistID, items)
+}
+
+// --- Ceramic story gallery ---
+
+func (r *Repository) AttachToStory(ctx context.Context, storyID, mediaID int64, sortOrder *int, caption *string) error {
+	return r.attachGallery(ctx, "ceramic_story_media", "story_id", storyID, mediaID, sortOrder, caption)
+}
+func (r *Repository) ListStoryMedia(ctx context.Context, storyID int64) ([]models.GalleryItem, error) {
+	return r.listGallery(ctx, "ceramic_story_media", "story_id", storyID)
+}
+func (r *Repository) DetachFromStory(ctx context.Context, storyID, mediaID int64) error {
+	return r.detachGallery(ctx, "ceramic_story_media", "story_id", storyID, mediaID)
+}
+func (r *Repository) ReorderStoryMedia(ctx context.Context, storyID int64, items []models.ReorderMediaItem) error {
+	return r.reorderGallery(ctx, "ceramic_story_media", "story_id", storyID, items)
+}
+
+// --- Activity gallery ---
+
+func (r *Repository) AttachToActivity(ctx context.Context, activityID, mediaID int64, sortOrder *int, caption *string) error {
+	return r.attachGallery(ctx, "activity_media", "activity_id", activityID, mediaID, sortOrder, caption)
+}
+func (r *Repository) ListActivityMedia(ctx context.Context, activityID int64) ([]models.GalleryItem, error) {
+	return r.listGallery(ctx, "activity_media", "activity_id", activityID)
+}
+func (r *Repository) DetachFromActivity(ctx context.Context, activityID, mediaID int64) error {
+	return r.detachGallery(ctx, "activity_media", "activity_id", activityID, mediaID)
+}
+func (r *Repository) ReorderActivityMedia(ctx context.Context, activityID int64, items []models.ReorderMediaItem) error {
+	return r.reorderGallery(ctx, "activity_media", "activity_id", activityID, items)
+}

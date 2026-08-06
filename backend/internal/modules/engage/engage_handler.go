@@ -50,18 +50,18 @@ func requestLocale(c *fiber.Ctx) string {
 // Returns published activities for a locale, optionally filtered by the parent
 // `type` (e.g. Destination vs Local Lifestyle), paginated.
 //
-// @Summary      List published activities
-// @Description  Paginated list of published activities for a locale, optionally filtered by type.
-// @Tags         engage
-// @Accept       json
-// @Produce      json
-// @Param        locale query string false "BCP 47 locale (e.g. en-US). Overrides Accept-Language." default("en-US")
-// @Param        type   query string false "Activity type filter (e.g. Destination, Local Lifestyle)"
-// @Param        page   query int    false "Page number (1-based)" default(1)
-// @Param        limit  query int    false "Page size (max 100)" default(20)
-// @Success      200 {object} models.PaginatedResponse{data=[]models.Activity}
-// @Failure      500 {object} models.ErrorResponse "Internal error"
-// @Router       /engage [get]
+//	@Summary		List published activities
+//	@Description	Paginated list of published activities for a locale, optionally filtered by type.
+//	@Tags			engage
+//	@Accept			json
+//	@Produce		json
+//	@Param			locale	query		string	false	"BCP 47 locale (e.g. en-US). Overrides Accept-Language."	default("en-US")
+//	@Param			type	query		string	false	"Activity type filter (e.g. Destination, Local Lifestyle)"
+//	@Param			page	query		int		false	"Page number (1-based)"	default(1)
+//	@Param			limit	query		int		false	"Page size (max 100)"	default(20)
+//	@Success		200		{object}	models.PaginatedResponse{data=[]models.Activity}
+//	@Failure		500		{object}	models.ErrorResponse	"Internal error"
+//	@Router			/engage [get]
 func (h *Handler) GetActivities(c *fiber.Ctx) error {
 	page, limit := utils.GetPageLimit(c)
 	locale := requestLocale(c)
@@ -77,18 +77,18 @@ func (h *Handler) GetActivities(c *fiber.Ctx) error {
 
 // GetActivityArticle: GET /engage/:slug?locale=en-US
 //
-// @Summary      Get an activity by slug
-// @Description  Fetches a single published activity by its locale-specific slug.
-// @Tags         engage
-// @Accept       json
-// @Produce      json
-// @Param        slug   path string true "Activity slug (locale-specific)"
-// @Param        locale query string false "BCP 47 locale (e.g. en-US). Overrides Accept-Language." default("en-US")
-// @Success      200 {object} models.Activity
-// @Failure      400 {object} models.ErrorResponse "Missing slug"
-// @Failure      404 {object} models.ErrorResponse "Article not found"
-// @Failure      500 {object} models.ErrorResponse "Internal error"
-// @Router       /engage/{slug} [get]
+//	@Summary		Get an activity by slug
+//	@Description	Fetches a single published activity by its locale-specific slug.
+//	@Tags			engage
+//	@Accept			json
+//	@Produce		json
+//	@Param			slug	path		string	true	"Activity slug (locale-specific)"
+//	@Param			locale	query		string	false	"BCP 47 locale (e.g. en-US). Overrides Accept-Language."	default("en-US")
+//	@Success		200		{object}	models.Activity
+//	@Failure		400		{object}	models.ErrorResponse	"Missing slug"
+//	@Failure		404		{object}	models.ErrorResponse	"Article not found"
+//	@Failure		500		{object}	models.ErrorResponse	"Internal error"
+//	@Router			/engage/{slug} [get]
 func (h *Handler) GetActivityArticle(c *fiber.Ctx) error {
 	slug := c.Params("slug")
 	if slug == "" {
@@ -126,24 +126,24 @@ type localeBody struct {
 
 // AdminListActivities: GET /admin/engage?locale=&status=&type=&page=&limit=
 //
-// @Summary      List activities (admin, any status)
-// @Description  Paginated list of activities filtered by locale, status, type. Access: content_editor.
-// @Tags         admin,engage
-// @Accept       json
-// @Produce      json
-// @Param        Authorization header string true "Bearer <access_token>"
-// @Param        locale query string false "BCP 47 locale"
-// @Param        status query string false "Filter by workflow status"
-// @Param        type   query string false "Filter by activity type"
-// @Param        page   query int    false "Page number (1-based)" default(1)
-// @Param        limit  query int    false "Page size (max 100)" default(20)
-// @Success      200 {object} models.PaginatedResponse{data=[]models.Activity}
-// @Failure      400 {object} models.ErrorResponse "Invalid locale"
-// @Failure      401 {object} models.ErrorResponse "Authentication required"
-// @Failure      403 {object} models.ErrorResponse "Forbidden (needs content.write)"
-// @Failure      500 {object} models.ErrorResponse "Internal error"
-// @Security     BearerAuth
-// @Router       /admin/engage [get]
+//	@Summary		List activities (admin, any status)
+//	@Description	Paginated list of activities filtered by locale, status, type. Access: content_editor.
+//	@Tags			admin,engage
+//	@Accept			json
+//	@Produce		json
+//	@Param			Authorization	header		string	true	"Bearer <access_token>"
+//	@Param			locale			query		string	false	"BCP 47 locale"
+//	@Param			status			query		string	false	"Filter by workflow status"
+//	@Param			type			query		string	false	"Filter by activity type"
+//	@Param			page			query		int		false	"Page number (1-based)"	default(1)
+//	@Param			limit			query		int		false	"Page size (max 100)"	default(20)
+//	@Success		200				{object}	models.PaginatedResponse{data=[]models.Activity}
+//	@Failure		400				{object}	models.ErrorResponse	"Invalid locale"
+//	@Failure		401				{object}	models.ErrorResponse	"Authentication required"
+//	@Failure		403				{object}	models.ErrorResponse	"Forbidden (needs content.write)"
+//	@Failure		500				{object}	models.ErrorResponse	"Internal error"
+//	@Security		BearerAuth
+//	@Router			/admin/engage [get]
 func (h *Handler) AdminListActivities(c *fiber.Ctx) error {
 	page, limit := utils.GetPageLimit(c)
 	locale := c.Query("locale")
@@ -162,22 +162,22 @@ func (h *Handler) AdminListActivities(c *fiber.Ctx) error {
 
 // AdminGetActivity: GET /admin/engage/:slug?locale=en-US (any status)
 //
-// @Summary      Get an activity by slug (admin, any status)
-// @Description  Fetches a single activity by slug in any workflow status. Access: content_editor.
-// @Tags         admin,engage
-// @Accept       json
-// @Produce      json
-// @Param        Authorization header string true "Bearer <access_token>"
-// @Param        slug   path string  true "Activity slug"
-// @Param        locale query string false "BCP 47 locale" default(en-US)
-// @Success      200 {object} models.Activity
-// @Failure      400 {object} models.ErrorResponse "Invalid locale"
-// @Failure      401 {object} models.ErrorResponse "Authentication required"
-// @Failure      403 {object} models.ErrorResponse "Forbidden (needs content.write)"
-// @Failure      404 {object} models.ErrorResponse "Activity not found"
-// @Failure      500 {object} models.ErrorResponse "Internal error"
-// @Security     BearerAuth
-// @Router       /admin/engage/{slug} [get]
+//	@Summary		Get an activity by slug (admin, any status)
+//	@Description	Fetches a single activity by slug in any workflow status. Access: content_editor.
+//	@Tags			admin,engage
+//	@Accept			json
+//	@Produce		json
+//	@Param			Authorization	header		string	true	"Bearer <access_token>"
+//	@Param			slug			path		string	true	"Activity slug"
+//	@Param			locale			query		string	false	"BCP 47 locale"	default(en-US)
+//	@Success		200				{object}	models.Activity
+//	@Failure		400				{object}	models.ErrorResponse	"Invalid locale"
+//	@Failure		401				{object}	models.ErrorResponse	"Authentication required"
+//	@Failure		403				{object}	models.ErrorResponse	"Forbidden (needs content.write)"
+//	@Failure		404				{object}	models.ErrorResponse	"Activity not found"
+//	@Failure		500				{object}	models.ErrorResponse	"Internal error"
+//	@Security		BearerAuth
+//	@Router			/admin/engage/{slug} [get]
 func (h *Handler) AdminGetActivity(c *fiber.Ctx) error {
 	slug := c.Params("slug")
 	locale := c.Query("locale", models.DefaultLocale)
@@ -197,20 +197,20 @@ func (h *Handler) AdminGetActivity(c *fiber.Ctx) error {
 
 // AdminCreateActivity: POST /admin/engage
 //
-// @Summary      Create an activity
-// @Description  Creates an activity + its first translation. Access: content_editor.
-// @Tags         admin,engage
-// @Accept       json
-// @Produce      json
-// @Param        Authorization header string true "Bearer <access_token>"
-// @Param        body body models.CreateActivityData true "Activity to create"
-// @Success      201 {object} models.Activity
-// @Failure      400 {object} models.ErrorResponse "Invalid body / validation / bad locale"
-// @Failure      401 {object} models.ErrorResponse "Authentication required"
-// @Failure      403 {object} models.ErrorResponse "Forbidden (needs content.write)"
-// @Failure      500 {object} models.ErrorResponse "Internal error"
-// @Security     BearerAuth
-// @Router       /admin/engage [post]
+//	@Summary		Create an activity
+//	@Description	Creates an activity + its first translation. Access: content_editor.
+//	@Tags			admin,engage
+//	@Accept			json
+//	@Produce		json
+//	@Param			Authorization	header		string						true	"Bearer <access_token>"
+//	@Param			body			body		models.CreateActivityData	true	"Activity to create"
+//	@Success		201				{object}	models.Activity
+//	@Failure		400				{object}	models.ErrorResponse	"Invalid body / validation / bad locale"
+//	@Failure		401				{object}	models.ErrorResponse	"Authentication required"
+//	@Failure		403				{object}	models.ErrorResponse	"Forbidden (needs content.write)"
+//	@Failure		500				{object}	models.ErrorResponse	"Internal error"
+//	@Security		BearerAuth
+//	@Router			/admin/engage [post]
 func (h *Handler) AdminCreateActivity(c *fiber.Ctx) error {
 	var req models.CreateActivityData
 	if err := c.BodyParser(&req); err != nil {
@@ -232,24 +232,24 @@ func (h *Handler) AdminCreateActivity(c *fiber.Ctx) error {
 
 // AdminUpdateActivity: PUT /admin/engage/:id?locale=en-US
 //
-// @Summary      Update an activity
-// @Description  Updates an activity's translation + parent fields (nil = unchanged). Access: content_editor.
-// @Tags         admin,engage
-// @Accept       json
-// @Produce      json
-// @Param        Authorization header string true "Bearer <access_token>"
-// @Param        id     path int true "Activity ID"
-// @Param        locale query string false "BCP 47 locale" default(en-US)
-// @Param        body   body models.UpdateActivityData true "Fields to update (nil pointers = unchanged)"
-// @Success      200 {object} models.Activity
-// @Failure      400 {object} models.ErrorResponse "Invalid activity ID / body / bad locale"
-// @Failure      401 {object} models.ErrorResponse "Authentication required"
-// @Failure      403 {object} models.ErrorResponse "Forbidden (needs content.write)"
-// @Failure      404 {object} models.ErrorResponse "Activity not found"
-// @Failure      409 {object} models.ErrorResponse "Translation not editable in its current workflow state"
-// @Failure      500 {object} models.ErrorResponse "Internal error"
-// @Security     BearerAuth
-// @Router       /admin/engage/{id} [put]
+//	@Summary		Update an activity
+//	@Description	Updates an activity's translation + parent fields (nil = unchanged). Access: content_editor.
+//	@Tags			admin,engage
+//	@Accept			json
+//	@Produce		json
+//	@Param			Authorization	header		string						true	"Bearer <access_token>"
+//	@Param			id				path		int							true	"Activity ID"
+//	@Param			locale			query		string						false	"BCP 47 locale"	default(en-US)
+//	@Param			body			body		models.UpdateActivityData	true	"Fields to update (nil pointers = unchanged)"
+//	@Success		200				{object}	models.Activity
+//	@Failure		400				{object}	models.ErrorResponse	"Invalid activity ID / body / bad locale"
+//	@Failure		401				{object}	models.ErrorResponse	"Authentication required"
+//	@Failure		403				{object}	models.ErrorResponse	"Forbidden (needs content.write)"
+//	@Failure		404				{object}	models.ErrorResponse	"Activity not found"
+//	@Failure		409				{object}	models.ErrorResponse	"Translation not editable in its current workflow state"
+//	@Failure		500				{object}	models.ErrorResponse	"Internal error"
+//	@Security		BearerAuth
+//	@Router			/admin/engage/{id} [put]
 func (h *Handler) AdminUpdateActivity(c *fiber.Ctx) error {
 	id, err := strconv.ParseInt(c.Params("id"), 10, 64)
 	if err != nil {
@@ -312,110 +312,110 @@ func (h *Handler) adminTransition(c *fiber.Ctx, to models.ContentStatus) error {
 
 func (h *Handler) AdminSubmitActivity(c *fiber.Ctx) error {
 	//
-	// @Summary      Submit an activity for review
-	// @Description  Transitions a draft activity translation to in_review. Body: {locale}.
-	// @Description  Access: content_editor.
-	// @Tags         admin,engage,workflow
-	// @Accept       json
-	// @Produce      json
-	// @Param        Authorization header string true "Bearer <access_token>"
-	// @Param        id   path int true "Activity ID"
-	// @Param        body body object true "{locale: en-US}"
-	// @Success      200 {object} models.Activity
-	// @Failure      400 {object} models.ErrorResponse "Invalid activity ID / body / bad locale"
-	// @Failure      401 {object} models.ErrorResponse "Authentication required"
-	// @Failure      403 {object} models.ErrorResponse "Forbidden (needs content.write)"
-	// @Failure      404 {object} models.ErrorResponse "Activity not found"
-	// @Failure      409 {object} models.ErrorResponse "Invalid workflow transition"
-	// @Failure      500 {object} models.ErrorResponse "Internal error"
-	// @Security     BearerAuth
-	// @Router       /admin/engage/{id}/submit [post]
+	//	@Summary		Submit an activity for review
+	//	@Description	Transitions a draft activity translation to in_review. Body: {locale}.
+	//	@Description	Access: content_editor.
+	//	@Tags			admin,engage,workflow
+	//	@Accept			json
+	//	@Produce		json
+	//	@Param			Authorization	header		string	true	"Bearer <access_token>"
+	//	@Param			id				path		int		true	"Activity ID"
+	//	@Param			body			body		object	true	"{locale: en-US}"
+	//	@Success		200				{object}	models.Activity
+	//	@Failure		400				{object}	models.ErrorResponse	"Invalid activity ID / body / bad locale"
+	//	@Failure		401				{object}	models.ErrorResponse	"Authentication required"
+	//	@Failure		403				{object}	models.ErrorResponse	"Forbidden (needs content.write)"
+	//	@Failure		404				{object}	models.ErrorResponse	"Activity not found"
+	//	@Failure		409				{object}	models.ErrorResponse	"Invalid workflow transition"
+	//	@Failure		500				{object}	models.ErrorResponse	"Internal error"
+	//	@Security		BearerAuth
+	//	@Router			/admin/engage/{id}/submit [post]
 	return h.adminTransition(c, models.StatusInReview)
 }
 
 func (h *Handler) AdminApproveActivity(c *fiber.Ctx) error {
 	//
-	// @Summary      Approve + publish an activity
-	// @Description  Transitions an in_review activity translation to published. Access: super_admin ONLY.
-	// @Tags         admin,engage,workflow
-	// @Accept       json
-	// @Produce      json
-	// @Param        Authorization header string true "Bearer <access_token>"
-	// @Param        id   path int true "Activity ID"
-	// @Param        body body object true "{locale: en-US}"
-	// @Success      200 {object} models.Activity
-	// @Failure      400 {object} models.ErrorResponse "Invalid activity ID / body / bad locale"
-	// @Failure      401 {object} models.ErrorResponse "Authentication required"
-	// @Failure      403 {object} models.ErrorResponse "Forbidden (needs content.publish — super_admin only)"
-	// @Failure      404 {object} models.ErrorResponse "Activity not found"
-	// @Failure      409 {object} models.ErrorResponse "Invalid workflow transition"
-	// @Failure      500 {object} models.ErrorResponse "Internal error"
-	// @Security     BearerAuth
-	// @Router       /admin/engage/{id}/approve [post]
+	//	@Summary		Approve + publish an activity
+	//	@Description	Transitions an in_review activity translation to published. Access: super_admin ONLY.
+	//	@Tags			admin,engage,workflow
+	//	@Accept			json
+	//	@Produce		json
+	//	@Param			Authorization	header		string	true	"Bearer <access_token>"
+	//	@Param			id				path		int		true	"Activity ID"
+	//	@Param			body			body		object	true	"{locale: en-US}"
+	//	@Success		200				{object}	models.Activity
+	//	@Failure		400				{object}	models.ErrorResponse	"Invalid activity ID / body / bad locale"
+	//	@Failure		401				{object}	models.ErrorResponse	"Authentication required"
+	//	@Failure		403				{object}	models.ErrorResponse	"Forbidden (needs content.publish — super_admin only)"
+	//	@Failure		404				{object}	models.ErrorResponse	"Activity not found"
+	//	@Failure		409				{object}	models.ErrorResponse	"Invalid workflow transition"
+	//	@Failure		500				{object}	models.ErrorResponse	"Internal error"
+	//	@Security		BearerAuth
+	//	@Router			/admin/engage/{id}/approve [post]
 	return h.adminTransition(c, models.StatusPublished)
 }
 
 func (h *Handler) AdminRejectActivity(c *fiber.Ctx) error {
 	//
-	// @Summary      Reject an activity (in_review → rejected)
-	// @Description  Transitions an in_review activity translation to rejected. Access: super_admin ONLY.
-	// @Tags         admin,engage,workflow
-	// @Accept       json
-	// @Produce      json
-	// @Param        Authorization header string true "Bearer <access_token>"
-	// @Param        id   path int true "Activity ID"
-	// @Param        body body object true "{locale: en-US}"
-	// @Success      200 {object} models.Activity
-	// @Failure      400 {object} models.ErrorResponse "Invalid activity ID / body / bad locale"
-	// @Failure      401 {object} models.ErrorResponse "Authentication required"
-	// @Failure      403 {object} models.ErrorResponse "Forbidden (needs content.publish — super_admin only)"
-	// @Failure      404 {object} models.ErrorResponse "Activity not found"
-	// @Failure      409 {object} models.ErrorResponse "Invalid workflow transition"
-	// @Failure      500 {object} models.ErrorResponse "Internal error"
-	// @Security     BearerAuth
-	// @Router       /admin/engage/{id}/reject [post]
+	//	@Summary		Reject an activity (in_review → rejected)
+	//	@Description	Transitions an in_review activity translation to rejected. Access: super_admin ONLY.
+	//	@Tags			admin,engage,workflow
+	//	@Accept			json
+	//	@Produce		json
+	//	@Param			Authorization	header		string	true	"Bearer <access_token>"
+	//	@Param			id				path		int		true	"Activity ID"
+	//	@Param			body			body		object	true	"{locale: en-US}"
+	//	@Success		200				{object}	models.Activity
+	//	@Failure		400				{object}	models.ErrorResponse	"Invalid activity ID / body / bad locale"
+	//	@Failure		401				{object}	models.ErrorResponse	"Authentication required"
+	//	@Failure		403				{object}	models.ErrorResponse	"Forbidden (needs content.publish — super_admin only)"
+	//	@Failure		404				{object}	models.ErrorResponse	"Activity not found"
+	//	@Failure		409				{object}	models.ErrorResponse	"Invalid workflow transition"
+	//	@Failure		500				{object}	models.ErrorResponse	"Internal error"
+	//	@Security		BearerAuth
+	//	@Router			/admin/engage/{id}/reject [post]
 	return h.adminTransition(c, models.StatusRejected)
 }
 
 func (h *Handler) AdminUnpublishActivity(c *fiber.Ctx) error {
 	//
-	// @Summary      Unpublish an activity (published → draft)
-	// @Description  Transitions a published activity translation back to draft. Access: super_admin ONLY.
-	// @Tags         admin,engage,workflow
-	// @Accept       json
-	// @Produce      json
-	// @Param        Authorization header string true "Bearer <access_token>"
-	// @Param        id   path int true "Activity ID"
-	// @Param        body body object true "{locale: en-US}"
-	// @Success      200 {object} models.Activity
-	// @Failure      400 {object} models.ErrorResponse "Invalid activity ID / body / bad locale"
-	// @Failure      401 {object} models.ErrorResponse "Authentication required"
-	// @Failure      403 {object} models.ErrorResponse "Forbidden (needs content.publish — super_admin only)"
-	// @Failure      404 {object} models.ErrorResponse "Activity not found"
-	// @Failure      409 {object} models.ErrorResponse "Invalid workflow transition"
-	// @Failure      500 {object} models.ErrorResponse "Internal error"
-	// @Security     BearerAuth
-	// @Router       /admin/engage/{id}/unpublish [post]
+	//	@Summary		Unpublish an activity (published → draft)
+	//	@Description	Transitions a published activity translation back to draft. Access: super_admin ONLY.
+	//	@Tags			admin,engage,workflow
+	//	@Accept			json
+	//	@Produce		json
+	//	@Param			Authorization	header		string	true	"Bearer <access_token>"
+	//	@Param			id				path		int		true	"Activity ID"
+	//	@Param			body			body		object	true	"{locale: en-US}"
+	//	@Success		200				{object}	models.Activity
+	//	@Failure		400				{object}	models.ErrorResponse	"Invalid activity ID / body / bad locale"
+	//	@Failure		401				{object}	models.ErrorResponse	"Authentication required"
+	//	@Failure		403				{object}	models.ErrorResponse	"Forbidden (needs content.publish — super_admin only)"
+	//	@Failure		404				{object}	models.ErrorResponse	"Activity not found"
+	//	@Failure		409				{object}	models.ErrorResponse	"Invalid workflow transition"
+	//	@Failure		500				{object}	models.ErrorResponse	"Internal error"
+	//	@Security		BearerAuth
+	//	@Router			/admin/engage/{id}/unpublish [post]
 	return h.adminTransition(c, models.StatusDraft)
 }
 
 func (h *Handler) AdminDeleteActivity(c *fiber.Ctx) error {
 	//
-	// @Summary      Delete an activity
-	// @Description  Removes an activity (parent + all translations). Access: content_editor.
-	// @Tags         admin,engage
-	// @Accept       json
-	// @Produce      json
-	// @Param        Authorization header string true "Bearer <access_token>"
-	// @Param        id path int true "Activity ID"
-	// @Success      204 "No Content (empty body)"
-	// @Failure      400 {object} models.ErrorResponse "Invalid activity ID"
-	// @Failure      401 {object} models.ErrorResponse "Authentication required"
-	// @Failure      403 {object} models.ErrorResponse "Forbidden (needs content.write)"
-	// @Failure      404 {object} models.ErrorResponse "Activity not found"
-	// @Failure      500 {object} models.ErrorResponse "Internal error"
-	// @Security     BearerAuth
-	// @Router       /admin/engage/{id} [delete]
+	//	@Summary		Delete an activity
+	//	@Description	Removes an activity (parent + all translations). Access: content_editor.
+	//	@Tags			admin,engage
+	//	@Accept			json
+	//	@Produce		json
+	//	@Param			Authorization	header	string	true	"Bearer <access_token>"
+	//	@Param			id				path	int		true	"Activity ID"
+	//	@Success		204				"No Content (empty body)"
+	//	@Failure		400				{object}	models.ErrorResponse	"Invalid activity ID"
+	//	@Failure		401				{object}	models.ErrorResponse	"Authentication required"
+	//	@Failure		403				{object}	models.ErrorResponse	"Forbidden (needs content.write)"
+	//	@Failure		404				{object}	models.ErrorResponse	"Activity not found"
+	//	@Failure		500				{object}	models.ErrorResponse	"Internal error"
+	//	@Security		BearerAuth
+	//	@Router			/admin/engage/{id} [delete]
 	id, err := strconv.ParseInt(c.Params("id"), 10, 64)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(models.ErrorResponse{Message: "Invalid activity ID"})

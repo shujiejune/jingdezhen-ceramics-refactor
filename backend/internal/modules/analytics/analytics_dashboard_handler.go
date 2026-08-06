@@ -26,25 +26,25 @@ func NewDashboardHandler(service DashboardServiceInterface) *DashboardHandler {
 
 // Traffic: GET /admin/analytics/traffic — traffic report (PRD §3.4.2).
 //
-// @Summary      Traffic dashboard report
-// @Description  Traffic analysis: page views, visitors (by GeoIP country), top content, by locale.
-// @Description  Reads live from analytics_events (consent-gated at ingest). Range filter via
-// @Description  ?range=day|week|month|quarter|year or ?from=&to= (YYYY-MM-DD, default 30 days, max 365).
-// @Description  ?format=csv streams a flattened CSV (Content-Disposition: attachment).
-// @Tags         admin,analytics
-// @Produce      json
-// @Param        Authorization header string true "Bearer <access_token>"
-// @Param        range query string false "day|week|month|quarter|year (server computes [now-start, now))"
-// @Param        from query string false "YYYY-MM-DD (inclusive; requires to)"
-// @Param        to query string false "YYYY-MM-DD (inclusive)"
-// @Param        format query string false "csv = stream a flattened CSV report"
-// @Success      200 {object} models.TrafficReport
-// @Failure      400 {object} models.ErrorResponse "Invalid date range"
-// @Failure      401 {object} models.ErrorResponse "Authentication required"
-// @Failure      403 {object} models.ErrorResponse "Forbidden (needs dashboard.view)"
-// @Failure      500 {object} models.ErrorResponse "Internal error"
-// @Security     BearerAuth
-// @Router       /admin/analytics/traffic [get]
+//	@Summary		Traffic dashboard report
+//	@Description	Traffic analysis: page views, visitors (by GeoIP country), top content, by locale.
+//	@Description	Reads live from analytics_events (consent-gated at ingest). Range filter via
+//	@Description	?range=day|week|month|quarter|year or ?from=&to= (YYYY-MM-DD, default 30 days, max 365).
+//	@Description	?format=csv streams a flattened CSV (Content-Disposition: attachment).
+//	@Tags			admin,analytics
+//	@Produce		json
+//	@Param			Authorization	header		string	true	"Bearer <access_token>"
+//	@Param			range			query		string	false	"day|week|month|quarter|year (server computes [now-start, now))"
+//	@Param			from			query		string	false	"YYYY-MM-DD (inclusive; requires to)"
+//	@Param			to				query		string	false	"YYYY-MM-DD (inclusive)"
+//	@Param			format			query		string	false	"csv = stream a flattened CSV report"
+//	@Success		200				{object}	models.TrafficReport
+//	@Failure		400				{object}	models.ErrorResponse	"Invalid date range"
+//	@Failure		401				{object}	models.ErrorResponse	"Authentication required"
+//	@Failure		403				{object}	models.ErrorResponse	"Forbidden (needs dashboard.view)"
+//	@Failure		500				{object}	models.ErrorResponse	"Internal error"
+//	@Security		BearerAuth
+//	@Router			/admin/analytics/traffic [get]
 func (h *DashboardHandler) Traffic(c *fiber.Ctx) error {
 	from, to, err := utils.ParseRange(c)
 	if err != nil {
@@ -63,25 +63,25 @@ func (h *DashboardHandler) Traffic(c *fiber.Ctx) error {
 
 // Sales: GET /admin/analytics/sales — sales/GMV dashboard report (PRD §3.4.2).
 //
-// @Summary      Sales dashboard report
-// @Description  Sales analysis: GMV (Σ subtotal_cny, excludes shipping) over realized orders
-// @Description  (status IN paid|shipped|completed — cancelled/refunded excluded), by
-// @Description  currency/region/product/artist, time series. Range filter as for /traffic.
-// @Description  ?format=csv streams a flattened CSV (Content-Disposition: attachment).
-// @Tags         admin,analytics
-// @Produce      json
-// @Param        Authorization header string true "Bearer <access_token>"
-// @Param        range query string false "day|week|month|quarter|year"
-// @Param        from query string false "YYYY-MM-DD (inclusive)"
-// @Param        to query string false "YYYY-MM-DD (inclusive)"
-// @Param        format query string false "csv"
-// @Success      200 {object} models.SalesReport
-// @Failure      400 {object} models.ErrorResponse "Invalid date range"
-// @Failure      401 {object} models.ErrorResponse "Authentication required"
-// @Failure      403 {object} models.ErrorResponse "Forbidden (needs dashboard.view)"
-// @Failure      500 {object} models.ErrorResponse "Internal error"
-// @Security     BearerAuth
-// @Router       /admin/analytics/sales [get]
+//	@Summary		Sales dashboard report
+//	@Description	Sales analysis: GMV (Σ subtotal_cny, excludes shipping) over realized orders
+//	@Description	(status IN paid|shipped|completed — cancelled/refunded excluded), by
+//	@Description	currency/region/product/artist, time series. Range filter as for /traffic.
+//	@Description	?format=csv streams a flattened CSV (Content-Disposition: attachment).
+//	@Tags			admin,analytics
+//	@Produce		json
+//	@Param			Authorization	header		string	true	"Bearer <access_token>"
+//	@Param			range			query		string	false	"day|week|month|quarter|year"
+//	@Param			from			query		string	false	"YYYY-MM-DD (inclusive)"
+//	@Param			to				query		string	false	"YYYY-MM-DD (inclusive)"
+//	@Param			format			query		string	false	"csv"
+//	@Success		200				{object}	models.SalesReport
+//	@Failure		400				{object}	models.ErrorResponse	"Invalid date range"
+//	@Failure		401				{object}	models.ErrorResponse	"Authentication required"
+//	@Failure		403				{object}	models.ErrorResponse	"Forbidden (needs dashboard.view)"
+//	@Failure		500				{object}	models.ErrorResponse	"Internal error"
+//	@Security		BearerAuth
+//	@Router			/admin/analytics/sales [get]
 func (h *DashboardHandler) Sales(c *fiber.Ctx) error {
 	from, to, err := utils.ParseRange(c)
 	if err != nil {
@@ -100,26 +100,26 @@ func (h *DashboardHandler) Sales(c *fiber.Ctx) error {
 
 // Funnel: GET /admin/analytics/funnel — itinerary conversion funnel (PRD §3.4.2).
 //
-// @Summary      Itinerary conversion funnel
-// @Description  Itinerary conversion funnel: form views (analytics_events name=
-// @Description  itinerary_form_view) → submissions (itinerary_requests submitted_at in range)
-// @Description  → confirmed (cohort status='confirmed'), conversion rates over time. Cohort
-// @Description  semantics (no confirmed_at column). Range filter as for /traffic.
-// @Description  ?format=csv streams a flattened CSV (Content-Disposition: attachment).
-// @Tags         admin,analytics
-// @Produce      json
-// @Param        Authorization header string true "Bearer <access_token>"
-// @Param        range query string false "day|week|month|quarter|year"
-// @Param        from query string false "YYYY-MM-DD (inclusive)"
-// @Param        to query string false "YYYY-MM-DD (inclusive)"
-// @Param        format query string false "csv"
-// @Success      200 {object} models.FunnelReport
-// @Failure      400 {object} models.ErrorResponse "Invalid date range"
-// @Failure      401 {object} models.ErrorResponse "Authentication required"
-// @Failure      403 {object} models.ErrorResponse "Forbidden (needs dashboard.view)"
-// @Failure      500 {object} models.ErrorResponse "Internal error"
-// @Security     BearerAuth
-// @Router       /admin/analytics/funnel [get]
+//	@Summary		Itinerary conversion funnel
+//	@Description	Itinerary conversion funnel: form views (analytics_events name=
+//	@Description	itinerary_form_view) → submissions (itinerary_requests submitted_at in range)
+//	@Description	→ confirmed (cohort status='confirmed'), conversion rates over time. Cohort
+//	@Description	semantics (no confirmed_at column). Range filter as for /traffic.
+//	@Description	?format=csv streams a flattened CSV (Content-Disposition: attachment).
+//	@Tags			admin,analytics
+//	@Produce		json
+//	@Param			Authorization	header		string	true	"Bearer <access_token>"
+//	@Param			range			query		string	false	"day|week|month|quarter|year"
+//	@Param			from			query		string	false	"YYYY-MM-DD (inclusive)"
+//	@Param			to				query		string	false	"YYYY-MM-DD (inclusive)"
+//	@Param			format			query		string	false	"csv"
+//	@Success		200				{object}	models.FunnelReport
+//	@Failure		400				{object}	models.ErrorResponse	"Invalid date range"
+//	@Failure		401				{object}	models.ErrorResponse	"Authentication required"
+//	@Failure		403				{object}	models.ErrorResponse	"Forbidden (needs dashboard.view)"
+//	@Failure		500				{object}	models.ErrorResponse	"Internal error"
+//	@Security		BearerAuth
+//	@Router			/admin/analytics/funnel [get]
 func (h *DashboardHandler) Funnel(c *fiber.Ctx) error {
 	from, to, err := utils.ParseRange(c)
 	if err != nil {

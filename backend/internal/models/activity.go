@@ -36,8 +36,11 @@ type Activity struct {
 	// published translation of this activity. Populated by the service on the
 	// detail view.
 	Alternates map[string]string `json:"alternates,omitempty" db:"-"`
-	CreatedAt  time.Time         `json:"created_at" db:"created_at"`
-	UpdatedAt  time.Time         `json:"updated_at" db:"updated_at"`
+	// Gallery: ordered media gallery (loaded by the service on the detail view
+	// via the media module's GalleryLoader; empty on the list view).
+	Gallery   []GalleryItem `json:"gallery,omitempty" db:"-"`
+	CreatedAt time.Time     `json:"created_at" db:"created_at"`
+	UpdatedAt time.Time     `json:"updated_at" db:"updated_at"`
 }
 
 // Article is retained as a type alias to Activity for backward compatibility

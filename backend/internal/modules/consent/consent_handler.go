@@ -25,17 +25,17 @@ func NewHandler(service ServiceInterface) *Handler {
 // before signing up. If a JWT is present, the user is linked; otherwise the
 // record is stored anonymously (by IP hash) and back-linked later.
 //
-// @Summary      Record a consent decision
-// @Description  Records a consent decision (privacy/TOS/cookie-analytics/cookie-marketing).
-// @Description  Public (no auth): anonymous visitors record by IP hash; a JWT, if present, links to the user.
-// @Tags         consent
-// @Accept       json
-// @Produce      json
-// @Param        body body models.RecordConsentRequest true "Consent decision (kind, granted, doc_version)"
-// @Success      201 {object} models.ConsentRecord
-// @Failure      400 {object} models.ErrorResponse "Invalid body / validation"
-// @Failure      500 {object} models.ErrorResponse "Internal error"
-// @Router       /consent [post]
+//	@Summary		Record a consent decision
+//	@Description	Records a consent decision (privacy/TOS/cookie-analytics/cookie-marketing).
+//	@Description	Public (no auth): anonymous visitors record by IP hash; a JWT, if present, links to the user.
+//	@Tags			consent
+//	@Accept			json
+//	@Produce		json
+//	@Param			body	body		models.RecordConsentRequest	true	"Consent decision (kind, granted, doc_version)"
+//	@Success		201		{object}	models.ConsentRecord
+//	@Failure		400		{object}	models.ErrorResponse	"Invalid body / validation"
+//	@Failure		500		{object}	models.ErrorResponse	"Internal error"
+//	@Router			/consent [post]
 func (h *Handler) RecordConsent(c *fiber.Ctx) error {
 	var req models.RecordConsentRequest
 	if err := c.BodyParser(&req); err != nil {
@@ -65,20 +65,20 @@ func (h *Handler) RecordConsent(c *fiber.Ctx) error {
 // Authenticated. Returns the latest consent record for the given kind, or
 // {granted: false} if no record exists yet.
 //
-// @Summary      Get the current consent state for a kind
-// @Description  Returns the latest consent record for the given kind, or {granted: false}
-// @Description  if no record exists yet.
-// @Tags         profile,consent
-// @Accept       json
-// @Produce      json
-// @Param        Authorization header string true "Bearer <access_token>"
-// @Param        kind path string true "Consent kind (privacy_policy|terms_of_service|cookie_analytics|cookie_marketing)"
-// @Success      200 {object} object "{kind, granted, recorded, doc_version?, created_at?}"
-// @Failure      400 {object} models.ErrorResponse "Invalid consent kind"
-// @Failure      401 {object} models.ErrorResponse "Authentication required"
-// @Failure      500 {object} models.ErrorResponse "Internal error"
-// @Security     BearerAuth
-// @Router       /profile/consent/{kind} [get]
+//	@Summary		Get the current consent state for a kind
+//	@Description	Returns the latest consent record for the given kind, or {granted: false}
+//	@Description	if no record exists yet.
+//	@Tags			profile,consent
+//	@Accept			json
+//	@Produce		json
+//	@Param			Authorization	header		string					true	"Bearer <access_token>"
+//	@Param			kind			path		string					true	"Consent kind (privacy_policy|terms_of_service|cookie_analytics|cookie_marketing)"
+//	@Success		200				{object}	object					"{kind, granted, recorded, doc_version?, created_at?}"
+//	@Failure		400				{object}	models.ErrorResponse	"Invalid consent kind"
+//	@Failure		401				{object}	models.ErrorResponse	"Authentication required"
+//	@Failure		500				{object}	models.ErrorResponse	"Internal error"
+//	@Security		BearerAuth
+//	@Router			/profile/consent/{kind} [get]
 func (h *Handler) GetConsentState(c *fiber.Ctx) error {
 	userID, err := utils.GetUserIDFromContext(c)
 	if err != nil {
@@ -114,17 +114,17 @@ func (h *Handler) GetConsentState(c *fiber.Ctx) error {
 // Authenticated. Returns the full consent history for the requesting user
 // (GDPR data export).
 //
-// @Summary      List the user's full consent history
-// @Description  Returns the full consent history for the signed-in user (GDPR data export).
-// @Tags         profile,consent
-// @Accept       json
-// @Produce      json
-// @Param        Authorization header string true "Bearer <access_token>"
-// @Success      200 {object} object "{data: []models.ConsentRecord}"
-// @Failure      401 {object} models.ErrorResponse "Authentication required"
-// @Failure      500 {object} models.ErrorResponse "Internal error"
-// @Security     BearerAuth
-// @Router       /profile/consent [get]
+//	@Summary		List the user's full consent history
+//	@Description	Returns the full consent history for the signed-in user (GDPR data export).
+//	@Tags			profile,consent
+//	@Accept			json
+//	@Produce		json
+//	@Param			Authorization	header		string					true	"Bearer <access_token>"
+//	@Success		200				{object}	object					"{data: []models.ConsentRecord}"
+//	@Failure		401				{object}	models.ErrorResponse	"Authentication required"
+//	@Failure		500				{object}	models.ErrorResponse	"Internal error"
+//	@Security		BearerAuth
+//	@Router			/profile/consent [get]
 func (h *Handler) ListConsentHistory(c *fiber.Ctx) error {
 	userID, err := utils.GetUserIDFromContext(c)
 	if err != nil {

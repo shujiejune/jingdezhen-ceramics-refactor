@@ -25,11 +25,20 @@ type ServiceInterface interface {
 	AdminDeleteActivity(ctx context.Context, activityID int64) error
 	// SetSitemapEnqueuer wires the sitemap-rebuild trigger (PRD §4.4).
 	SetSitemapEnqueuer(e sitemap.Enqueuer)
+	// SetGalleryLoader wires the ordered-media-gallery loader (PRD §3.1.2/§3.1.3).
+	SetGalleryLoader(gl GalleryLoader)
 }
 
 type Service struct {
 	repo            RepositoryInterface
 	sitemapEnqueuer sitemap.Enqueuer // optional; nil => no sitemap rebuild (worker/tests)
+	galleryLoader   GalleryLoader    // optional; nil => no gallery (list view/tests)
+}
+
+// GalleryLoader loads an activity's ordered media gallery. Implemented by the
+// media service; injected post-construction to avoid an engage→media import edge.
+type GalleryLoader interface {
+	ListActivityMedia(ctx context.Context, activityID int64) ([]models.GalleryItem, error)
 }
 
 func NewService(repo RepositoryInterface) ServiceInterface {
@@ -38,6 +47,9 @@ func NewService(repo RepositoryInterface) ServiceInterface {
 
 // SetSitemapEnqueuer wires the sitemap-rebuild trigger (PRD §4.4). nil-safe.
 func (s *Service) SetSitemapEnqueuer(e sitemap.Enqueuer) { s.sitemapEnqueuer = e }
+
+// SetGalleryLoader wires the gallery loader (PRD §3.1.2/§3.1.3). nil-safe.
+func (s *Service) SetGalleryLoader(gl GalleryLoader) { s.galleryLoader = gl }
 
 // enqueueSitemapRebuild fires a sitemap rebuild best-effort (PRD §4.4). nil-
 // safe (worker/tests); logs on error, never returns one.
@@ -75,6 +87,15 @@ func (s *Service) GetActivityArticle(ctx context.Context, slug string, locale st
 		log.Printf("engage.GetActivityArticle.Alternates(%d): %v", article.ID, aerr)
 	} else if len(alts) > 0 {
 		article.Alternates = alts
+	}
+	// Load the ordered media gallery (detail view).
+	if s.galleryLoader != nil {
+		gallery, gerr := s.galleryLoader.ListActivityMedia(ctx, article.ID)
+		if gerr != nil {
+			log.Printf("engage.GetActivityArticle.Gallery(%d): %v", article.ID, gerr)
+		} else if len(gallery) > 0 {
+			article.Gallery = gallery
+		}
 	}
 	return article, nil
 }

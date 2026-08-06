@@ -701,6 +701,315 @@ const docTemplate = `{
                 }
             }
         },
+        "/admin/artists/{id}/media": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns an artist's ordered gallery. Access: content_editor.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin",
+                    "artists",
+                    "media"
+                ],
+                "summary": "List an artist's media gallery (admin)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer \u003caccess_token\u003e",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Artist ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.GalleryItem"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid artist id",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden (needs content.write)",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Attaches a media_assets row to an artist's ordered gallery.\nsort_order defaults to append-last. Access: content_editor.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin",
+                    "artists",
+                    "media"
+                ],
+                "summary": "Attach a media asset to an artist gallery",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer \u003caccess_token\u003e",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Artist ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "media_id + optional sort_order + caption",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.AttachMediaData"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "{ok: true}",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid artist id / body / validation",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden (needs content.write)",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/artists/{id}/media/order": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Sets the sort_order for each gallery entry. Access: content_editor.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin",
+                    "artists",
+                    "media"
+                ],
+                "summary": "Reorder an artist's media gallery",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer \u003caccess_token\u003e",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Artist ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Ordered list of {media_id, sort_order}",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ReorderMediaItem"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content (empty body)"
+                    },
+                    "400": {
+                        "description": "Invalid artist id / body / validation",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden (needs content.write)",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/artists/{id}/media/{media_id}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Removes a media_assets row from an artist's gallery (does not delete the asset).\nAccess: content_editor.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin",
+                    "artists",
+                    "media"
+                ],
+                "summary": "Detach a media asset from an artist gallery",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer \u003caccess_token\u003e",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Artist ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Media asset ID",
+                        "name": "media_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content (empty body)"
+                    },
+                    "400": {
+                        "description": "Invalid artist/media id",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden (needs content.write)",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Media not attached to this artist",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/admin/artists/{id}/reject": {
             "post": {
                 "security": [
@@ -1605,6 +1914,315 @@ const docTemplate = `{
                 }
             }
         },
+        "/admin/ceramicstory/{id}/media": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns a story's ordered gallery. Access: content_editor.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin",
+                    "ceramicstory",
+                    "media"
+                ],
+                "summary": "List a ceramic story's media gallery (admin)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer \u003caccess_token\u003e",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Story ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.GalleryItem"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid story id",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden (needs content.write)",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Attaches a media_assets row to a story's ordered gallery.\nsort_order defaults to append-last. Access: content_editor.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin",
+                    "ceramicstory",
+                    "media"
+                ],
+                "summary": "Attach a media asset to a ceramic story gallery",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer \u003caccess_token\u003e",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Story ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "media_id + optional sort_order + caption",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.AttachMediaData"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "{ok: true}",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid story id / body / validation",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden (needs content.write)",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/ceramicstory/{id}/media/order": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Sets the sort_order for each gallery entry. Access: content_editor.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin",
+                    "ceramicstory",
+                    "media"
+                ],
+                "summary": "Reorder a ceramic story's media gallery",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer \u003caccess_token\u003e",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Story ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Ordered list of {media_id, sort_order}",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ReorderMediaItem"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content (empty body)"
+                    },
+                    "400": {
+                        "description": "Invalid story id / body / validation",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden (needs content.write)",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/ceramicstory/{id}/media/{media_id}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Removes a media_assets row from a story's gallery. Access: content_editor.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin",
+                    "ceramicstory",
+                    "media"
+                ],
+                "summary": "Detach a media asset from a ceramic story gallery",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer \u003caccess_token\u003e",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Story ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Media asset ID",
+                        "name": "media_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content (empty body)"
+                    },
+                    "400": {
+                        "description": "Invalid story/media id",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden (needs content.write)",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Media not attached to this story",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/admin/ceramicstory/{id}/reject": {
             "post": {
                 "security": [
@@ -2457,6 +3075,315 @@ const docTemplate = `{
                     },
                     "409": {
                         "description": "Translation not editable in its current workflow state",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/engage/{id}/media": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns an activity's ordered gallery. Access: content_editor.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin",
+                    "engage",
+                    "media"
+                ],
+                "summary": "List an activity's media gallery (admin)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer \u003caccess_token\u003e",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Activity ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.GalleryItem"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid activity id",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden (needs content.write)",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Attaches a media_assets row to an activity's ordered gallery.\nsort_order defaults to append-last. Access: content_editor.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin",
+                    "engage",
+                    "media"
+                ],
+                "summary": "Attach a media asset to an activity gallery",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer \u003caccess_token\u003e",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Activity ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "media_id + optional sort_order + caption",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.AttachMediaData"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "{ok: true}",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid activity id / body / validation",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden (needs content.write)",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/engage/{id}/media/order": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Sets the sort_order for each gallery entry. Access: content_editor.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin",
+                    "engage",
+                    "media"
+                ],
+                "summary": "Reorder an activity's media gallery",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer \u003caccess_token\u003e",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Activity ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Ordered list of {media_id, sort_order}",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ReorderMediaItem"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content (empty body)"
+                    },
+                    "400": {
+                        "description": "Invalid activity id / body / validation",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden (needs content.write)",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/engage/{id}/media/{media_id}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Removes a media_assets row from an activity's gallery. Access: content_editor.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin",
+                    "engage",
+                    "media"
+                ],
+                "summary": "Detach a media asset from an activity gallery",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer \u003caccess_token\u003e",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Activity ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Media asset ID",
+                        "name": "media_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content (empty body)"
+                    },
+                    "400": {
+                        "description": "Invalid activity/media id",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication required",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden (needs content.write)",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Media not attached to this activity",
                         "schema": {
                             "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
                         }
@@ -6787,6 +7714,54 @@ const docTemplate = `{
                 }
             }
         },
+        "/artists/{id}/media": {
+            "get": {
+                "description": "Returns an artist's ordered gallery for the storefront. No auth.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "artists",
+                    "media"
+                ],
+                "summary": "List an artist's media gallery (public)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Artist ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.GalleryItem"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid artist id",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/artists/{slug}": {
             "get": {
                 "description": "Fetches a single published artist by its locale-specific slug.",
@@ -8076,6 +9051,54 @@ const docTemplate = `{
                 }
             }
         },
+        "/ceramicstory/{id}/media": {
+            "get": {
+                "description": "Returns a story's ordered gallery for the storefront. No auth.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ceramicstory",
+                    "media"
+                ],
+                "summary": "List a ceramic story's media gallery (public)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Story ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.GalleryItem"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid story id",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/ceramicstory/{slug}": {
             "get": {
                 "description": "Fetches a single published ceramic story by its locale-specific slug.",
@@ -8475,6 +9498,54 @@ const docTemplate = `{
                                     }
                                 }
                             ]
+                        }
+                    },
+                    "500": {
+                        "description": "Internal error",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/engage/{id}/media": {
+            "get": {
+                "description": "Returns an activity's ordered gallery for the storefront. No auth.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "engage",
+                    "media"
+                ],
+                "summary": "List an activity's media gallery (public)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Activity ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.GalleryItem"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid activity id",
+                        "schema": {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.ErrorResponse"
                         }
                     },
                     "500": {
@@ -9882,7 +10953,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "{message: \\\"2FA disabled\\\"}",
+                        "description": "{message: \\\"2FA\tdisabled\\\"}",
                         "schema": {
                             "type": "object"
                         }
@@ -10502,7 +11573,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "{message: \\\"Default address updated\\\"}",
+                        "description": "{message: \\\"Default\taddress\tupdated\\\"}",
                         "schema": {
                             "type": "object"
                         }
@@ -11128,6 +12199,13 @@ const docTemplate = `{
                 "created_at": {
                     "type": "string"
                 },
+                "gallery": {
+                    "description": "Gallery: ordered media gallery (loaded by the service on the detail view\nvia the media module's GalleryLoader; empty on the list view).",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.GalleryItem"
+                    }
+                },
                 "id": {
                     "type": "integer"
                 },
@@ -11267,6 +12345,13 @@ const docTemplate = `{
                 "display_order": {
                     "description": "parent",
                     "type": "integer"
+                },
+                "gallery": {
+                    "description": "Gallery: ordered media gallery (loaded by the service on the detail view\nvia the media module's GalleryLoader; empty on the list view).",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.GalleryItem"
+                    }
                 },
                 "id": {
                     "type": "integer"
@@ -11536,6 +12621,13 @@ const docTemplate = `{
                 "end_year": {
                     "description": "parent",
                     "type": "integer"
+                },
+                "gallery": {
+                    "description": "Gallery: ordered media gallery (loaded by the service on the detail view\nvia the media module's GalleryLoader; empty on the list view).",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.GalleryItem"
+                    }
                 },
                 "id": {
                     "type": "integer"
@@ -12209,6 +13301,35 @@ const docTemplate = `{
                 },
                 "views": {
                     "description": "analytics_events name=itinerary_form_view",
+                    "type": "integer"
+                }
+            }
+        },
+        "jingdezhen-ceramics-backend_internal_models.GalleryItem": {
+            "type": "object",
+            "properties": {
+                "caption": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "description": "*_media.id",
+                    "type": "integer"
+                },
+                "media": {
+                    "description": "The media asset, loaded via JOIN. Embedded so the JSON nests it.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/jingdezhen-ceramics-backend_internal_models.MediaAsset"
+                        }
+                    ]
+                },
+                "media_id": {
+                    "type": "integer"
+                },
+                "sort_order": {
                     "type": "integer"
                 }
             }

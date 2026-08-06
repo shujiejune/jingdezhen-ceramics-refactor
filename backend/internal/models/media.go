@@ -52,6 +52,25 @@ type ProductMediaItem struct {
 	MediaAsset MediaAsset `json:"media" db:"media"`
 }
 
+// GalleryItem is the entity-agnostic ordered-gallery entry used by the
+// artist / ceramic-story / activity galleries (the per-entity FK is omitted —
+// the caller already knows which entity it asked for). product_media keeps its
+// own ProductMediaItem (shipped unchanged) so the product API is stable; the
+// three newer galleries share this one type to avoid triplicated structs.
+//
+// Fields mirror ProductMediaItem minus the entity FK: the join-table id, the
+// media_id, the sort_order (0 = primary display image), the optional caption,
+// and the joined media asset with its public URL resolved at read time.
+type GalleryItem struct {
+	ID        int64     `json:"id" db:"id"` // *_media.id
+	MediaID   int64     `json:"media_id" db:"media_id"`
+	SortOrder int       `json:"sort_order" db:"sort_order"`
+	Caption   *string   `json:"caption,omitempty" db:"caption"`
+	CreatedAt time.Time `json:"created_at" db:"created_at"`
+	// The media asset, loaded via JOIN. Embedded so the JSON nests it.
+	MediaAsset MediaAsset `json:"media" db:"media"`
+}
+
 // --- Admin DTOs ---
 
 // RegisterAssetData registers an already-uploaded file as a media_assets row.

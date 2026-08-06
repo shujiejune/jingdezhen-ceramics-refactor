@@ -29,11 +29,20 @@ type ServiceInterface interface {
 	AdminDeleteStory(ctx context.Context, storyID int64) error
 	// SetSitemapEnqueuer wires the sitemap-rebuild trigger (PRD §4.4).
 	SetSitemapEnqueuer(e sitemap.Enqueuer)
+	// SetGalleryLoader wires the ordered-media-gallery loader (PRD §3.1.2).
+	SetGalleryLoader(gl GalleryLoader)
 }
 
 type Service struct {
 	repo            RepositoryInterface
 	sitemapEnqueuer sitemap.Enqueuer // optional; nil => no sitemap rebuild (worker/tests)
+	galleryLoader   GalleryLoader    // optional; nil => no gallery (list view/tests)
+}
+
+// GalleryLoader loads a story's ordered media gallery. Implemented by the
+// media service; injected post-construction to avoid a cs→media import edge.
+type GalleryLoader interface {
+	ListStoryMedia(ctx context.Context, storyID int64) ([]models.GalleryItem, error)
 }
 
 func NewService(repo RepositoryInterface) ServiceInterface {
@@ -42,6 +51,9 @@ func NewService(repo RepositoryInterface) ServiceInterface {
 
 // SetSitemapEnqueuer wires the sitemap-rebuild trigger (PRD §4.4). nil-safe.
 func (s *Service) SetSitemapEnqueuer(e sitemap.Enqueuer) { s.sitemapEnqueuer = e }
+
+// SetGalleryLoader wires the gallery loader (PRD §3.1.2). nil-safe.
+func (s *Service) SetGalleryLoader(gl GalleryLoader) { s.galleryLoader = gl }
 
 // enqueueSitemapRebuild fires a sitemap rebuild best-effort (PRD §4.4). nil-
 // safe (worker/tests); logs on error, never returns one.
@@ -79,6 +91,20 @@ func (s *Service) GetCeramicStoryDetail(ctx context.Context, slug string, locale
 		log.Printf("ceramicstory.GetCeramicStoryDetail.Alternates(%d): %v", story.ID, aerr)
 	} else if len(alts) > 0 {
 		story.Alternates = alts
+	}
+	// Load the ordered media gallery (detail view). The first item's media
+	// PublicURL is the preferred image; ImageURL is the fallback.
+	if s.galleryLoader != nil {
+		gallery, gerr := s.galleryLoader.ListStoryMedia(ctx, story.ID)
+		if gerr != nil {
+			log.Printf("ceramicstory.GetCeramicStoryDetail.Gallery(%d): %v", story.ID, gerr)
+		} else if len(gallery) > 0 {
+			story.Gallery = gallery
+			if gallery[0].MediaAsset.PublicURL != "" {
+				u := gallery[0].MediaAsset.PublicURL
+				story.ImageURL = &u
+			}
+		}
 	}
 	return story, nil
 }

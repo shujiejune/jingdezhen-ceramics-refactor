@@ -23,29 +23,29 @@ func NewHandler(service ServiceInterface) *Handler {
 
 // List: GET /admin/audit-log — the accountability trail (PRD §3.1.1).
 //
-// @Summary      List audit log entries
-// @Description  Returns the admin audit log (sensitive actions) with filters + pagination.
-// @Description  Access: super_admin (settings.manage). Supports ?format=csv for export.
-// @Tags         admin,audit
-// @Produce      json
-// @Param        Authorization header string true "Bearer <access_token>"
-// @Param        actor_id query string false "Filter by actor (UUID)"
-// @Param        action query string false "Filter by action (e.g. order.refund)"
-// @Param        entity_type query string false "Filter by entity type (e.g. order)"
-// @Param        entity_id query string false "Filter by entity ID"
-// @Param        range query string false "day|week|month|quarter|year"
-// @Param        from query string false "YYYY-MM-DD (inclusive)"
-// @Param        to query string false "YYYY-MM-DD (inclusive)"
-// @Param        page query int false "Page number (default 1)"
-// @Param        limit query int false "Page size (default 20, max 100)"
-// @Param        format query string false "csv = stream a flattened CSV"
-// @Success      200 {object} models.PaginatedResponse "data: []models.AuditLog"
-// @Failure      400 {object} models.ErrorResponse "Invalid date range"
-// @Failure      401 {object} models.ErrorResponse "Authentication required"
-// @Failure      403 {object} models.ErrorResponse "Forbidden (needs settings.manage)"
-// @Failure      500 {object} models.ErrorResponse "Internal error"
-// @Security     BearerAuth
-// @Router       /admin/audit-log [get]
+//	@Summary		List audit log entries
+//	@Description	Returns the admin audit log (sensitive actions) with filters + pagination.
+//	@Description	Access: super_admin (settings.manage). Supports ?format=csv for export.
+//	@Tags			admin,audit
+//	@Produce		json
+//	@Param			Authorization	header		string						true	"Bearer <access_token>"
+//	@Param			actor_id		query		string						false	"Filter by actor (UUID)"
+//	@Param			action			query		string						false	"Filter by action (e.g. order.refund)"
+//	@Param			entity_type		query		string						false	"Filter by entity type (e.g. order)"
+//	@Param			entity_id		query		string						false	"Filter by entity ID"
+//	@Param			range			query		string						false	"day|week|month|quarter|year"
+//	@Param			from			query		string						false	"YYYY-MM-DD (inclusive)"
+//	@Param			to				query		string						false	"YYYY-MM-DD (inclusive)"
+//	@Param			page			query		int							false	"Page number (default 1)"
+//	@Param			limit			query		int							false	"Page size (default 20, max 100)"
+//	@Param			format			query		string						false	"csv = stream a flattened CSV"
+//	@Success		200				{object}	models.PaginatedResponse	"data: []models.AuditLog"
+//	@Failure		400				{object}	models.ErrorResponse		"Invalid date range"
+//	@Failure		401				{object}	models.ErrorResponse		"Authentication required"
+//	@Failure		403				{object}	models.ErrorResponse		"Forbidden (needs settings.manage)"
+//	@Failure		500				{object}	models.ErrorResponse		"Internal error"
+//	@Security		BearerAuth
+//	@Router			/admin/audit-log [get]
 func (h *Handler) List(c *fiber.Ctx) error {
 	page, limit := utils.GetPageLimit(c)
 
