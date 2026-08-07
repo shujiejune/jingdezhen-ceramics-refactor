@@ -1,0 +1,221 @@
+# AGENTS.md
+
+> Guidance for AI agents working on this frontend. Read this first.
+> This is the **SolidStart frontend** for the Jingdezhen Ceramics Platform,
+> tracked as a regular subdirectory (`frontend/`) of the root monorepo. It was
+> folded in from its former standalone repo
+> (`jingdezhen-ceramics-frontend.git`, 52 commits preserved via `git subtree add`)
+> — `git` history for this directory is reachable via the subtree merge commit's
+> second parent. All future frontend work commits to the **root** repo, alongside
+> the backend in `backend/`.
+
+## Project
+
+**Jingdezhen Ceramics Platform — frontend.** Internationalized culture /
+e-commerce / custom-travel storefront + admin CMS, rendered by SolidStart SSR
+and backed by the Go + Fiber API in the sibling `backend/` directory.
+
+**Current phase:** this is the **inherited** SolidStart app, originally built
+for the predecessor "Learning & Communication Platform" (online courses + forum
++ user portfolio + artworks gallery). It is being **refactored** toward the
+PRD (`../docs/PRD.md`, v0.17) and TDD (`../docs/TDD.md`, §6 is the frontend
+design). The stack is correct and kept; the **route tree, data layer, and
+domain types are wrong for the new product** and must be rebuilt.
+
+- **Source of truth for *what/why*:** `../docs/PRD.md`
+- **Source of truth for *frontend design*:** `../docs/TDD.md` §6 (and §7 money,
+  §8 state machines, §9 auth, §4.4 SEO)
+- **Backend API contract:** the live, Swagger-annotated Go handlers in
+  `../backend/internal/api/router.go` + the generated spec at
+  `../backend/internal/docs/` (UI at `GET /admin/swagger/*` behind auth).
+  When in doubt about a route shape, **read the handler**, not assumptions.
+
+## Stack
+
+- **Language:** TypeScript (strict), `jsxImportSource: solid-js`, `moduleResolution: bundler`
+- **Runtime / package manager:** Node ≥22 or Bun ≥1 (lockfile is `bun.lock`)
+- **Framework:** SolidStart (`@solidjs/start` v1.1) — **SSR enabled**, `server.preset: "bun"`
+- **Routing:** TanStack Solid Router v1 (file-based, code-generated `routeTree.gen.ts`
+  via `@tanstack/router-plugin`/vite). **NOT** SolidStart's built-in `@solidjs/router`.
+- **Data:** TanStack Solid Query v5 (client cache/mutations). SSR loaders call
+  the API server-to-server for initial render; Query hydrates on the client.
+- **UI primitives:** `@kobalte/core` (accessible components, e.g. `Tabs`)
+- **Head/meta:** `@solidjs/meta` (`MetaProvider`, `Title`)
+- **Styling:** Tailwind CSS v3.4 + PostCSS + autoprefixer. Utility classes inline;
+  `classList`/`Show`/`For` idioms throughout. A few per-route `.css` files exist.
+- **Icons:** hand-rolled Phosphor-style SVG components in
+  `src/components/icons/Phosphor.tsx` (the `phosphor-solid` dep is listed but
+  the code uses the local file — keep using the local file for consistency).
+- **Markdown:** `marked` + `easymde` (editor) — used by the old content routes.
+- **HTTP:** `redaxios` is a devDep but **no API client exists yet** (`src/lib/api.ts`
+  is an empty stub). Building the API client is a refactor task.
+- **Path alias:** `~/*` → `src/*` (see `tsconfig.json`)
+
+## Getting Started
+
+```bash
+# from this frontend/ directory
+bun install            # or: npm install / pnpm install
+bun run dev            # vinxi dev  (SSR dev server, default port 3000)
+bun run build          # vinxi build
+bun run start          # vinxi start (serve the built app)
+```
+
+The backend API is a **sibling process**. To develop against it:
+
+```bash
+# from the repo root — starts PG + Redis + api + worker + chromedp
+cd ../backend && make up
+# the API listens on :1323 (service `jdz-api`); see ../backend/docker-compose.dev.yml
+```
+
+There is **no global `/api/v1` prefix** on the backend. Routes live at the
+root: `/auth`, `/profile`, `/cart`, `/catalog/products`, `/artists`,
+`/ceramicstory`, `/engage`, `/notifications`, `/admin/...`, `/webhooks/*`,
+`/ws`, `/fx/rates`, `/shipping/quote`, `/certificates/:code`,
+`/sitemap.xml`, `/robots.txt`. In dev, point the frontend's API base URL at
+`http://localhost:1323` (env var / vite proxy — to be established in refactor).
+In production the reverse proxy maps `/api/*` → backend `/*` (strip prefix).
+
+## Commands
+
+- Dev: `bun run dev`
+- Build: `bun run build`
+- Start (prod): `bun run start`
+- Typecheck: `bunx tsc --noEmit` (no dedicated script — run manually)
+- Lint/format: **none configured yet** (no ESLint/Prettier/Biome). Add during
+  refactor (align with backend's conventional-commits + CI gate expectations).
+
+## Layout
+
+```
+app.config.ts          SolidStart config (ssr, bun preset, tanstackRouter vite plugin)
+src/
+  app.tsx              <RouterProvider router={router} />  (router created here)
+  entry-client.tsx     SolidStart client entry
+  entry-server.tsx     SolidStart server entry (StartServer, <html> shell)
+  global.d.ts          ambient types (@solidjs/start/env)
+  routeTree.gen.ts     CODE-GENERATED — do not edit (regenerated by the vite plugin)
+  app.css              global styles (currently mostly leftover SolidStart template CSS)
+  routes/
+    __root.tsx         root layout: MetaProvider + QueryClientProvider + VerticalNavbar + <Outlet>
+    index.tsx          landing
+    auth/              login, signup, activate, forgot/reset-password, _layout (shared form comps)
+    account/           private dashboard + public profile ($userId)
+    ceramicstory/      history content (index list + $slug detail)  ← KEEP (new domain: History)
+    engage/            activities/destinations (index + $slug)      ← KEEP (new domain: Destinations/Lifestyle)
+    gallery/           artworks (OLD domain — artworks→products)    ← REFACTOR to /catalog
+    course/            online courses (OLD domain — REMOVED in new PRD)
+    forum/             community forum (OLD domain — REMOVED in new PRD)
+    portfolio/         user portfolio (OLD domain — REMOVED in new PRD)
+  components/
+    layout/            VerticalNavbar, PageHeader, AccountSidebar, *Card
+    common/            Button
+    shared/            MarkdownEditor (+ .css)
+    icons/             Phosphor.tsx (hand-rolled SVG icons)
+    landing/           LandingSection
+  lib/
+    api.ts             EMPTY (stub) — API client to be built in refactor
+    auth.ts            EMPTY (stub) — auth context/interceptor to be built
+    types.ts           TS interfaces for the OLD domain (User, Artwork, Course,
+                       ForumPost, PortfolioWork, Notification, …) — REWRITE for new domain
+    utils.ts           date formatters (formatDateTime, formatLastActivity)
+public/
+  favicon.ico
+```
+
+## Conventions
+
+- **Routing:** TanStack Solid Router file-based routes. Each route file:
+  ```tsx
+  export const Route = createFileRoute("/path")({
+    beforeLoad,   // auth guard (throw redirect to /auth/login)
+    validateSearch, loader,
+    component,
+  });
+  ```
+  Consume loader data with `Route.useLoaderData()`. Use `<Link to params search>`.
+  **Do not edit `routeTree.gen.ts`** — it regenerates on dev/build.
+- **Data fetching (target):** SSR loaders (`Promise.all` parallel API calls —
+  TDD §11.1 #1) for initial render; `useQuery`/`useMutation` (TanStack Solid
+  Query) for client refetch + mutations. The current code uses **inline mock
+  data** (hardcoded arrays behind `setTimeout`) — this is placeholder and must
+  be replaced by real API calls during the refactor.
+- **Auth (current backend reality — READ THIS):** the backend issues a
+  **single HS256 access JWT, 30-day expiry**, validated from the
+  `Authorization: Bearer <token>` header. There is **no refresh-token rotation
+  yet** (deferred to a post-frontend milestone per TDD §5.1). So the frontend
+  must store the token client-side (e.g. `localStorage`) and attach it as a
+  Bearer header on every API call. **Do NOT** build assuming an httpOnly
+  refresh cookie / rotate-on-401 flow exists — that's the *target*, not the
+  current state. Login may require a **2FA verify step** (TOTP) for users with
+  2FA enabled (mandatory for `super_admin`); the flow is
+  `POST /auth/login` → pending-2FA token → `POST /auth/2fa/verify`. Google
+  OAuth (`POST /auth/google`) also gates on 2FA when enabled.
+- **i18n (target, TDD §6):** public routes under `src/routes/[locale]/...`
+  with locale validated against `["en-US","zh-CN"]` (the backend's
+  `models.SupportedLocales`). UI strings live in per-locale flat-JSON catalogs
+  (`en-US.json` / `zh-CN.json`); **content** comes already-localized from the
+  API (per-locale translation tables + slugs). The current code has **no
+  locale layer** — adding it is a refactor task. The language toggle in
+  `VerticalNavbar` is currently a no-op `createSignal<"en"|"cn">`.
+- **Money (TDD §7):** all money is **minor units** (`BIGINT` fen/cents/pence)
+  as **integers** in the API. Never use JS `number` for money (float) — use
+  `bigint` or a money helper. FX + rounding (`<100 → ceil 0.50; ≥100 → ceil 1.00`)
+  is done **server-side**; the frontend only renders the presentment strings
+  the API returns. Do not re-derive prices client-side.
+- **Cart (TDD §6):** guests keep cart in `localStorage`; on login, merge via
+  `POST /cart/merge`. Locale + currency in cookie + context.
+- **SEO (TDD §6, PRD §4.4):** meta per entity from the API (`meta_title`,
+  `meta_description` on translations); `hreflang` + canonical in root layout;
+  `sitemap.xml` is served by the backend (`GET /sitemap.xml`); JSON-LD
+  components (Product, Article, BreadcrumbList) to be built frontend-side.
+- **Components:** small Solid components, `Component<Props>` typing, `Show`/`For`
+  over conditionals. Reuse the shared form primitives in `auth/_layout.tsx`
+  (`FormField`, `MessageCard`, `SocialLogins`, `AuthLayout`) where applicable.
+- **Commit style:** Conventional Commits (`feat(scope): …`, `fix(scope): …`),
+  matching the backend repo.
+
+## Constraints
+
+- **Do not edit `src/routeTree.gen.ts`** — it is code-generated.
+- **Do not assume the old routes are wanted.** `course/`, `forum/`,
+  `portfolio/` correspond to **removed** PRD features — they are reference
+  material for patterns, not keepers. `gallery/` evolves into the product
+  catalog. Confirm against `../docs/PRD.md` before keeping any old route.
+- **Do not call live payment gateways / OSS / email from the frontend.**
+  The backend fronts all external services behind adapters; the frontend only
+  talks to the Fiber API. In sandbox/dev the backend uses mocks.
+- **Do not re-implement money / FX / shipping math client-side.** The API
+  returns presentment totals and shipping quotes; render them.
+- **Do not commit `.env` / secrets.** API base URL + any keys are env-only.
+  The root `.gitignore` already covers `node_modules/`, `dist/`, `.solid/`,
+  `.tanstack/`, `*.env`, `.env.*` (with `!.env.example`) — these apply to
+  `frontend/` too.
+- **Backend is the contract source.** When a route shape is unclear, read the
+  Go handler in `../backend/internal/modules/<module>/` and the router in
+  `../backend/internal/api/router.go`, or the Swagger UI at
+  `GET /admin/swagger/*` (needs a JWT). Do not guess from old `lib/types.ts`.
+- **One repo now.** `git` operations target the root `refactor` repo (origin
+  `https://github.com/shujiejune/jingdezhen-ceramics-refactor.git`). The former
+  standalone frontend repo (`jingdezhen-ceramics-frontend.git`) is retired as a
+  source of truth — it only holds the inherited history. Do **not** push there.
+
+## Refactor status (inherited → target)
+
+The stack (SolidStart + TanStack Router/Query + Kobalte + Tailwind) is **kept**.
+Everything below the stack is in flux:
+
+| Area | Inherited (current) | Target (PRD/TDD) |
+|---|---|---|
+| Domain | courses, forum, portfolio, artworks gallery | products/SKU catalog, cart, checkout, orders, wishlist, custom travel (itinerary wizard + quotes), artist profiles, History (ceramicstory), Destinations/Lifestyle (engage), admin CMS |
+| Data layer | `lib/api.ts` empty; routes use inline mock arrays | real API client (redaxios) + TanStack Query; SSR loaders `Promise.all` |
+| Auth | simulated (`auth.isAuthenticated` boolean, fake login) | real `POST /auth/login` (+ 2FA), JWT in localStorage, Bearer header, route guards |
+| i18n | none (no-op `en|cn` toggle) | `src/routes/[locale]/...`, `en-US`/`zh-CN` catalogs, API content localized |
+| Money | n/a | minor-unit integers; render API presentment; never float math |
+| Admin | none | client-rendered `/admin/*` behind auth + RBAC; TanStack Table lists, TanStack Form CMS |
+| SEO | `@solidjs/meta` Title only | per-entity meta, hreflang, canonical, JSON-LD; sitemap from backend |
+| Routes to **remove** | `course/`, `forum/`, `portfolio/` | — |
+| Routes to **refactor** | `gallery/` → `catalog/`; `account/` panels (→ orders/wishlist/addresses/privacy/2FA) | — |
+| Routes to **keep (pattern)** | `ceramicstory/`, `engage/`, `auth/`, root layout, shared form comps | — |
+| Routes to **add** | — | `cart`, `checkout`, `orders`, `wishlist`, `itinerary` (wizard), `artists`, `admin/*` |

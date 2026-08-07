@@ -9,7 +9,7 @@ Thumbs.db
 # --- Logs ---
 *.log
 
-# --- Frontend (future SolidStart app) ---
+# --- Frontend (SolidStart app, folded in from former standalone repo) ---
 node_modules/
 dist/
 .solid/

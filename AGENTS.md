@@ -27,7 +27,10 @@ backend/      Go + Fiber API (module: jingdezhen-ceramics-backend)
     email/        (SES — to be replaced by Brevo adapter)
     utils/
 docs/         PRD.md, TDD.md, REFACTOR-TODO.md, this file
-frontend/     REMOVED. To be created fresh with SolidStart per TDD §6.
+frontend/     SolidStart (TS) storefront + admin CMS. Folded in from the former
+              standalone repo (52 commits preserved via `git subtree add`). Inherited
+              the old domain (courses/forum/portfolio) — being refactored toward the
+              PRD/TDD §6. See `frontend/AGENTS.md` for the frontend-specific guide.
 ```
 
 ## Tech stack & key decisions (do not contradict without discussion)
@@ -48,7 +51,12 @@ frontend/     REMOVED. To be created fresh with SolidStart per TDD §6.
 2. **Preserve existing code where possible.** The kept modules (`user`, `gallery`, `ceramicstory`, `engage`, `notification`, `ws`) are the foundation; extend, don't rewrite, unless the TDD says to evolve them (e.g. `artworks`→Product/SKU, `user_favorite_artworks`→wishlist).
 3. **`go build ./...` and `go vet ./...` must pass** after every change. Don't leave the tree broken.
 4. **Migrations:** add new numbered files in `backend/internal/migrations/` (next after `000001_baseline`). Always provide matching `.up.sql` and `.down.sql`. Never edit the baseline. Schema changes should be additive; drop columns only in a later cleanup migration.
-5. **Don't touch the frontend.** There is no `frontend/` in this repo. When the SolidStart app is created, follow TDD §6.
+5. **Frontend is now in-repo.** `frontend/` is tracked in this monorepo (folded
+   in via `git subtree add`). It has its **own `frontend/AGENTS.md`** — read it
+   before touching frontend code. The frontend is a separate Node/Bun project
+   (its own `package.json`, `node_modules/`, build) — do **not** run `go build`
+   or backend tooling against it. When refactoring frontend routes, follow
+   TDD §6 and the backend API contract in `backend/internal/api/router.go`.
 6. **No new external SDK calls in business logic.** Route them through `pkg/adapters/` interfaces.
 7. **Follow the existing Go style:** handler→service→repository layers; repository takes a `pgx` executor (already supports tx); services return typed `models.Err*` errors (a central error-mapper middleware is planned, TDD §4.3).
 8. **Tests:** unit tests with testify (adapters mocked); integration with testcontainers-go (real PG+Redis). Priority test targets are money, shipping, order/stock, webhook idempotency, RBAC. PRD §2.4.
