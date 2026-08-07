@@ -5,7 +5,7 @@ export default defineConfig({
   // SolidStart-specific options would go here at the top level.
   ssr: true,
   server: {
-    preset: "bun",
+    preset: "node",
   },
   // All standard Vite configuration must be placed inside this `vite` object.
   vite: {

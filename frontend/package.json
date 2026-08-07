@@ -18,7 +18,8 @@
     "marked": "^16.2.0",
     "phosphor-solid": "^1.1.5",
     "solid-js": "^1.9.8",
-    "vinxi": "^0.5.7"
+    "vinxi": "^0.5.7",
+    "zod": "^3.24.0"
   },
   "devDependencies": {
     "@tanstack/router-plugin": "^1.131.7",
@@ -29,7 +30,7 @@
     "typescript": "^5.7.2"
   },
   "engines": {
-    "node": ">=22",
-    "bun": ">=1.0.0"
-  }
+    "node": ">=22"
+  },
+  "packageManager": "pnpm@11.19.0"
 }

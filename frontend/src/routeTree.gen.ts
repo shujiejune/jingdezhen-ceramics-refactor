@@ -8,73 +8,34 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { createFileRoute } from '@tanstack/solid-router'
-
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as PortfolioIndexRouteImport } from './routes/portfolio/index'
-import { Route as GalleryIndexRouteImport } from './routes/gallery/index'
-import { Route as ForumIndexRouteImport } from './routes/forum/index'
-import { Route as EngageIndexRouteImport } from './routes/engage/index'
-import { Route as CourseIndexRouteImport } from './routes/course/index'
-import { Route as CeramicstoryIndexRouteImport } from './routes/ceramicstory/index'
 import { Route as AccountIndexRouteImport } from './routes/account/index'
-import { Route as ForumNewRouteImport } from './routes/forum/new'
-import { Route as EngageSlugRouteImport } from './routes/engage/$slug'
-import { Route as CourseCourseIdRouteImport } from './routes/course/$courseId'
-import { Route as CeramicstorySlugRouteImport } from './routes/ceramicstory/$slug'
-import { Route as AuthSignupRouteImport } from './routes/auth/signup'
-import { Route as AuthResetPasswordRouteImport } from './routes/auth/reset-password'
-import { Route as AuthLoginRouteImport } from './routes/auth/login'
-import { Route as AuthForgotPasswordRouteImport } from './routes/auth/forgot-password'
-import { Route as AuthActivateRouteImport } from './routes/auth/activate'
-import { Route as AuthLayoutRouteImport } from './routes/auth/_layout'
 import { Route as AccountUserIdRouteImport } from './routes/account/$userId'
-import { Route as PortfolioWorksWorkIdRouteImport } from './routes/portfolio/works/$workId'
-import { Route as GalleryArtworksArtworkIdRouteImport } from './routes/gallery/artworks/$artworkId'
+import { Route as AuthLayoutRouteImport } from './routes/auth/_layout'
+import { Route as AuthActivateRouteImport } from './routes/auth/activate'
+import { Route as AuthForgotPasswordRouteImport } from './routes/auth/forgot-password'
+import { Route as AuthLoginRouteImport } from './routes/auth/login'
+import { Route as AuthResetPasswordRouteImport } from './routes/auth/reset-password'
+import { Route as AuthSignupRouteImport } from './routes/auth/signup'
+import { Route as CeramicstoryIndexRouteImport } from './routes/ceramicstory/index'
+import { Route as CeramicstorySlugRouteImport } from './routes/ceramicstory/$slug'
+import { Route as CourseIndexRouteImport } from './routes/course/index'
+import { Route as CourseCourseIdRouteImport } from './routes/course/$courseId'
+import { Route as EngageIndexRouteImport } from './routes/engage/index'
+import { Route as EngageSlugRouteImport } from './routes/engage/$slug'
+import { Route as ForumIndexRouteImport } from './routes/forum/index'
+import { Route as ForumNewRouteImport } from './routes/forum/new'
+import { Route as GalleryIndexRouteImport } from './routes/gallery/index'
+import { Route as PortfolioIndexRouteImport } from './routes/portfolio/index'
 import { Route as ForumPostsPostIdRouteImport } from './routes/forum/posts/$postId'
+import { Route as GalleryArtworksArtworkIdRouteImport } from './routes/gallery/artworks/$artworkId'
+import { Route as PortfolioWorksWorkIdRouteImport } from './routes/portfolio/works/$workId'
 import { Route as CourseCourseIdChaptersChapterIdBlocksBlockIdRouteImport } from './routes/course/$courseId/chapters/$chapterId/blocks/$blockId'
 
-const AuthRouteImport = createFileRoute('/auth')()
-
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PortfolioIndexRoute = PortfolioIndexRouteImport.update({
-  id: '/portfolio/',
-  path: '/portfolio/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const GalleryIndexRoute = GalleryIndexRouteImport.update({
-  id: '/gallery/',
-  path: '/gallery/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ForumIndexRoute = ForumIndexRouteImport.update({
-  id: '/forum/',
-  path: '/forum/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const EngageIndexRoute = EngageIndexRouteImport.update({
-  id: '/engage/',
-  path: '/engage/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CourseIndexRoute = CourseIndexRouteImport.update({
-  id: '/course/',
-  path: '/course/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CeramicstoryIndexRoute = CeramicstoryIndexRouteImport.update({
-  id: '/ceramicstory/',
-  path: '/ceramicstory/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AccountIndexRoute = AccountIndexRouteImport.update({
@@ -82,19 +43,44 @@ const AccountIndexRoute = AccountIndexRouteImport.update({
   path: '/account/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ForumNewRoute = ForumNewRouteImport.update({
-  id: '/forum/new',
-  path: '/forum/new',
+const AccountUserIdRoute = AccountUserIdRouteImport.update({
+  id: '/account/$userId',
+  path: '/account/$userId',
   getParentRoute: () => rootRouteImport,
 } as any)
-const EngageSlugRoute = EngageSlugRouteImport.update({
-  id: '/engage/$slug',
-  path: '/engage/$slug',
+const AuthLayoutRoute = AuthLayoutRouteImport.update({
+  id: '/auth/_layout',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CourseCourseIdRoute = CourseCourseIdRouteImport.update({
-  id: '/course/$courseId',
-  path: '/course/$courseId',
+const AuthActivateRoute = AuthActivateRouteImport.update({
+  id: '/auth/activate',
+  path: '/auth/activate',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthForgotPasswordRoute = AuthForgotPasswordRouteImport.update({
+  id: '/auth/forgot-password',
+  path: '/auth/forgot-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthLoginRoute = AuthLoginRouteImport.update({
+  id: '/auth/login',
+  path: '/auth/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthResetPasswordRoute = AuthResetPasswordRouteImport.update({
+  id: '/auth/reset-password',
+  path: '/auth/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthSignupRoute = AuthSignupRouteImport.update({
+  id: '/auth/signup',
+  path: '/auth/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CeramicstoryIndexRoute = CeramicstoryIndexRouteImport.update({
+  id: '/ceramicstory/',
+  path: '/ceramicstory/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CeramicstorySlugRoute = CeramicstorySlugRouteImport.update({
@@ -102,43 +88,49 @@ const CeramicstorySlugRoute = CeramicstorySlugRouteImport.update({
   path: '/ceramicstory/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthSignupRoute = AuthSignupRouteImport.update({
-  id: '/signup',
-  path: '/signup',
-  getParentRoute: () => AuthRoute,
-} as any)
-const AuthResetPasswordRoute = AuthResetPasswordRouteImport.update({
-  id: '/reset-password',
-  path: '/reset-password',
-  getParentRoute: () => AuthRoute,
-} as any)
-const AuthLoginRoute = AuthLoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => AuthRoute,
-} as any)
-const AuthForgotPasswordRoute = AuthForgotPasswordRouteImport.update({
-  id: '/forgot-password',
-  path: '/forgot-password',
-  getParentRoute: () => AuthRoute,
-} as any)
-const AuthActivateRoute = AuthActivateRouteImport.update({
-  id: '/activate',
-  path: '/activate',
-  getParentRoute: () => AuthRoute,
-} as any)
-const AuthLayoutRoute = AuthLayoutRouteImport.update({
-  id: '/_layout',
-  getParentRoute: () => AuthRoute,
-} as any)
-const AccountUserIdRoute = AccountUserIdRouteImport.update({
-  id: '/account/$userId',
-  path: '/account/$userId',
+const CourseIndexRoute = CourseIndexRouteImport.update({
+  id: '/course/',
+  path: '/course/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PortfolioWorksWorkIdRoute = PortfolioWorksWorkIdRouteImport.update({
-  id: '/portfolio/works/$workId',
-  path: '/portfolio/works/$workId',
+const CourseCourseIdRoute = CourseCourseIdRouteImport.update({
+  id: '/course/$courseId',
+  path: '/course/$courseId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EngageIndexRoute = EngageIndexRouteImport.update({
+  id: '/engage/',
+  path: '/engage/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EngageSlugRoute = EngageSlugRouteImport.update({
+  id: '/engage/$slug',
+  path: '/engage/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForumIndexRoute = ForumIndexRouteImport.update({
+  id: '/forum/',
+  path: '/forum/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForumNewRoute = ForumNewRouteImport.update({
+  id: '/forum/new',
+  path: '/forum/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GalleryIndexRoute = GalleryIndexRouteImport.update({
+  id: '/gallery/',
+  path: '/gallery/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PortfolioIndexRoute = PortfolioIndexRouteImport.update({
+  id: '/portfolio/',
+  path: '/portfolio/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForumPostsPostIdRoute = ForumPostsPostIdRouteImport.update({
+  id: '/forum/posts/$postId',
+  path: '/forum/posts/$postId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GalleryArtworksArtworkIdRoute =
@@ -147,9 +139,9 @@ const GalleryArtworksArtworkIdRoute =
     path: '/gallery/artworks/$artworkId',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ForumPostsPostIdRoute = ForumPostsPostIdRouteImport.update({
-  id: '/forum/posts/$postId',
-  path: '/forum/posts/$postId',
+const PortfolioWorksWorkIdRoute = PortfolioWorksWorkIdRouteImport.update({
+  id: '/portfolio/works/$workId',
+  path: '/portfolio/works/$workId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CourseCourseIdChaptersChapterIdBlocksBlockIdRoute =
@@ -172,13 +164,13 @@ export interface FileRoutesByFullPath {
   '/course/$courseId': typeof CourseCourseIdRouteWithChildren
   '/engage/$slug': typeof EngageSlugRoute
   '/forum/new': typeof ForumNewRoute
-  '/account': typeof AccountIndexRoute
-  '/ceramicstory': typeof CeramicstoryIndexRoute
-  '/course': typeof CourseIndexRoute
-  '/engage': typeof EngageIndexRoute
-  '/forum': typeof ForumIndexRoute
-  '/gallery': typeof GalleryIndexRoute
-  '/portfolio': typeof PortfolioIndexRoute
+  '/account/': typeof AccountIndexRoute
+  '/ceramicstory/': typeof CeramicstoryIndexRoute
+  '/course/': typeof CourseIndexRoute
+  '/engage/': typeof EngageIndexRoute
+  '/forum/': typeof ForumIndexRoute
+  '/gallery/': typeof GalleryIndexRoute
+  '/portfolio/': typeof PortfolioIndexRoute
   '/forum/posts/$postId': typeof ForumPostsPostIdRoute
   '/gallery/artworks/$artworkId': typeof GalleryArtworksArtworkIdRoute
   '/portfolio/works/$workId': typeof PortfolioWorksWorkIdRoute
@@ -213,7 +205,6 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/account/$userId': typeof AccountUserIdRoute
-  '/auth': typeof AuthRouteWithChildren
   '/auth/_layout': typeof AuthLayoutRoute
   '/auth/activate': typeof AuthActivateRoute
   '/auth/forgot-password': typeof AuthForgotPasswordRoute
@@ -251,13 +242,13 @@ export interface FileRouteTypes {
     | '/course/$courseId'
     | '/engage/$slug'
     | '/forum/new'
-    | '/account'
-    | '/ceramicstory'
-    | '/course'
-    | '/engage'
-    | '/forum'
-    | '/gallery'
-    | '/portfolio'
+    | '/account/'
+    | '/ceramicstory/'
+    | '/course/'
+    | '/engage/'
+    | '/forum/'
+    | '/gallery/'
+    | '/portfolio/'
     | '/forum/posts/$postId'
     | '/gallery/artworks/$artworkId'
     | '/portfolio/works/$workId'
@@ -291,7 +282,6 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/account/$userId'
-    | '/auth'
     | '/auth/_layout'
     | '/auth/activate'
     | '/auth/forgot-password'
@@ -318,7 +308,12 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AccountUserIdRoute: typeof AccountUserIdRoute
-  AuthRoute: typeof AuthRouteWithChildren
+  AuthLayoutRoute: typeof AuthLayoutRoute
+  AuthActivateRoute: typeof AuthActivateRoute
+  AuthForgotPasswordRoute: typeof AuthForgotPasswordRoute
+  AuthLoginRoute: typeof AuthLoginRoute
+  AuthResetPasswordRoute: typeof AuthResetPasswordRoute
+  AuthSignupRoute: typeof AuthSignupRoute
   CeramicstorySlugRoute: typeof CeramicstorySlugRoute
   CourseCourseIdRoute: typeof CourseCourseIdRouteWithChildren
   EngageSlugRoute: typeof EngageSlugRoute
@@ -337,13 +332,6 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/solid-router' {
   interface FileRoutesByPath {
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/': {
       id: '/'
       path: '/'
@@ -351,74 +339,67 @@ declare module '@tanstack/solid-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/portfolio/': {
-      id: '/portfolio/'
-      path: '/portfolio'
-      fullPath: '/portfolio'
-      preLoaderRoute: typeof PortfolioIndexRouteImport
+    '/account/': {
+      id: '/account/'
+      path: '/account'
+      fullPath: '/account/'
+      preLoaderRoute: typeof AccountIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/gallery/': {
-      id: '/gallery/'
-      path: '/gallery'
-      fullPath: '/gallery'
-      preLoaderRoute: typeof GalleryIndexRouteImport
+    '/account/$userId': {
+      id: '/account/$userId'
+      path: '/account/$userId'
+      fullPath: '/account/$userId'
+      preLoaderRoute: typeof AccountUserIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/forum/': {
-      id: '/forum/'
-      path: '/forum'
-      fullPath: '/forum'
-      preLoaderRoute: typeof ForumIndexRouteImport
+    '/auth/_layout': {
+      id: '/auth/_layout'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthLayoutRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/engage/': {
-      id: '/engage/'
-      path: '/engage'
-      fullPath: '/engage'
-      preLoaderRoute: typeof EngageIndexRouteImport
+    '/auth/activate': {
+      id: '/auth/activate'
+      path: '/auth/activate'
+      fullPath: '/auth/activate'
+      preLoaderRoute: typeof AuthActivateRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/course/': {
-      id: '/course/'
-      path: '/course'
-      fullPath: '/course'
-      preLoaderRoute: typeof CourseIndexRouteImport
+    '/auth/forgot-password': {
+      id: '/auth/forgot-password'
+      path: '/auth/forgot-password'
+      fullPath: '/auth/forgot-password'
+      preLoaderRoute: typeof AuthForgotPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/login': {
+      id: '/auth/login'
+      path: '/auth/login'
+      fullPath: '/auth/login'
+      preLoaderRoute: typeof AuthLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/reset-password': {
+      id: '/auth/reset-password'
+      path: '/auth/reset-password'
+      fullPath: '/auth/reset-password'
+      preLoaderRoute: typeof AuthResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/signup': {
+      id: '/auth/signup'
+      path: '/auth/signup'
+      fullPath: '/auth/signup'
+      preLoaderRoute: typeof AuthSignupRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ceramicstory/': {
       id: '/ceramicstory/'
       path: '/ceramicstory'
-      fullPath: '/ceramicstory'
+      fullPath: '/ceramicstory/'
       preLoaderRoute: typeof CeramicstoryIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/account/': {
-      id: '/account/'
-      path: '/account'
-      fullPath: '/account'
-      preLoaderRoute: typeof AccountIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/forum/new': {
-      id: '/forum/new'
-      path: '/forum/new'
-      fullPath: '/forum/new'
-      preLoaderRoute: typeof ForumNewRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/engage/$slug': {
-      id: '/engage/$slug'
-      path: '/engage/$slug'
-      fullPath: '/engage/$slug'
-      preLoaderRoute: typeof EngageSlugRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/course/$courseId': {
-      id: '/course/$courseId'
-      path: '/course/$courseId'
-      fullPath: '/course/$courseId'
-      preLoaderRoute: typeof CourseCourseIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ceramicstory/$slug': {
@@ -428,60 +409,67 @@ declare module '@tanstack/solid-router' {
       preLoaderRoute: typeof CeramicstorySlugRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/auth/signup': {
-      id: '/auth/signup'
-      path: '/signup'
-      fullPath: '/auth/signup'
-      preLoaderRoute: typeof AuthSignupRouteImport
-      parentRoute: typeof AuthRoute
-    }
-    '/auth/reset-password': {
-      id: '/auth/reset-password'
-      path: '/reset-password'
-      fullPath: '/auth/reset-password'
-      preLoaderRoute: typeof AuthResetPasswordRouteImport
-      parentRoute: typeof AuthRoute
-    }
-    '/auth/login': {
-      id: '/auth/login'
-      path: '/login'
-      fullPath: '/auth/login'
-      preLoaderRoute: typeof AuthLoginRouteImport
-      parentRoute: typeof AuthRoute
-    }
-    '/auth/forgot-password': {
-      id: '/auth/forgot-password'
-      path: '/forgot-password'
-      fullPath: '/auth/forgot-password'
-      preLoaderRoute: typeof AuthForgotPasswordRouteImport
-      parentRoute: typeof AuthRoute
-    }
-    '/auth/activate': {
-      id: '/auth/activate'
-      path: '/activate'
-      fullPath: '/auth/activate'
-      preLoaderRoute: typeof AuthActivateRouteImport
-      parentRoute: typeof AuthRoute
-    }
-    '/auth/_layout': {
-      id: '/auth/_layout'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthLayoutRouteImport
-      parentRoute: typeof AuthRoute
-    }
-    '/account/$userId': {
-      id: '/account/$userId'
-      path: '/account/$userId'
-      fullPath: '/account/$userId'
-      preLoaderRoute: typeof AccountUserIdRouteImport
+    '/course/': {
+      id: '/course/'
+      path: '/course'
+      fullPath: '/course/'
+      preLoaderRoute: typeof CourseIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/portfolio/works/$workId': {
-      id: '/portfolio/works/$workId'
-      path: '/portfolio/works/$workId'
-      fullPath: '/portfolio/works/$workId'
-      preLoaderRoute: typeof PortfolioWorksWorkIdRouteImport
+    '/course/$courseId': {
+      id: '/course/$courseId'
+      path: '/course/$courseId'
+      fullPath: '/course/$courseId'
+      preLoaderRoute: typeof CourseCourseIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/engage/': {
+      id: '/engage/'
+      path: '/engage'
+      fullPath: '/engage/'
+      preLoaderRoute: typeof EngageIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/engage/$slug': {
+      id: '/engage/$slug'
+      path: '/engage/$slug'
+      fullPath: '/engage/$slug'
+      preLoaderRoute: typeof EngageSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forum/': {
+      id: '/forum/'
+      path: '/forum'
+      fullPath: '/forum/'
+      preLoaderRoute: typeof ForumIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forum/new': {
+      id: '/forum/new'
+      path: '/forum/new'
+      fullPath: '/forum/new'
+      preLoaderRoute: typeof ForumNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/gallery/': {
+      id: '/gallery/'
+      path: '/gallery'
+      fullPath: '/gallery/'
+      preLoaderRoute: typeof GalleryIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/portfolio/': {
+      id: '/portfolio/'
+      path: '/portfolio'
+      fullPath: '/portfolio/'
+      preLoaderRoute: typeof PortfolioIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forum/posts/$postId': {
+      id: '/forum/posts/$postId'
+      path: '/forum/posts/$postId'
+      fullPath: '/forum/posts/$postId'
+      preLoaderRoute: typeof ForumPostsPostIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/gallery/artworks/$artworkId': {
@@ -491,11 +479,11 @@ declare module '@tanstack/solid-router' {
       preLoaderRoute: typeof GalleryArtworksArtworkIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/forum/posts/$postId': {
-      id: '/forum/posts/$postId'
-      path: '/forum/posts/$postId'
-      fullPath: '/forum/posts/$postId'
-      preLoaderRoute: typeof ForumPostsPostIdRouteImport
+    '/portfolio/works/$workId': {
+      id: '/portfolio/works/$workId'
+      path: '/portfolio/works/$workId'
+      fullPath: '/portfolio/works/$workId'
+      preLoaderRoute: typeof PortfolioWorksWorkIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/course/$courseId/chapters/$chapterId/blocks/$blockId': {
@@ -507,26 +495,6 @@ declare module '@tanstack/solid-router' {
     }
   }
 }
-
-interface AuthRouteChildren {
-  AuthLayoutRoute: typeof AuthLayoutRoute
-  AuthActivateRoute: typeof AuthActivateRoute
-  AuthForgotPasswordRoute: typeof AuthForgotPasswordRoute
-  AuthLoginRoute: typeof AuthLoginRoute
-  AuthResetPasswordRoute: typeof AuthResetPasswordRoute
-  AuthSignupRoute: typeof AuthSignupRoute
-}
-
-const AuthRouteChildren: AuthRouteChildren = {
-  AuthLayoutRoute: AuthLayoutRoute,
-  AuthActivateRoute: AuthActivateRoute,
-  AuthForgotPasswordRoute: AuthForgotPasswordRoute,
-  AuthLoginRoute: AuthLoginRoute,
-  AuthResetPasswordRoute: AuthResetPasswordRoute,
-  AuthSignupRoute: AuthSignupRoute,
-}
-
-const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 
 interface CourseCourseIdRouteChildren {
   CourseCourseIdChaptersChapterIdBlocksBlockIdRoute: typeof CourseCourseIdChaptersChapterIdBlocksBlockIdRoute
@@ -544,7 +512,12 @@ const CourseCourseIdRouteWithChildren = CourseCourseIdRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AccountUserIdRoute: AccountUserIdRoute,
-  AuthRoute: AuthRouteWithChildren,
+  AuthLayoutRoute: AuthLayoutRoute,
+  AuthActivateRoute: AuthActivateRoute,
+  AuthForgotPasswordRoute: AuthForgotPasswordRoute,
+  AuthLoginRoute: AuthLoginRoute,
+  AuthResetPasswordRoute: AuthResetPasswordRoute,
+  AuthSignupRoute: AuthSignupRoute,
   CeramicstorySlugRoute: CeramicstorySlugRoute,
   CourseCourseIdRoute: CourseCourseIdRouteWithChildren,
   EngageSlugRoute: EngageSlugRoute,

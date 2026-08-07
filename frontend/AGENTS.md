@@ -35,8 +35,11 @@ domain types are wrong for the new product** and must be rebuilt.
 ## Stack
 
 - **Language:** TypeScript (strict), `jsxImportSource: solid-js`, `moduleResolution: bundler`
-- **Runtime / package manager:** Node ≥22 or Bun ≥1 (lockfile is `bun.lock`)
-- **Framework:** SolidStart (`@solidjs/start` v1.1) — **SSR enabled**, `server.preset: "bun"`
+- **Runtime / package manager:** Node ≥22 + **pnpm** (v11.19.0 pinned via `packageManager`).
+  Lockfile is `pnpm-lock.yaml`. (Formerly Bun — migrated to pnpm for monorepo parity
+  with the backend's toolchain.)
+- **Framework:** SolidStart (`@solidjs/start` v1.1) — **SSR enabled**, `server.preset: "node"`
+  (node-listener; was `"bun"` before the pnpm migration)
 - **Routing:** TanStack Solid Router v1 (file-based, code-generated `routeTree.gen.ts`
   via `@tanstack/router-plugin`/vite). **NOT** SolidStart's built-in `@solidjs/router`.
 - **Data:** TanStack Solid Query v5 (client cache/mutations). SSR loaders call
@@ -57,11 +60,18 @@ domain types are wrong for the new product** and must be rebuilt.
 
 ```bash
 # from this frontend/ directory
-bun install            # or: npm install / pnpm install
-bun run dev            # vinxi dev  (SSR dev server, default port 3000)
-bun run build          # vinxi build
-bun run start          # vinxi start (serve the built app)
+pnpm install          # install deps (generates pnpm-lock.yaml)
+pnpm dev              # vinxi dev  (SSR dev server, default port 3000)
+pnpm build            # vinxi build
+pnpm start            # vinxi start (serve the built .output/ via node-listener)
 ```
+
+**pnpm v11 build-script approval:** pnpm v10+ blocks dependency install scripts
+(postinstall) by default. `pnpm-workspace.yaml` declares `onlyBuiltDependencies`
++ `allowBuilds` for `esbuild` (native binary, required by vinxi/vite) and
+`@parcel/watcher` (dev file-watching). If a new native dep is added and pnpm
+reports `[ERR_PNPM_IGNORED_BUILDS]`, run `pnpm approve-builds --all` and flip its
+`allowBuilds` entry to `true` in `pnpm-workspace.yaml`, then `pnpm install`.
 
 The backend API is a **sibling process**. To develop against it:
 
@@ -81,17 +91,21 @@ In production the reverse proxy maps `/api/*` → backend `/*` (strip prefix).
 
 ## Commands
 
-- Dev: `bun run dev`
-- Build: `bun run build`
-- Start (prod): `bun run start`
-- Typecheck: `bunx tsc --noEmit` (no dedicated script — run manually)
+- Dev: `pnpm dev`
+- Build: `pnpm build`
+- Start (prod): `pnpm start`
+- Typecheck: `pnpm exec tsc --noEmit` (no dedicated script — run manually;
+  note: the inherited code has **pre-existing TS errors** in the old-domain
+  routes, e.g. `forum/` references a stale `"/forum/$postId"` route path — these
+  are latent bugs, not migration regressions; the esbuild-based `pnpm build`
+  does not typecheck and succeeds regardless)
 - Lint/format: **none configured yet** (no ESLint/Prettier/Biome). Add during
   refactor (align with backend's conventional-commits + CI gate expectations).
 
 ## Layout
 
 ```
-app.config.ts          SolidStart config (ssr, bun preset, tanstackRouter vite plugin)
+app.config.ts          SolidStart config (ssr, node-listener preset, tanstackRouter vite plugin)
 src/
   app.tsx              <RouterProvider router={router} />  (router created here)
   entry-client.tsx     SolidStart client entry
