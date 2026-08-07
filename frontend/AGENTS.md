@@ -1,5 +1,7 @@
 # AGENTS.md
 
+> **See also:** the root `../AGENTS.md` for the Go + Fiber backend, repo-wide conventions, and the PRD/TDD/REFACTOR-TODO locations.
+>
 > Guidance for AI agents working on this frontend. Read this first.
 > This is the **SolidStart frontend** for the Jingdezhen Ceramics Platform,
 > tracked as a regular subdirectory (`frontend/`) of the root monorepo. It was

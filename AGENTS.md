@@ -1,5 +1,7 @@
 # AGENTS.md
 
+> **See also:** `frontend/AGENTS.md` for the SolidStart frontend (separate Node/Bun project).
+
 Guidance for any coding agent (or human contributor) working on this repository. Read this before touching code.
 
 ## Project
