@@ -1,0 +1,35 @@
+{
+  "name": "jingdezhen-ceramics",
+  "type": "module",
+  "scripts": {
+    "dev": "vinxi dev",
+    "build": "vinxi build",
+    "start": "vinxi start"
+  },
+  "dependencies": {
+    "@kobalte/core": "^0.13.11",
+    "@solidjs/meta": "^0.29.4",
+    "@solidjs/start": "^1.1.7",
+    "@tanstack/solid-query": "^5.83.1",
+    "@tanstack/solid-router": "^1.131.7",
+    "@tanstack/solid-router-devtools": "^1.131.9",
+    "@types/marked": "^6.0.0",
+    "easymde": "^2.20.0",
+    "marked": "^16.2.0",
+    "phosphor-solid": "^1.1.5",
+    "solid-js": "^1.9.8",
+    "vinxi": "^0.5.7"
+  },
+  "devDependencies": {
+    "@tanstack/router-plugin": "^1.131.7",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.5.1",
+    "redaxios": "^0.5.1",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=22",
+    "bun": ">=1.0.0"
+  }
+}

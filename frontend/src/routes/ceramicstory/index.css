@@ -1,0 +1,61 @@
+.tabs {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+}
+
+.tabs__list {
+  position: relative;
+  display: flex;
+  flex-shrink: 0; /* Prevents the list from shrinking */
+  gap: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid hsl(220 13% 91%);
+
+  /* Enable horizontal scrolling but hide the scrollbar */
+  overflow-x: auto;
+  scrollbar-width: none; /* For Firefox */
+}
+
+.tabs__list::-webkit-scrollbar {
+  display: none; /* For Chrome, Safari, and Opera */
+}
+
+.tabs__trigger {
+  padding: 0.5rem 1.5rem;
+  font-size: 1.125rem; /* 18px */
+  font-weight: 600;
+  color: hsl(220 9% 46%);
+  background-color: transparent;
+  border: none;
+  border-radius: 9999px; /* Pill shape */
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  outline: none;
+}
+
+.tabs__trigger:hover {
+  background-color: hsl(220 13% 96%);
+  color: hsl(220 14% 21%);
+}
+
+.tabs__trigger:focus-visible {
+  box-shadow: 0 0 0 2px hsl(216 98% 52%);
+}
+
+/* Style for the selected tab */
+.tabs__trigger[data-selected] {
+  background-color: hsl(216 98% 52%);
+  color: white;
+}
+
+.tabs__content {
+  outline: none;
+}
+
+/* Hide content that is not selected */
+.tabs__content:not([data-selected]) {
+  display: none;
+}
