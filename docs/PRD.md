@@ -58,7 +58,7 @@ Jingdezhen, the "Millennium Ceramic Capital", possesses over a thousand years of
 | Layer | Technology |
 |---|---|
 | Backend | Go + [Fiber](https://gofiber.io/) web framework; WebSocket support (Fiber websocket middleware) for live chat |
-| Frontend | **SolidStart** (Solid.js SSR meta-framework) + TypeScript + TanStack Solid libraries (Query / Table / Form) |
+| Frontend | **TanStack Start** (React SSR full-stack framework, built on Vite + Vinxi) + TypeScript + TanStack libraries (Router / Query / Form / Table) |
 | Database | **PostgreSQL** (multi-currency, JSONB for rich content, full-text search) |
 | Cache / Queue | **Redis** — sessions, cache, pub/sub for chat fan-out, and job queue (e.g. Asynq) for emails/WhatsApp/webhooks |
 | Object storage | **Alibaba Cloud OSS (Hong Kong region)** — S3-compatible; built-in on-the-fly image processing (WebP conversion, resizing) for all uploaded media |
@@ -66,12 +66,12 @@ Jingdezhen, the "Millennium Ceramic Capital", possesses over a thousand years of
 | Video | Self-hosted transcoding: **FFmpeg → HLS** segments uploaded to OSS, served via CDN |
 | Search | PostgreSQL full-text search for content and product catalog (can migrate to Meilisearch/Typesense later if catalog scale requires) |
 | AI Chatbot | **Qwen3.5** (via Alibaba Cloud Model Studio / DashScope-compatible API) for multi-lingual chat and translation; delivered over WebSockets (API region & budget deferred, see §3.3.1) |
-| Deployment | Single VPS in **Hong Kong** (Alibaba Cloud / Tencent Cloud) running **Docker Compose** (Fiber API, SolidStart, PostgreSQL, Redis) — accessible from both mainland China and abroad without ICP filing; minimal cost (~$40–80/mo incl. storage/CDN at launch traffic). Nightly `pg_dump` backups to OSS. Scale out later if needed. CI/CD: see §2.4. |
+| Deployment | Single VPS in **Hong Kong** (Alibaba Cloud / Tencent Cloud) running **Docker Compose** (Fiber API, TanStack Start, PostgreSQL, Redis) — accessible from both mainland China and abroad without ICP filing; minimal cost (~$40–80/mo incl. storage/CDN at launch traffic). Nightly `pg_dump` backups to OSS. Scale out later if needed. CI/CD: see §2.4. |
 
 ### 2.2 High-Level Architecture
 
 ```
-[Browser] ⇄ [CDN] ⇄ [SolidStart SSR (Node)] ⇄ [Fiber API (Go)]
+[Browser] ⇄ [CDN] ⇄ [TanStack Start SSR (Node)] ⇄ [Fiber API (Go)]
                           │  (REST + WebSocket)    ├─ PostgreSQL
                           │                        ├─ Redis (cache/session/pub-sub/queue)
                           └──────────────────────► ├─ Object Storage (WebP images, HLS video)
@@ -81,14 +81,14 @@ Jingdezhen, the "Millennium Ceramic Capital", possesses over a thousand years of
                                                       Blockchain-authentication (reserved)
 ```
 
-**Rendering strategy (decided):** **SolidStart with SSR** for all public pages to satisfy SEO requirements (semantic URLs, per-locale meta tags, sitemap, `hreflang`). The admin CMS routes may be client-rendered. SolidStart is chosen over TanStack Start because its Solid adapter is more mature; TanStack Solid Query/Table/Form are still used within SolidStart. The SSR layer fetches data from the Fiber API; the browser talks to the Fiber API directly for interactive features (cart, chat WebSocket).
+**Rendering strategy (decided):** **TanStack Start with SSR** for all public pages to satisfy SEO requirements (semantic URLs, per-locale meta tags, sitemap, `hreflang`). The admin CMS routes may be client-rendered. TanStack Start is chosen over Next.js to keep type-safe TanStack Router (file-based, type-safe search params via `validateSearch` + zod) and to avoid Vercel-lock-in on a single self-hosted HK VPS (TanStack Start runs on Vite + Vinxi, deployable anywhere). TanStack Query/Table/Form are used within TanStack Start. The SSR layer fetches data from the Fiber API; the browser talks to the Fiber API directly for interactive features (cart, chat WebSocket). *(Pivoted from the earlier SolidStart decision; see TDD §12 for rationale.)*
 
 ### 2.3 Internationalization (i18n)
 
 - **Launch locales:** **English (US)** (default, `en-US`) and **Simplified Chinese** (`zh-CN`), switchable.
 - **Future locales (planned, not in v1):** Traditional Chinese (`zh-TW`/`zh-Hant`), Japanese (`ja`), French (`fr`). The i18n architecture must be locale-extensible from day one: per-locale translation tables (not fixed columns), locale-aware slugs/meta/sitemaps, and UI string catalogs keyed by BCP 47 locale so new languages can be added without schema changes.
 - All CMS content models must store per-locale fields (title, body, meta tags, slugs).
-- **URL strategy (confirmed): locale path prefix** (`/en/...`, `/zh/...`) with `hreflang` tags — one domain, one TLS cert, simplest SolidStart routing, consolidated SEO authority.
+- **URL strategy (confirmed): locale path prefix** (`/en-US/...`, `/zh-CN/...`) with `hreflang` tags — one domain, one TLS cert, simplest TanStack Start routing, consolidated SEO authority.
 - Currency display: multi-currency (see §3.2.3).
 
 ### 2.4 CI/CD & Quality Assurance
@@ -107,7 +107,7 @@ nightly / pre-release: load tests against staging
 
 - **Container registry:** Alibaba Cloud Container Registry (ACR), HK region — fast pulls from the HK VPS.
 - **Deploy:** SSH-based step (`docker compose pull && docker compose up -d`) with health-check gating and automatic rollback to the previous image tag.
-- **Lint / static analysis:** `golangci-lint` (Go); ESLint (or oxlint) + `tsc --noEmit` + Prettier (TS/Solid).
+- **Lint / static analysis:** `golangci-lint` (Go); ESLint (or oxlint) + `tsc --noEmit` + Prettier (TS/React).
 - **Migrations:** `golang-migrate` (or `goose`), executed in CI against test containers so schema drift fails fast.
 - **Security scanning:** `govulncheck`, `osv-scanner`/`npm audit`, Dependabot.
 - **Coverage:** `go test -cover` + Vitest coverage reported on PRs; pragmatic target of 70–80% on business-logic packages (not a blanket number).
@@ -117,7 +117,7 @@ nightly / pre-release: load tests against staging
 | Layer | Tooling | Scope |
 |---|---|---|
 | Unit (Go) | `testing` + testify; `mockery`/`gomock` for interfaces | Table-driven tests; adapters (payment gateway, LLM, email) mocked via interfaces |
-| Unit (Frontend) | **Vitest** + `@solidjs/testing-library` | Components, stores, i18n/currency formatting logic |
+| Unit (Frontend) | **Vitest** + React Testing Library | Components, hooks, i18n/currency formatting logic |
 | Integration (Go) | **testcontainers-go** | Real PostgreSQL + Redis in Docker per run; real SQL/migrations/pub-sub; HTTP tests against the actual Fiber app |
 | Integration (external APIs) | Gateway sandboxes (Airwallex/PayPal/Brevo/WhatsApp) + WireMock / Go `httptest` mocks | Webhook signature verification and failure paths; never call live gateways in CI |
 | E2E | **Playwright** | Critical journeys: browse → wishlist → cart → checkout (mocked payment); sign-up (email/Google/WhatsApp); locale switching; chat WebSocket connect. Runs against staging |
@@ -355,7 +355,7 @@ Visualized statistics for core data:
 - Automatic `sitemap.xml` generation (multi-locale, updated on publish).
 - Customizable meta tags (title, description, Open Graph, Twitter cards) per page/locale via CMS.
 - `hreflang` alternates, canonical URLs, `robots.txt`, structured data (Product, Article, BreadcrumbList JSON-LD — recommended).
-- Server-side rendering of public pages via SolidStart (see §2.2).
+- Server-side rendering of public pages via TanStack Start (see §2.2).
 
 ### 4.5 Security (implied)
 
@@ -392,7 +392,7 @@ Detailed schema to be produced in the technical design doc; user/profile schema 
 ### M0 — Foundations (Jul 7 – Jul 18)
 
 - Repo setup, GitHub Actions CI/CD skeleton (§2.4), staging + prod environments on HK VPS, OSS/CDN provisioning.
-- Fiber API skeleton, SolidStart app skeleton, PostgreSQL/Redis via Docker Compose, migrations tooling.
+- Fiber API skeleton, TanStack Start app skeleton, PostgreSQL/Redis via Docker Compose, migrations tooling.
 - Auth (email+password; Google/WhatsApp OAuth can trail), RBAC model, user profile alignment with existing backend code (§3.5 review happens here).
 - i18n framework (locale routing, string catalogs), base design system ("New Chinese" tokens: typography, palette, layout grid).
 - **Exit criteria:** deploy pipeline green end-to-end; a signed-in user exists on staging.

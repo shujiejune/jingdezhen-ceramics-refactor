@@ -1,12 +1,12 @@
 # AGENTS.md
 
-> **See also:** `frontend/AGENTS.md` for the SolidStart frontend (separate Node/Bun project).
+> **See also:** `frontend/AGENTS.md` for the React + TanStack Start frontend (separate pnpm/Node project).
 
 Guidance for any coding agent (or human contributor) working on this repository. Read this before touching code.
 
 ## Project
 
-**Jingdezhen Ceramics Platform** — an internationalized culture / e-commerce / custom-travel platform for Jingdezhen ceramic art. Backend in Go + Fiber; frontend planned in SolidStart (TS) — but the frontend does not exist in this repo yet.
+**Jingdezhen Ceramics Platform** — an internationalized culture / e-commerce / custom-travel platform for Jingdezhen ceramic art. Backend in Go + Fiber; frontend in React + TanStack Start (TS) — being rebuilt from scratch (the inherited SolidStart frontend was deleted; see TDD §12 for the stack-pivot rationale).
 
 - **Current phase:** refactor of an inherited backend (formerly a "Learning & Communication Platform") toward the PRD. MVP target go-live **May 2027**.
 - **Track work via:** `docs/PRD.md` (requirements, v0.17), `docs/TDD.md` (technical design, v0.1), `docs/REFACTOR-TODO.md` (checkbox task list). The TDD's section numbers (e.g. §3.4) are the source of truth for design decisions; the PRD's sections (e.g. §3.4.1) are the source of truth for *what* and *why*.
@@ -29,10 +29,10 @@ backend/      Go + Fiber API (module: jingdezhen-ceramics-backend)
     email/        (SES — to be replaced by Brevo adapter)
     utils/
 docs/         PRD.md, TDD.md, REFACTOR-TODO.md, this file
-frontend/     SolidStart (TS) storefront + admin CMS. Folded in from the former
-              standalone repo (52 commits preserved via `git subtree add`). Inherited
-              the old domain (courses/forum/portfolio) — being refactored toward the
-              PRD/TDD §6. See `frontend/AGENTS.md` for the frontend-specific guide.
+frontend/     React + TanStack Start (TS) storefront + admin CMS. Greenfield rebuild
+              (the inherited SolidStart frontend was deleted; see TDD §12). Backed by
+              the Go + Fiber API in the sibling backend/ directory.
+              See `frontend/AGENTS.md` for the frontend-specific guide.
 ```
 
 ## Tech stack & key decisions (do not contradict without discussion)
@@ -53,12 +53,12 @@ frontend/     SolidStart (TS) storefront + admin CMS. Folded in from the former
 2. **Preserve existing code where possible.** The kept modules (`user`, `gallery`, `ceramicstory`, `engage`, `notification`, `ws`) are the foundation; extend, don't rewrite, unless the TDD says to evolve them (e.g. `artworks`→Product/SKU, `user_favorite_artworks`→wishlist).
 3. **`go build ./...` and `go vet ./...` must pass** after every change. Don't leave the tree broken.
 4. **Migrations:** add new numbered files in `backend/internal/migrations/` (next after `000001_baseline`). Always provide matching `.up.sql` and `.down.sql`. Never edit the baseline. Schema changes should be additive; drop columns only in a later cleanup migration.
-5. **Frontend is now in-repo.** `frontend/` is tracked in this monorepo (folded
-   in via `git subtree add`). It has its **own `frontend/AGENTS.md`** — read it
-   before touching frontend code. The frontend is a separate Node/Bun project
-   (its own `package.json`, `node_modules/`, build) — do **not** run `go build`
-   or backend tooling against it. When refactoring frontend routes, follow
-   TDD §6 and the backend API contract in `backend/internal/api/router.go`.
+5. **Frontend is in-repo.** `frontend/` is tracked in this monorepo and has its
+   **own `frontend/AGENTS.md`** — read it before touching frontend code. The
+   frontend is a separate pnpm/Node project (its own `package.json`,
+   `node_modules/`, build) — do **not** run `go build` or backend tooling
+   against it. When building/refactoring frontend routes, follow TDD §6 and
+   the backend API contract in `backend/internal/api/router.go`.
 6. **No new external SDK calls in business logic.** Route them through `pkg/adapters/` interfaces.
 7. **Follow the existing Go style:** handler→service→repository layers; repository takes a `pgx` executor (already supports tx); services return typed `models.Err*` errors (a central error-mapper middleware is planned, TDD §4.3).
 8. **Tests:** unit tests with testify (adapters mocked); integration with testcontainers-go (real PG+Redis). Priority test targets are money, shipping, order/stock, webhook idempotency, RBAC. PRD §2.4.

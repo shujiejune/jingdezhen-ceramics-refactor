@@ -31,7 +31,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// Path segments for each public content entity in the SolidStart router
+// Path segments for each public content entity in the TanStack Start router
 // (TDD §6). These mirror the API entity names; if the frontend chooses
 // friendlier names (e.g. "history" for ceramicstory), edit these constants.
 const (
@@ -170,7 +170,7 @@ func (b *Builder) BuildXML(ctx context.Context) ([]byte, error) {
 func (b *Builder) locFor(entity, locale, slug string) string {
 	seg := segmentFor(entity)
 	// Lowercase the locale for the URL path (zh-CN → zh-cn) — cosmetic; the
-	// SolidStart router validates against the supported list regardless.
+	// TanStack Start router validates against the supported list regardless.
 	locLocale := strings.ToLower(locale)
 	u := strings.TrimRight(b.siteBaseURL, "/") + "/" + url.PathEscape(locLocale) + "/" + seg + "/" + url.PathEscape(slug)
 	return u

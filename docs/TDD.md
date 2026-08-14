@@ -27,7 +27,7 @@ This document describes *how* the system specified in the PRD is built. It exten
 ```
                         ┌────────────────────────── HK VPS (Docker Compose) ─────────────────────────┐
 [Browser] ⇄ [Ali CDN] ⇄ │ [Caddy/Nginx: TLS, routing]                                                │
-                        │   ├─ /            → [SolidStart SSR (Node)]                                │
+                        │   ├─ /            → [TanStack Start SSR (Node)]                            │
                         │   ├─ /api/*       → [Fiber API (Go)] ── [PostgreSQL]                       │
                         │   ├─ /ws          → [Fiber API (WebSocket)]  └─ [Redis]                    │
                         │   └─ /webhooks/*  → [Fiber API]                                            │
@@ -37,12 +37,12 @@ This document describes *how* the system specified in the PRD is built. It exten
 ```
 
 - **One Go binary, two modes:** `serve` (API + WS) and `worker` (Asynq jobs). Compose runs both from the same image.
-- **SolidStart** renders public pages server-side, fetching from the Fiber API over the Compose network (`http://api:PORT`). The browser calls the API directly (via `/api` reverse-proxy path) for interactive features and WS.
+- **TanStack Start** renders public pages server-side, fetching from the Fiber API over the Compose network (`http://api:PORT`). The browser calls the API directly (via `/api` reverse-proxy path) for interactive features and WS.
 - **Media** never flows through the VPS: browser → presigned OSS upload (admin), CDN → OSS (delivery).
 
 ### 2.2 Request flows
 
-1. **Public page:** Browser → CDN → SolidStart → Fiber API → PG. Locale from URL prefix. **CDN HTML caching:** public content pages (History, Destinations, Local Lifestyle, product detail, artist profile) are identical for all users of a locale and change only on publish, so cache rendered HTML at the CDN keyed by `(path, locale)` with a short TTL + stale-while-revalidate, and purge on publish (piggyback the sitemap rebuild job). Personalized fragments (cart count, wishlist state) are loaded client-side after hydration so they don't break the shared cache. Admin routes are not SSR'd (see §6) and are never cached.
+1. **Public page:** Browser → CDN → TanStack Start → Fiber API → PG. Locale from URL prefix. **CDN HTML caching:** public content pages (History, Destinations, Local Lifestyle, product detail, artist profile) are identical for all users of a locale and change only on publish, so cache rendered HTML at the CDN keyed by `(path, locale)` with a short TTL + stale-while-revalidate, and purge on publish (piggyback the sitemap rebuild job). Personalized fragments (cart count, wishlist state) are loaded client-side after hydration so they don't break the shared cache. Admin routes are not SSR'd (see §6) and are never cached.
 2. **API mutation (cart, wishlist):** Browser → `/api/...` with JWT → Fiber → PG/Redis.
 3. **Chat:** Browser → `/ws` (JWT-authenticated upgrade) → Hub → Qwen adapter (streaming) or agent console. Fan-out via Redis pub/sub is only needed once the API runs >1 instance; on the single-VPS MVP the existing in-memory hub is lower-latency and pub/sub can be deferred (see §4.2).
 4. **Payment:** Browser → gateway hosted checkout → gateway webhook → `/webhooks/airwallex|paypal` (signature verify → enqueue job → 200) → worker finalizes order → Brevo email.
@@ -99,7 +99,7 @@ Key points:
 ]
 ```
 
-Rendered by SolidStart components; keeps media references as `media_assets` FKs (integrity + CDN URL resolution at render time).
+Rendered by TanStack Start components; keeps media references as `media_assets` FKs (integrity + CDN URL resolution at render time).
 
 ### 3.4 Entity groups (target schema, built up by milestone)
 
@@ -295,14 +295,20 @@ agent console: same socket, agent frames gated by RBAC
 
 Hub keys connections by userID (existing); adds session routing + Redis pub/sub channel per session for multi-instance safety.
 
-## 6. Frontend Design (SolidStart)
+## 6. Frontend Design (TanStack Start)
 
-- **Routes:** `src/routes/[locale]/...` for public (en/zh); `src/routes/admin/...` client-rendered behind auth. Locale param validated against supported list; `hreflang` + canonical emitted in root layout.
-- **Data:** SSR loaders (`createAsync`/`query`) call the API server-to-server for initial render; TanStack Solid Query takes over on the client (hydrated cache) for mutations/refetch. TanStack Table for all admin lists; TanStack Form for wizard + CMS forms.
+> **Stack pivot (see §12):** the inherited frontend was SolidStart + TanStack *Solid* libraries; it was deleted wholesale (commit `2168a18`) and is being rebuilt on **React 19 + TanStack Start**. TanStack Start (Vite + Vinxi, deployable on the single self-hosted HK VPS, no Vercel-lock-in) was chosen over Next.js to keep type-safe TanStack Router (`validateSearch` + zod for search params) and the coherent TanStack family (Router / Query / Form / Table) on its React-first, primary platform.
+
+- **Routes:** `src/routes/[locale]/...` for public (en-US/zh-CN); `src/routes/admin/...` client-rendered behind auth. Locale param validated against `models.SupportedLocales`; `hreflang` + canonical emitted in the locale root layout.
+- **Data:** SSR loaders call the API server-to-server for initial render and prepopulate the Query cache; TanStack Query takes over on the client (hydrated cache) for mutations/refetch. TanStack Table for all admin lists; TanStack Form for wizard + CMS forms.
 - **State:** cart for guests in `localStorage` (merged via `POST /cart/merge` on login); locale/currency in cookie + context.
-- **i18n:** string catalogs per locale (flat JSON, ICU-style interpolation via `@solid-primitives/i18n` or similar); content comes localized from the API.
-- **SEO:** meta from API per entity; `sitemap.xml` served from OSS via CDN; JSON-LD components (Product, Article, BreadcrumbList).
-- **Design tokens:** CSS variables (celadon/ink palette, spacing, type scale) + a small component library; WebP `srcset` via OSS image-processing URL params; `loading="lazy"`; hls.js for video.
+- **i18n:** two layers. (1) **Content i18n is backend-owned** — per-locale translation tables (status on the translation row); the frontend passes the locale to the API and renders what comes back, never translating content itself. (2) **UI string catalogs are frontend-owned** — per-locale TS catalogs (`en-US.ts` / `zh-CN.ts`) via a `useI18n()`/`t()` context; NOT in the DB (TDD §3.2).
+- **SEO:** meta from API per entity; `sitemap.xml` served by the backend (`GET /sitemap.xml`); JSON-LD components (Product, Article, BreadcrumbList).
+- **Design tokens:** CSS variables (celadon/ink palette, spacing, type scale) + headless accessible primitives (Radix) styled with our tokens; **no full pre-styled UI kit**. WebP `srcset` via OSS image-processing URL params; `loading="lazy"`; hls.js for video.
+- **Money:** minor-unit integers (`bigint`) from the API; frontend only **formats** via `Intl.NumberFormat` on backend-provided presentment — never re-implements FX/rounding/cart math (§7).
+- **Auth:** single HS256 JWT (30-day) in `localStorage`, attached as `Bearer`. Auth context + API interceptor shaped so refresh-rotation (TDD §5.1, post-frontend milestone) slots in without redesign. 2FA gate (TOTP + backup codes) for super_admin; Google OAuth also 2FA-gated.
+- **Errors:** API client parses the backend's `{ error: { code, message, details? } }` envelope (TDD §4.3) into a typed `ApiError` keyed by `code` (not HTTP status); surfaced via toast + inline + form-field layers.
+- **Styling:** Tailwind CSS **v3.4** (NOT v4 — CSS-first rewrite deferred).
 
 ## 7. Money & Pricing
 
@@ -358,10 +364,10 @@ All transitions enforced in services (single `Transition(from, to, actor)` helpe
 
 No message broker is required: Asynq-on-Redis (§4.2) covers all deferred/flaky/heavy/scheduled work; cross-service domain events stay in-process (modular monolith); Redis pub/sub is deferred to multi-instance (§4.2). Go's goroutines provide request concurrency natively — no async framework. Latency targets: SSR LCP < 3s p75 (PRD §4.2), API p95 < 300 ms (PRD §4.2, enforced by k6 §2.4.3).
 
-1. **Parallel SSR data loads** — SolidStart loaders `Promise.all` multiple API calls (API is over Compose localhost); avoid serial waterfalls. *(M1 frontend)*
+1. **Parallel SSR data loads** — TanStack Start loaders `Promise.all` multiple API calls (API is over Compose localhost); avoid serial waterfalls. *(M1 frontend)*
 2. **Redis hot-data cache** — FX rates, category tree, product detail (per locale+currency), shipping tiers, nav menus; short TTL + invalidate-on-edit. FX is daily — cache in Redis *and* in-process, convert/round in Go. *(M2)*
 3. **Indexes on the hot paths** — `(entity_id, locale)` and `(locale, slug)` on translation tables; product filters (`artist, edition_type, price_cny`); `tsvector` for search. Add as migrations land, not after. *(M1/M2)*
-4. **Caddy edge wins** — HTTP/3, brotli/gzip, and `Cache-Control: immutable` for SolidStart's hashed assets; long-cache. *(M0 infra)*
+4. **Caddy edge wins** — HTTP/3, brotli/gzip, and `Cache-Control: immutable` for TanStack Start's hashed assets; long-cache. *(M0 infra)*
 5. **CDN HTML caching for public content pages** — keyed by `(path, locale)`, short TTL + SWR, purge on publish via the sitemap job; personalized fragments load client-side post-hydration (see §2.2). *(M1)*
 6. **Outbound HTTP client hygiene** — reuse clients for Airwallex/Brevo/Qwen/OSS with custom transports, sane timeouts, pooled connections; bound concurrency with semaphores so a slow gateway can't exhaust goroutines. *(M2/M3)*
 
@@ -372,7 +378,7 @@ Items 1–4 are essentially free given the chosen stack; 5 is a deliberate (smal
 - [x] PDF engine: **chromedp** (HTML→PDF). Chosen over gofpdf/maroto because HTML templates give branded certificate/itinerary/quote documents cheaply, and one engine serves all three (TDD §3.4 certificates, §3.3.2 itinerary PDF, quote docs). Runs headless Chrome in a container (dev: sidecar in docker-compose; prod: the same chromedp headless-shell image). Adapter lives in `pkg/adapters/pdf/` (interface + chromedp impl + a no-op/dev impl) behind the same env-flip convention as payments/storage. Certificate `pdf:generate` job + itinerary confirmation PDF both use it.
 - [ ] Search: PG `tsvector` config for zh-CN (use `pg_jieba`? or simple + trigram) — decide in M1.
 - [ ] Reverse proxy: Caddy (auto-TLS, simpler) vs Nginx (team familiarity) — decide in M0.
-- [ ] SolidStart deploy target: node-server preset behind proxy (assumed) vs static+CSR for admin.
+- [ ] TanStack Start deploy target: node-server preset behind proxy (assumed) vs static+CSR for admin.
 - [ ] Qwen3.5 endpoint region + prompt/RAG design (PRD deferral).
 - [ ] Exact Brevo template IDs & email design.
 - [ ] `articles` vs `destinations` split: current `engage` mixes activities/articles — final entity split lands with M1 migration.
@@ -387,3 +393,4 @@ Items 1–4 are essentially free given the chosen stack; 5 is a deliberate (smal
 - [x] Security pass — rate limiting + webhook error-path (M4, TDD §333): auth endpoints 5/min/IP applied at the `/auth` GROUP level via `authGroup.Use(authLimiter)` (non-empty prefix → safe, unlike empty-prefix `Group("").Use()`); covers all 11 auth routes uniformly (was per-route on the 3 2FA routes only). Global 100/min/IP backstop in main.go after cors, with `Next` exempting `/webhooks/*` (gateway retries from one IP; HMAC is the boundary). Webhook signature verification was already done (Airwallex HMAC-SHA256 constant-time; PayPal verify-webhook-signature API) — the gap was the handler's `default:` case acking 200 on internal errors (DB/verify-API outage), silently losing the event. Fixed → 500 so the gateway retries; idempotency_key makes the retry safe. Chat 20/min/user N/A (no chat module). In-process Fiber limiter for MVP (single-VPS; Redis-backed is scale-out).
 - [x] International SEO (PRD §4.4) — backend pass (M4): per-locale slugs + meta_title/meta_description were already on the 4 content entities; this pass adds the generation+serving layer. `internal/modules/sitemap/` `Builder` queries all published translations (products/ceramic_stories/activities/artists) → multi-locale `<urlset>` with absolute `<loc>` (SITE_BASE_URL + locale prefix + segment + slug), `<lastmod>`, `<xhtml:link rel=alternate hreflang>` for sibling locales. Served fresh on `GET /sitemap.xml` (rebuild-on-read); rebuilt on publish/unpublish via the `sitemap:rebuild` Asynq job (worker calls `Builder.Rebuild` → `storage.Store.Put`). `GET /robots.txt` static body. hreflang `Alternates map[string]string` (locale→slug, excluding current) on the 4 detail DTOs, populated via shared `sitemap.FindAlternates`. New config `SITE_BASE_URL` (the SolidStart SSR origin). Frontend-deferred (data exposed): OG/canonical/JSON-LD tag *rendering*.
 - [x] Ordered media galleries for artists/ceramic-stories/activities (PRD §3.1.2/§3.1.3, M4) — migration `000028_entity_media` adds `artist_media`/`ceramic_story_media`/`activity_media` mirroring `product_media` (M:N join to `media_assets` with `sort_order`, `caption`, `UNIQUE(entity_id, media_id)`, `ON DELETE CASCADE`). The `media` repo gained a shared generic helper (`attachGallery`/`listGallery`/`detachGallery`/`reorderGallery` parameterized by table + FK column — internal constants, never user input) + 3 sets of methods. New `models.GalleryItem` (entity-agnostic; the per-entity FK is omitted since the caller knows the entity) shared by the 3 new galleries; `ProductMediaItem` kept for product API stability. Admin CRUD under `PermContentWrite` + public reads; the 3 detail services populate `Gallery []GalleryItem` (artist/story: first item's `public_url` overrides `avatar_url`/`image_url`). Audit: detach logs `media.delete`.
+- [x] **Frontend stack pivot to React + TanStack Start** (PRD §2.2, TDD §6). The inherited frontend was **SolidStart + TanStack *Solid* libraries** (chosen in PRD §2.2 because "its Solid adapter is more mature"). After weighing ecosystem breadth, hiring legibility (React's pool dwarfs Solid's, especially outside China), and TanStack-family coherence, the inherited frontend was **deleted wholesale** (commit `2168a18`) and is being **rebuilt from scratch on React 19 + TanStack Start**. **TanStack Start** (the TanStack team's full-stack React framework on Vite + Vinxi) was chosen over Next.js for two reasons: (1) it keeps **type-safe TanStack Router** (file-based, `validateSearch` + zod for type-safe search params — the exact feature valued in the itinerary wizard / catalog filters / checkout flows), and (2) it **avoids Vercel-lock-in** — TanStack Start runs on Vite + Vinxi and deploys anywhere, fitting the single self-hosted HK VPS constraint (Next.js ties deployment to Vercel unless self-hosted with caveats). The backend (Go + Fiber) is unchanged — only the frontend stack pivoted. The whole TanStack family is retained (Router / Query / Form / Table), now on its **React-first, primary platform** (the Solid versions were ports). UI primitives move to headless accessible primitives (Radix) styled with our celadon/ink design tokens; no full pre-styled UI kit. Tailwind stays on **v3.4** (v4 CSS-first rewrite deferred); zod stays on **v3.x**. Supersedes the earlier SolidStart decision; PRD §2.2/TDD §6/§2.2 diagram updated, `frontend/AGENTS.md` rewritten. The old `frontend/` git history (SolidStart subtree, 52 commits) remains reachable in history for reference.
