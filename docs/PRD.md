@@ -28,7 +28,7 @@ Jingdezhen, the "Millennium Ceramic Capital", possesses over a thousand years of
 
 - Page load time < 3 seconds in North America, Europe, and Asia (via global CDN).
 - Business KPIs (visitor volume, GMV, itinerary conversion) to be baselined **post-launch** from dashboard data rather than invented up front.
-- **MVP launch: late August 2026** (target go-live **Mon, Aug 31, 2026**; see §7). Legal review and payment merchant onboarding are **handled after the MVP** — the MVP runs payments in sandbox mode with placeholder policy texts.
+- **MVP launch: May 2027** (see §7). Legal review and payment merchant onboarding are **handled after the MVP** — the MVP runs payments in sandbox mode with placeholder policy texts.
 
 ### 1.3 Target Users
 
@@ -387,7 +387,7 @@ Detailed schema to be produced in the technical design doc; user/profile schema 
 
 ## 7. Milestones & Release Plan
 
-**Target: MVP go-live Mon, Aug 31, 2026** (≈ 8 weeks). ⚠️ Aggressive schedule; the plan below overlaps milestones and defines a **Minimum Launchable Scope (MLS)** — items outside it may trail without blocking go-live. **Deferred past MVP by decision:** legal review of all policy texts (placeholders used at launch) and live payment-merchant onboarding (**Airwallex/PayPal run in sandbox mode**; real payments enabled once accounts are approved).
+**Target: MVP go-live May 2027.** The plan below overlaps milestones and defines a **Minimum Launchable Scope (MLS)** — items outside it may trail without blocking go-live. (Note: milestone date ranges below reflect the original Aug 2026 plan and will be rescaled to the May 2027 timeline separately.) **Deferred past MVP by decision:** legal review of all policy texts (placeholders used at launch) and live payment-merchant onboarding (**Airwallex/PayPal run in sandbox mode**; real payments enabled once accounts are approved).
 
 ### M0 — Foundations (Jul 7 – Jul 18)
 
@@ -427,13 +427,13 @@ Detailed schema to be produced in the technical design doc; user/profile schema 
 - k6 load tests against staging (thresholds per §2.4.3), performance fixes, backup/restore drill, security pass, 2FA for Super Admin.
 - **Exit criteria:** launch checklist green; load-test thresholds pass; smoke suite green on prod.
 
-### Launch — Mon, Aug 31, 2026
+### Launch — May 2027
 
 DNS/CDN cutover, prod smoke tests, monitoring/alerting live, rollback plan rehearsed.
 
 ### Minimum Launchable Scope vs may-trail
 
-| Must be in on Aug 31 (MLS) | May trail post-MVP (Sep+) |
+| Must be in for May 2027 launch (MLS) | May trail post-launch |
 |---|---|
 | Content platform + public site + SEO + i18n | Google/WhatsApp OAuth (email+password at launch) |
 | E-commerce incl. checkout, certificates, refund flows (sandbox payments) | Live payment processing (pending merchant onboarding) |

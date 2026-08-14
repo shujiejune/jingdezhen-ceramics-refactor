@@ -8,7 +8,7 @@ Guidance for any coding agent (or human contributor) working on this repository.
 
 **Jingdezhen Ceramics Platform** — an internationalized culture / e-commerce / custom-travel platform for Jingdezhen ceramic art. Backend in Go + Fiber; frontend planned in SolidStart (TS) — but the frontend does not exist in this repo yet.
 
-- **Current phase:** refactor of an inherited backend (formerly a "Learning & Communication Platform") toward the PRD. MVP target go-live **Mon, Aug 31, 2026**.
+- **Current phase:** refactor of an inherited backend (formerly a "Learning & Communication Platform") toward the PRD. MVP target go-live **May 2027**.
 - **Track work via:** `docs/PRD.md` (requirements, v0.17), `docs/TDD.md` (technical design, v0.1), `docs/REFACTOR-TODO.md` (checkbox task list). The TDD's section numbers (e.g. §3.4) are the source of truth for design decisions; the PRD's sections (e.g. §3.4.1) are the source of truth for *what* and *why*.
 
 ## Repository layout

@@ -1,1 +1,0 @@
-// Authentication logic (login, logout)

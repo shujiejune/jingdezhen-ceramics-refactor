@@ -15,7 +15,7 @@ This document describes *how* the system specified in the PRD is built. It exten
 
 ## 1. Overview & Constraints
 
-- **MVP go-live Aug 31, 2026** (PRD §7, milestones M0–M4). Payments run in **sandbox**; itinerary option rates are **mocked CMS data**; policy pages carry placeholder texts.
+- **MVP go-live May 2027** (PRD §7, milestones M0–M4). Payments run in **sandbox**; itinerary option rates are **mocked CMS data**; policy pages carry placeholder texts.
 - Single HK VPS, Docker Compose; PostgreSQL + Redis; Alibaba Cloud OSS + CDN. No Kubernetes, no microservices — a modular monolith.
 - Existing code preserved where possible: `user`, `gallery`, `ceramicstory`, `engage`, `notification`, `ws` modules; migration baseline `000001_baseline` (11 tables).
 - Design principles: **adapter interfaces for all external services** (swap sandbox→live, SES→Brevo, mock→real LLM without touching business logic); **schema decisions that avoid later migrations** (JSONB attributes, translation tables); **boring technology**.
