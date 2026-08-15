@@ -2,6 +2,8 @@ module jingdezhen-ceramics-backend
 
 go 1.26
 
+toolchain go1.26.6
+
 require github.com/gofiber/fiber/v2 v2.52.14 // direct
 
 require (
