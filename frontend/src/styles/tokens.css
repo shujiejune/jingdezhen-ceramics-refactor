@@ -1,0 +1,115 @@
+/*
+ * Jingdezhen Ceramics Platform — design tokens (TDD §6).
+ *
+ * Source of visual truth: a blue-and-white porcelain (青花瓷) palette over
+ * porcelain white, laid out Stripe-clean — generous whitespace, hairline
+ * borders, soft layered shadows. The cobalt scale is tuned around the
+ * classic qinghua cobalt (#3559AE family); ink is the text ramp; one
+ * antique-gold accent is reserved for the seal mark and star ratings
+ * (never for body accents).
+ *
+ * Tailwind consumes these via tailwind.config.ts `var(...)` mappings.
+ */
+@import '@fontsource-variable/inter';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* --- 青花 cobalt scale --- */
+  --cobalt-50: #f0f4fc;
+  --cobalt-100: #e2eaf9;
+  --cobalt-200: #c3d5f1;
+  --cobalt-300: #9ab7e6;
+  --cobalt-400: #6c93d8;
+  --cobalt-500: #4872c4;
+  --cobalt-600: #3559ae;
+  --cobalt-700: #2a4790;
+  --cobalt-800: #243b76;
+  --cobalt-900: #1f3260;
+  --cobalt-950: #141f3d;
+
+  /* --- ink text ramp --- */
+  --ink-300: #9aa4bd;
+  --ink-400: #6f7c9a;
+  --ink-500: #525f7d;
+  --ink-600: #3b4661;
+  --ink-700: #2a3450;
+  --ink-800: #1a2338;
+  --ink-900: #0d1730;
+
+  /* --- surfaces --- */
+  --paper: #ffffff;
+  --mist: #f6f8fc; /* Stripe-style section tint */
+  --porcelain: #eef3fb; /* deeper porcelain wash */
+  --wash: #f9fbfe; /* faintest tint */
+
+  /* --- antique gold (seal / stars only) --- */
+  --gold-400: #c9a55c;
+  --gold-500: #b08a3e;
+  --gold-600: #96722d;
+
+  /* --- shadows --- */
+  --shadow-card: 0 1px 2px rgba(13, 23, 48, 0.04), 0 4px 12px rgba(13, 23, 48, 0.04);
+  --shadow-lift: 0 2px 4px rgba(13, 23, 48, 0.05), 0 12px 28px rgba(13, 23, 48, 0.09);
+  --shadow-pop: 0 4px 8px rgba(13, 23, 48, 0.06), 0 20px 44px rgba(13, 23, 48, 0.12);
+  --shadow-inset: inset 0 1px 2px rgba(13, 23, 48, 0.06);
+
+  /* --- semantic --- */
+  --color-success: #1c7d4d;
+  --color-success-bg: #eaf7f0;
+  --color-warning: #9a6b15;
+  --color-warning-bg: #fdf4e3;
+  --color-danger: #b3372f;
+  --color-danger-bg: #fbeeed;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-paper font-sans text-ink-700 antialiased;
+    font-feature-settings: 'cv05' 1; /* Inter: italic-looking l */
+  }
+
+  ::selection {
+    @apply bg-cobalt-100 text-cobalt-900;
+  }
+
+  :focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--cobalt-400) 60%, transparent);
+    outline-offset: 1px;
+  }
+}
+
+@layer components {
+  /* Eyebrow label — small porcelain-blue section marker */
+  .eyebrow {
+    @apply text-[0.72rem] font-semibold tracking-[0.2em] uppercase text-cobalt-600;
+  }
+
+  /* Hairline card */
+  .card-surface {
+    @apply rounded-xl border border-cobalt-100/80 bg-paper shadow-card;
+  }
+
+  .input-base {
+    @apply w-full rounded-lg border border-ink-300/50 bg-paper px-3.5 py-2.5 text-sm text-ink-800 shadow-inset transition placeholder:text-ink-300 focus:border-cobalt-400 focus:outline-none focus:ring-2 focus:ring-cobalt-400/25;
+  }
+
+  .label-base {
+    @apply mb-1.5 block text-sm font-medium text-ink-700;
+  }
+
+  .link-quiet {
+    @apply text-cobalt-600 underline decoration-cobalt-200 underline-offset-4 transition hover:text-cobalt-700 hover:decoration-cobalt-400;
+  }
+}
+
+/* Faint qinghua wave (波涛纹) texture — used as a very subtle hero watermark */
+.qinghua-watermark {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='72' viewBox='0 0 180 72'%3E%3Cg fill='none' stroke='%233559ae' stroke-opacity='0.10' stroke-width='1.1'%3E%3Cpath d='M0 54c12-14 24-14 36 0s24 14 36 0 24-14 36 0 24 14 36 0 24-14 36 0'/%3E%3Cpath d='M0 66c12-10 24-10 36 0s24 10 36 0 24-10 36 0 24 10 36 0 24-10 36 0' stroke-opacity='0.06'/%3E%3Cpath d='M18 44c8-8 16-8 24 0M78 44c8-8 16-8 24 0M138 44c8-8 16-8 24 0' stroke-opacity='0.05'/%3E%3C/g%3E%3C/svg%3E");
+}
