@@ -541,7 +541,7 @@ export function ArtistMedallion({
         x="50"
         y="58"
         textAnchor="middle"
-        fontFamily="'Noto Sans SC','PingFang SC','Microsoft YaHei',serif"
+        fontFamily="'Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif"
         fontSize="26"
         fontWeight="600"
         fill="var(--cobalt-700)"

@@ -11,3 +11,6 @@ dist-ssr
 .output
 .vinxi
 __unconfig*
+
+# local design-reference screenshots (never commit)
+/screenshots/

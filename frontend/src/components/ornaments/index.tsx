@@ -26,13 +26,13 @@ export function SealMark({
       className={className}
       aria-hidden="true"
     >
-      <rect x="3" y="3" width="58" height="58" rx="11" fill="var(--cobalt-600)" />
+      <rect x="3" y="3" width="58" height="58" rx="5" fill="var(--cobalt-600)" />
       <rect
         x="8.5"
         y="8.5"
         width="47"
         height="47"
-        rx="6.5"
+        rx="3"
         fill="none"
         stroke="#fff"
         strokeOpacity="0.55"

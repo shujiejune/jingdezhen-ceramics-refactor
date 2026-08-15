@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet, redirect } from '@tanstack/react-router'
+import { Outlet, createFileRoute, redirect, useRouterState } from '@tanstack/react-router'
 
 import { ToastProvider } from '~/components/common/Toaster'
 import { ButtonLink } from '~/components/common/ui'
@@ -57,16 +57,26 @@ function LocaleLayout() {
 
 function LocaleShell({ locale }: { locale: Locale }) {
   const { currency } = useI18n()
+  const pathname = useRouterState({ select: (s) => s.location.pathname })
+  // horizontal-magazine pages (landing now; heritage after feel-check)
+  // own their chrome: spine + panels, no top header / bottom footer
+  const isMagazine = /^\/[^/]+\/?$/.test(pathname)
   return (
     <CartProvider locale={locale} currency={currency}>
       <WishlistProvider locale={locale} currency={currency}>
-        <div className="flex min-h-screen flex-col">
-          <Header />
+        {isMagazine ? (
           <main className="flex-1">
             <Outlet />
           </main>
-          <Footer />
-        </div>
+        ) : (
+          <div className="flex min-h-screen flex-col">
+            <Header />
+            <main className="flex-1">
+              <Outlet />
+            </main>
+            <Footer />
+          </div>
+        )}
       </WishlistProvider>
     </CartProvider>
   )

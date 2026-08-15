@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect x="4" y="4" width="56" height="56" rx="10" fill="#3559ae"/>
-  <rect x="9" y="9" width="46" height="46" rx="6" fill="none" stroke="#ffffff" stroke-opacity="0.55" stroke-width="1.6"/>
+  <rect x="4" y="4" width="56" height="56" rx="5" fill="#2a4aa6"/>
+  <rect x="9" y="9" width="46" height="46" rx="2.5" fill="none" stroke="#ffffff" stroke-opacity="0.55" stroke-width="1.6"/>
   <text x="32" y="27" font-family="Noto Sans SC, PingFang SC, sans-serif" font-size="17" font-weight="700" fill="#ffffff" text-anchor="middle">景德</text>
   <text x="32" y="46" font-family="Noto Sans SC, PingFang SC, sans-serif" font-size="17" font-weight="700" fill="#ffffff" text-anchor="middle">镇印</text>
 </svg>

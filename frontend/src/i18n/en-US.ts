@@ -4,8 +4,8 @@
  * chrome, forms, and microcopy only.
  */
 export const enUS = {
-  'common.brand': 'Jingdezhen',
-  'common.brandSub': 'Porcelain Atelier',
+  'common.brand': 'Jingdezhen Ceramics',
+  'common.brandSub': '千年瓷都',
   'common.viewAll': 'View all',
   'common.learnMore': 'Learn more',
   'common.addToCart': 'Add to cart',
@@ -439,6 +439,31 @@ export const enUS = {
   'toast.addressSaved': 'Address saved',
   'toast.orderCancelled': 'Order cancelled',
   'toast.wishlistNeedsLogin': 'Sign in to save favorites',
+
+  'mag.tagline': 'The Kiln City Journal',
+  'mag.issue': 'Nº 01 · 2026',
+  'mag.scroll': 'Scroll',
+  'mag.of': 'of',
+  'mag.cover': 'Cover',
+  'mag.families': 'Families',
+  'mag.gallery': 'Gallery',
+  'mag.heritage': 'Heritage',
+  'mag.destinations': 'Destinations',
+  'mag.artists': 'Artists',
+  'mag.journey': 'Journey',
+  'mag.end': 'End',
+  'mag.familiesEyebrow': 'Four great families',
+  'mag.familiesTitle': 'One city, four palates of color',
+  'mag.fam.qinghua': 'Qinghua · Blue & White',
+  'mag.fam.qinghuaBody': 'Cobalt under the glaze — the blue that named porcelain worldwide.',
+  'mag.fam.fencai': 'Fencai · Famille Rose',
+  'mag.fam.fencaiBody': 'Rose enamels fired soft, gardens painted at dusk.',
+  'mag.fam.linglong': 'Linglong · Rice Grain',
+  'mag.fam.linglongBody': 'Pierced bodies glaze-filled — light shines through the wall.',
+  'mag.fam.yanseyou': 'Yanseyou · Colored Glaze',
+  'mag.fam.yanseyouBody': 'Monochrome reds and golds pulled straight from the flame.',
+  'mag.familiesBrowse': 'Browse the family',
+  'mag.dragHint': 'Drag or scroll sideways — it never ends',
 } as const
 
 /** Value type widened to string so translated catalogs satisfy the same shape. */
