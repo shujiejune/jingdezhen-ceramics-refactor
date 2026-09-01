@@ -17,7 +17,9 @@ import { cn, SUPPORTED_CURRENCIES, type Locale } from '~/lib/utils'
 import type { CatalogKey } from '~/i18n/en-US'
 
 export interface SpineChapter {
-  labelKey: CatalogKey
+  /** static catalog key (mag.cover…) or a dynamic label (e.g. a dynasty year) */
+  labelKey?: CatalogKey
+  label?: string
 }
 
 export function Spine({
@@ -54,12 +56,14 @@ export function Spine({
 
       {/* chapter dots */}
       <nav aria-label={t('mag.tagline')} className="flex flex-col items-center gap-1.5">
-        {chapters.map((ch, i) => (
+        {chapters.map((ch, i) => {
+          const label = ch.label ?? t(ch.labelKey ?? 'mag.cover')
+          return (
           <button
-            key={ch.labelKey}
+            key={ch.labelKey ?? ch.label ?? i}
             type="button"
             onClick={() => onJump(i)}
-            aria-label={t(ch.labelKey)}
+            aria-label={label}
             aria-current={i === activeIndex}
             className="group relative flex h-8 w-8 items-center justify-center"
           >
@@ -70,7 +74,7 @@ export function Spine({
               )}
               style={{ writingMode: 'horizontal-tb', left: '130%' }}
             >
-              {t(ch.labelKey)}
+              {label}
             </span>
             <span
               className={cn(
@@ -81,7 +85,8 @@ export function Spine({
               )}
             />
           </button>
-        ))}
+          )
+        })}
       </nav>
 
       {/* utilities */}

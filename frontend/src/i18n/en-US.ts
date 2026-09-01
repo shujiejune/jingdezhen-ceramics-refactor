@@ -463,6 +463,9 @@ export const enUS = {
   'mag.fam.yanseyou': 'Yanseyou · Colored Glaze',
   'mag.fam.yanseyouBody': 'Monochrome reds and golds pulled straight from the flame.',
   'mag.familiesBrowse': 'Browse the family',
+  'heritage.chapterN': 'Chapter {n}',
+  'heritage.tailTitle': 'Where to next?',
+  'heritage.continue': 'Continue the journey',
   'mag.dragHint': 'Drag or scroll sideways — it never ends',
 } as const
 

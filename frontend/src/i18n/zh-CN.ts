@@ -449,5 +449,8 @@ export const zhCN: Catalog = {
   'mag.fam.yanseyou': '颜色釉',
   'mag.fam.yanseyouBody': '从火焰中直接取出的红与金。',
   'mag.familiesBrowse': '进入品类',
+  'heritage.chapterN': '第 {n} 章',
+  'heritage.tailTitle': '下一站？',
+  'heritage.continue': '继续旅程',
   'mag.dragHint': '拖动或横向滚动——永不落幕',
 }

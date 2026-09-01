@@ -58,9 +58,9 @@ function LocaleLayout() {
 function LocaleShell({ locale }: { locale: Locale }) {
   const { currency } = useI18n()
   const pathname = useRouterState({ select: (s) => s.location.pathname })
-  // horizontal-magazine pages (landing now; heritage after feel-check)
-  // own their chrome: spine + panels, no top header / bottom footer
-  const isMagazine = /^\/[^/]+\/?$/.test(pathname)
+  // horizontal-magazine pages (landing + heritage index; detail articles
+  // stay vertical) own their chrome: spine + panels, no header/footer
+  const isMagazine = /^\/[^/]+\/?$/.test(pathname) || /^\/[^/]+\/ceramicstory\/?$/.test(pathname)
   return (
     <CartProvider locale={locale} currency={currency}>
       <WishlistProvider locale={locale} currency={currency}>
