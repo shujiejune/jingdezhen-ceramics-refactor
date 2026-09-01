@@ -7,7 +7,7 @@
 ## M-FD — Design revision track (user-driven, runs in parallel)
 
 - [x] Heritage index → horizontal magazine chapters (spine chrome) — reuse `useLoopScroller` + `Spine`
-- [ ] Gallery → museum-window / record-crate browsing (freakmag-style flip panels)
+- [x] Gallery → museum-window / record-crate browsing (freakmag-style flip panels)
 - [ ] Apply post-review UI tweaks (panel pacing, parallax intensity, spine density, family-color saturation)
 - [ ] Guard `src/styles/tokens.css` ↔ `tailwind.config.ts` hex/radius twins stay in sync (single source of truth note in both files)
 

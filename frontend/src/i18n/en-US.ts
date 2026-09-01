@@ -466,6 +466,11 @@ export const enUS = {
   'heritage.chapterN': 'Chapter {n}',
   'heritage.tailTitle': 'Where to next?',
   'heritage.continue': 'Continue the journey',
+  'catalog.crateHint': 'Drag, swipe, or use the arrows — flip the crate',
+  'catalog.prev': 'Previous work',
+  'catalog.next': 'Next work',
+  'catalog.viewing': 'Now viewing',
+  'catalog.addActive': 'Add to cart',
   'mag.dragHint': 'Drag or scroll sideways — it never ends',
 } as const
 

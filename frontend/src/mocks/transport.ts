@@ -246,8 +246,11 @@ function toProduct(rec: ProductRecord, locale: MockLocale, currency?: Currency, 
     updated_at: rec.publishedAt,
   }
 
+  // SKUs are attached on list + detail (the crate/gallery cards need
+  // presentment prices without a detail round-trip); gallery stays
+  // detail-only.
+  product.skus = rec.skus.map((s) => toSKU(s, rec.id, locale, currency))
   if (detail) {
-    product.skus = rec.skus.map((s) => toSKU(s, rec.id, locale, currency))
     product.gallery = [0, 1, 2].map((i) => ({
       media_id: rec.id * 10 + i,
       public_url: `mock://media/product/${rec.id}/${i}`,

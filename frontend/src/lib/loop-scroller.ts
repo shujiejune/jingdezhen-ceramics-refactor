@@ -22,14 +22,23 @@ export interface LoopScroller {
 
 const EASE = 0.085
 
-export function useLoopScroller(panelCount: number): LoopScroller {
+export function useLoopScroller(
+  panelCount: number,
+  opts?: { wheel?: 'all' | 'horizontalOnly'; center?: boolean },
+): LoopScroller {
+  const optsRef = useRef(opts)
+  optsRef.current = opts
+  const widths = useRef<number[]>([])
+  const didInit = useRef(false)
   const viewportRef = useRef<HTMLDivElement>(null)
   const trackRef = useRef<HTMLDivElement>(null)
   const target = useRef(0)
   const current = useRef(0)
   const offsets = useRef<number[]>([])
   const setWidth = useRef(1)
-  const parallax = useRef<Array<{ el: HTMLElement; speed: number; panel: HTMLElement }>>([])
+  const parallax = useRef<
+    Array<{ el: HTMLElement; speed: number; panel: HTMLElement; deck: boolean }>
+  >([])
   const reveals = useRef<Array<{ el: HTMLElement; panel: HTMLElement }>>([])
   const [activeIndex, setActiveIndex] = useState(0)
 
@@ -39,6 +48,15 @@ export function useLoopScroller(panelCount: number): LoopScroller {
     // panels live inside two copy wrappers; measure the first copy
     const kids = Array.from(track.querySelectorAll<HTMLElement>('[data-panel]')).slice(0, panelCount)
     offsets.current = kids.map((k) => k.offsetLeft)
+    widths.current = kids.map((k) => k.offsetWidth)
+    // crate mode: rest position = first card centered
+    if (optsRef.current?.center && !didInit.current && kids.length) {
+      didInit.current = true
+      const vw = viewportRef.current?.clientWidth ?? 1280
+      const start = offsets.current[0] + widths.current[0] / 2 - vw / 2
+      current.current = start
+      target.current = start
+    }
     setWidth.current = track.scrollWidth / 2 || 1
     parallax.current = []
     reveals.current = []
@@ -48,6 +66,7 @@ export function useLoopScroller(panelCount: number): LoopScroller {
           el,
           speed: parseFloat(el.dataset.parallax || '0.12'),
           panel: k,
+          deck: el.dataset.deck !== undefined,
         })
       })
       k.querySelectorAll<HTMLElement>('[data-reveal]').forEach((el) => {
@@ -93,15 +112,40 @@ export function useLoopScroller(panelCount: number): LoopScroller {
 
       const vw = viewportRef.current?.clientWidth ?? 1280
       const offs = offsets.current
+      const wids = widths.current
       if (offs.length) {
-        let idx = 0
+        // nearest-to-center panel wins, considering BOTH copies (a
+        // centered card just past the seam is copy 2's first panel)
         const x = ((current.current % w) + w) % w
-        for (let i = 0; i < offs.length; i++) if (x + vw * 0.5 >= offs[i]) idx = i
+        let idx = 0
+        let best = Infinity
+        for (let i = 0; i < offs.length; i++) {
+          const c = offs[i] + (wids[i] ?? 0) / 2 - (x + vw / 2)
+          const d = Math.min(Math.abs(c), Math.abs(c + w), Math.abs(c - w))
+          if (d < best) {
+            best = d
+            idx = i
+          }
+        }
         setActiveIndex((prev) => (prev === idx ? prev : idx))
       }
-      for (const { el, speed, panel } of parallax.current) {
-        const dx = panel.offsetLeft - current.current
-        if (Math.abs(dx) < vw * 1.6) el.style.transform = `translate3d(${dx * speed}px,0,0)`
+      for (const { el, speed, panel, deck } of parallax.current) {
+        if (deck) {
+          // crate mode: card fans toward the viewport center — slides at
+          // `speed`, tilts, lifts and shrinks with distance (the
+          // record-crate / museum-window flip)
+          const cx = panel.offsetLeft + panel.offsetWidth / 2
+          const dx = cx - (current.current + vw / 2)
+          const n = Math.min(Math.abs(dx) / vw, 1.6)
+          const rot = Math.max(-1, Math.min(1, dx / vw)) * 12
+          const lift = Math.abs(dx) * 0.085
+          const scale = Math.max(0.55, 1 - n * 0.22)
+          el.style.transform = `translate3d(${dx * speed}px, ${lift}px, 0) rotate(${rot.toFixed(2)}deg) scale(${scale.toFixed(3)})`
+          el.style.zIndex = String(1000 - Math.min(999, Math.round(Math.abs(dx))))
+          el.style.opacity = n > 2.1 ? '0' : '1'
+        } else if (Math.abs(panel.offsetLeft - current.current) < vw * 1.6) {
+          el.style.transform = `translate3d(${(panel.offsetLeft - current.current) * speed}px,0,0)`
+        }
       }
       for (const { el, panel } of reveals.current) {
         const dx = panel.offsetLeft - current.current
@@ -120,7 +164,11 @@ export function useLoopScroller(panelCount: number): LoopScroller {
     const vp = viewportRef.current
     if (!vp) return
     const onWheel = (e: WheelEvent) => {
-      const d = Math.abs(e.deltaY) >= Math.abs(e.deltaX) ? e.deltaY : e.deltaX
+      const horizontal = Math.abs(e.deltaX) > Math.abs(e.deltaY)
+      // on vertically-scrolling pages, hijack only clearly-horizontal
+      // intent (trackpad swipes) so the page keeps scrolling normally
+      if (optsRef.current?.wheel === 'horizontalOnly' && !horizontal) return
+      const d = horizontal ? e.deltaX : e.deltaY
       if (d !== 0) e.preventDefault()
       target.current += d * 1.15
     }
@@ -192,7 +240,12 @@ export function useLoopScroller(panelCount: number): LoopScroller {
     const offs = offsets.current
     if (!offs.length) return
     const idx = ((i % offs.length) + offs.length) % offs.length
-    target.current = offs[idx]
+    if (optsRef.current?.center) {
+      const vw = viewportRef.current?.clientWidth ?? 1280
+      target.current = offs[idx] + (widths.current[idx] ?? 0) / 2 - vw / 2
+    } else {
+      target.current = offs[idx]
+    }
   }, [])
 
   const nudge = useCallback((dx: number) => {
