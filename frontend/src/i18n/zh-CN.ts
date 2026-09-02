@@ -450,10 +450,7 @@ export const zhCN: Catalog = {
   'heritage.chapterN': '第 {n} 章',
   'heritage.tailTitle': '下一站？',
   'heritage.continue': '继续旅程',
-  'catalog.crateHint': '拖动、横扫或使用箭头——翻动唱片区',
   'catalog.prev': '上一件作品',
   'catalog.next': '下一件作品',
-  'catalog.viewing': '正在欣赏',
-  'catalog.addActive': '加入购物车',
   'mag.dragHint': '拖动或横向滚动——永不落幕',
 }
