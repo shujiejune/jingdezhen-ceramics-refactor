@@ -213,7 +213,7 @@ function LandingMagazine() {
       </section>
 
       {/* ------------------------------ 2 · families ------------------------------ */}
-      <section data-panel className="relative h-full w-[118vw] shrink-0 bg-paper">
+      <section data-panel className="relative h-full w-max shrink-0 bg-paper pr-16">
         <div className="flex h-full flex-col justify-center gap-8 pr-12 pl-10 sm:pl-14">
           <div className="max-w-xl" data-reveal>
             <p className="eyebrow">{t('mag.familiesEyebrow')}</p>
@@ -262,27 +262,15 @@ function LandingMagazine() {
       </section>
 
       {/* ------------------------------ 3 · gallery ------------------------------ */}
-      <section data-panel className="relative h-full w-[132vw] shrink-0 bg-mist/60">
+      <section data-panel className="relative h-full w-max shrink-0 bg-mist/60 pr-16">
         <div className="qinghua-watermark absolute inset-0 opacity-40" />
         <div className="relative flex h-full flex-col justify-center gap-8 pr-12 pl-10 sm:pl-14">
-          <div className="flex items-end justify-between pr-4" data-reveal>
-            <div className="max-w-lg">
-              <p className="eyebrow">{t('landing.featuredEyebrow')}</p>
-              <h2 className="mt-2.5 text-display-sm text-ink-900">{t('landing.featuredTitle')}</h2>
-              <p className="mt-3 text-[0.92rem] leading-relaxed text-ink-500">
-                {t('landing.featuredSub')}
-              </p>
-            </div>
-            <ButtonLink
-              to="/$locale/catalog"
-              params={{ locale }}
-              variant="secondary"
-              size="sm"
-              className="shrink-0"
-            >
-              {t('common.viewAll')}
-              <ArrowUUpRight size={13} weight="bold" />
-            </ButtonLink>
+          <div className="max-w-lg" data-reveal>
+            <p className="eyebrow">{t('landing.featuredEyebrow')}</p>
+            <h2 className="mt-2.5 text-display-sm text-ink-900">{t('landing.featuredTitle')}</h2>
+            <p className="mt-3 text-[0.92rem] leading-relaxed text-ink-500">
+              {t('landing.featuredSub')}
+            </p>
           </div>
           <div className="flex items-stretch gap-6" data-reveal>
             {data.featured.map((p, i) => (
@@ -294,6 +282,12 @@ function LandingMagazine() {
               <WaveBand width={96} />
               <p className="text-[0.8rem] leading-relaxed text-ink-400">{t('mag.dragHint')}</p>
             </div>
+          </div>
+          <div className="flex justify-end" data-reveal>
+            <ButtonLink to="/$locale/catalog" params={{ locale }} variant="secondary" size="sm">
+              {t('common.viewAll')}
+              <ArrowUUpRight size={13} weight="bold" />
+            </ButtonLink>
           </div>
         </div>
       </section>
@@ -322,8 +316,9 @@ function LandingMagazine() {
             <ButtonLink
               to="/$locale/ceramicstory"
               params={{ locale }}
+              variant="invert"
               size="lg"
-              className="mt-8 bg-white text-cobalt-700 hover:bg-porcelain"
+              className="mt-8"
             >
               {t('landing.heritageCta')}
               <ArrowRight size={16} weight="bold" />
@@ -339,23 +334,11 @@ function LandingMagazine() {
       </section>
 
       {/* ------------------------------ 5 · destinations ------------------------------ */}
-      <section data-panel className="relative h-full w-[124vw] shrink-0 bg-paper">
+      <section data-panel className="relative h-full w-max shrink-0 bg-paper pr-16">
         <div className="flex h-full flex-col justify-center gap-8 pr-12 pl-10 sm:pl-14">
-          <div className="flex items-end justify-between pr-4" data-reveal>
-            <div className="max-w-lg">
-              <p className="eyebrow">{t('landing.visitEyebrow')}</p>
-              <h2 className="mt-2.5 text-display-sm text-ink-900">{t('landing.visitTitle')}</h2>
-            </div>
-            <ButtonLink
-              to="/$locale/engage"
-              params={{ locale }}
-              variant="secondary"
-              size="sm"
-              className="shrink-0"
-            >
-              {t('landing.visitCta')}
-              <ArrowUUpRight size={13} weight="bold" />
-            </ButtonLink>
+          <div className="max-w-lg" data-reveal>
+            <p className="eyebrow">{t('landing.visitEyebrow')}</p>
+            <h2 className="mt-2.5 text-display-sm text-ink-900">{t('landing.visitTitle')}</h2>
           </div>
           <div className="flex gap-6" data-reveal>
             {data.destinations.map((a) => (
@@ -364,13 +347,19 @@ function LandingMagazine() {
               </div>
             ))}
           </div>
+          <div className="flex justify-end" data-reveal>
+            <ButtonLink to="/$locale/engage" params={{ locale }} variant="secondary" size="sm">
+              {t('landing.visitCta')}
+              <ArrowUUpRight size={13} weight="bold" />
+            </ButtonLink>
+          </div>
         </div>
       </section>
 
       {/* ------------------------------ 6 · artists ------------------------------ */}
       <section
         data-panel
-        className="relative h-full w-screen shrink-0 bg-gradient-to-l from-porcelain/60 to-paper"
+        className="relative h-full w-max shrink-0 bg-gradient-to-l from-porcelain/60 to-paper pr-16"
       >
         <div className="flex h-full flex-col items-start justify-center gap-8 pr-12 pl-10 sm:pl-14">
           <div className="max-w-lg" data-reveal>
@@ -404,7 +393,7 @@ function LandingMagazine() {
       {/* ------------------------------ 7 · journey ------------------------------ */}
       <section
         data-panel
-        className="bg-cobalt-band relative h-full w-screen shrink-0 overflow-hidden"
+        className="bg-cobalt-band relative h-full w-max shrink-0 overflow-hidden pr-16"
       >
         <div
           className="qinghua-watermark absolute inset-0 opacity-[0.12]"
@@ -451,12 +440,7 @@ function LandingMagazine() {
               </div>
             ))}
           </div>
-          <ButtonLink
-            to="/$locale/itinerary"
-            params={{ locale }}
-            size="lg"
-            className="bg-white text-cobalt-700 shadow-pop hover:bg-porcelain"
-          >
+          <ButtonLink to="/$locale/itinerary" params={{ locale }} variant="invert" size="lg">
             {t('landing.travelCta')}
             <ArrowRight size={16} weight="bold" />
           </ButtonLink>
@@ -464,9 +448,9 @@ function LandingMagazine() {
       </section>
 
       {/* ------------------------------ 8 · tail (footer) ------------------------------ */}
-      <section data-panel className="relative h-full w-screen shrink-0 bg-mist">
-        <div className="flex h-full flex-col justify-between py-10 pr-12 pl-10 sm:pl-14">
-          <div className="flex items-start justify-between gap-10 pt-4" data-reveal>
+      <section data-panel className="relative h-full w-max shrink-0 bg-mist">
+        <div className="flex h-full w-[56rem] max-w-[94vw] flex-col justify-center gap-8 py-10 pr-12 pl-10 sm:pl-14">
+          <div className="flex items-end justify-between gap-10" data-reveal>
             <div className="max-w-md">
               <div className="flex items-center gap-2.5">
                 <SealMark size={38} />
@@ -484,10 +468,10 @@ function LandingMagazine() {
                 <GlobeHemisphereWest size={15} className="text-cobalt-400" />
                 {CONTACT.email} · {CONTACT.phone}
               </p>
-              <NewsletterForm />
             </div>
-            <FooterCols />
+            <NewsletterForm />
           </div>
+          <FooterCols />
           <div
             className="flex items-center justify-between border-t border-cobalt-100 pt-5"
             data-reveal
@@ -581,7 +565,7 @@ function NewsletterForm() {
   }
   return (
     <form
-      className="mt-6 flex max-w-md gap-2.5"
+      className="flex w-80 max-w-full shrink-0 gap-2.5"
       onSubmit={(e) => {
         e.preventDefault()
         if (email.includes('@')) setDone(true)

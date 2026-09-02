@@ -8,7 +8,7 @@
 
 - [x] Heritage index → horizontal magazine chapters (spine chrome) — reuse `useLoopScroller` + `Spine`
 - [x] Gallery → museum-window / record-crate browsing (freakmag-style flip panels)
-- [ ] Apply post-review UI tweaks (panel pacing, parallax intensity, spine density, family-color saturation)
+- [x] Apply post-review UI tweaks — round 1: visible blue text on dark-panel CTAs (new `invert` button variant), content-fit panel widths (no right blank), panel CTAs moved to bottom rows, compact CONTACT tail (footer under the newsletter row)
 - [x] Guard `src/styles/tokens.css` ↔ `tailwind.config.ts` hex/radius twins stay in sync — `src/styles/__tests__/tokens-sync.test.ts` (already caught + fixed real drift: family `50` shades, gold alias)
 
 ## M-F0 — Foundations & tooling (no backend dependency)

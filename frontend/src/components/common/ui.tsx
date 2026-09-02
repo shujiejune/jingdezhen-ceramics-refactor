@@ -6,7 +6,7 @@ import { cn } from '~/lib/utils'
 
 /* ------------------------------ Button ------------------------------ */
 
-type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger'
+type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'invert'
 type ButtonSize = 'sm' | 'md' | 'lg'
 
 const buttonBase =
@@ -18,6 +18,7 @@ const buttonVariants: Record<ButtonVariant, string> = {
   secondary:
     'border border-cobalt-200 bg-white text-cobalt-700 shadow-card hover:border-cobalt-300 hover:bg-cobalt-50',
   ghost: 'text-cobalt-600 hover:bg-cobalt-50 hover:text-cobalt-700',
+  invert: 'bg-white text-cobalt-700 shadow-card hover:bg-porcelain hover:shadow-lift',
   danger:
     'border border-[color:var(--color-danger)]/30 bg-white text-[color:var(--color-danger)] hover:bg-[color:var(--color-danger-bg)]',
 }
