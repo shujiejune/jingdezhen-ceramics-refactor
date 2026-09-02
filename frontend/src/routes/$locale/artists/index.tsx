@@ -23,10 +23,18 @@ function ArtistsPage() {
 
   return (
     <div className="mx-auto max-w-shell px-4 pt-10 sm:px-6">
-      <SectionHeading eyebrow={t('landing.artistsEyebrow')} title={t('nav.artists')} sub={t('engage.subtitle')} />
+      <SectionHeading
+        eyebrow={t('landing.artistsEyebrow')}
+        title={t('nav.artists')}
+        sub={t('engage.subtitle')}
+      />
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {artists.map((a) => (
-          <ArtistCard key={a.id} artist={a} works={worksByArtist.filter((p) => p.artist_id === a.id).length} />
+          <ArtistCard
+            key={a.id}
+            artist={a}
+            works={worksByArtist.filter((p) => p.artist_id === a.id).length}
+          />
         ))}
       </div>
       <WaveDivider className="mt-16" />

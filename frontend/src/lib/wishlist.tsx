@@ -16,7 +16,15 @@ export interface WishlistValue {
 
 const WishlistContext = createContext<WishlistValue | null>(null)
 
-export function WishlistProvider({ locale, currency, children }: { locale: string; currency: string; children: React.ReactNode }) {
+export function WishlistProvider({
+  locale,
+  currency,
+  children,
+}: {
+  locale: string
+  currency: string
+  children: React.ReactNode
+}) {
   const { token, ready: authReady } = useAuth()
   const [items, setItems] = useState<WishlistItem[]>([])
 

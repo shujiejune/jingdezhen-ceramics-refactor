@@ -19,13 +19,7 @@ export function SealMark({
   className?: string
 }) {
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 64 64"
-      className={className}
-      aria-hidden="true"
-    >
+    <svg width={size} height={size} viewBox="0 0 64 64" className={className} aria-hidden="true">
       <rect x="3" y="3" width="58" height="58" rx="5" fill="var(--cobalt-600)" />
       <rect
         x="8.5"
@@ -88,7 +82,11 @@ export function WaveBand({
     >
       <g stroke="var(--cobalt-500)" strokeOpacity={opacity} strokeWidth="1.4" strokeLinecap="round">
         <path d="M2 11c7-8 14-8 21 0s14 8 21 0 14-8 21 0 14 8 21 0 14-8 21 0 14 8 21 0 14-8 21 0 14 8 21 0 14-8 21 0 14 8 21 0 14-8 21 0 14 8 21 0" />
-        <path d="M16 4c4.5-5 9-5 13.5 0M79 4c4.5-5 9-5 13.5 0M142 4c4.5-5 9-5 13.5 0M205 4c4.5-5 9-5 13.5 0" strokeOpacity={opacity * 0.45} strokeWidth="1.2" />
+        <path
+          d="M16 4c4.5-5 9-5 13.5 0M79 4c4.5-5 9-5 13.5 0M142 4c4.5-5 9-5 13.5 0M205 4c4.5-5 9-5 13.5 0"
+          strokeOpacity={opacity * 0.45}
+          strokeWidth="1.2"
+        />
       </g>
     </svg>
   )
@@ -159,7 +157,13 @@ export function BrushRule({ className, width = 72 }: { className?: string; width
 
 export function LotusCorners({ className, size = 14 }: { className?: string; size?: number }) {
   const corner = (
-    <g stroke="var(--cobalt-500)" strokeOpacity="0.5" strokeWidth="1.4" strokeLinecap="round" fill="none">
+    <g
+      stroke="var(--cobalt-500)"
+      strokeOpacity="0.5"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+      fill="none"
+    >
       <path d="M2 14V8C2 4.4 4.4 2 8 2h6" />
       <path d="M5.5 14v-4.5c0-2.2 1.8-4 4-4H14" strokeOpacity="0.25" />
     </g>
@@ -183,9 +187,15 @@ export function CornerFrame({ inset = 10 }: { inset?: number }) {
   return (
     <div aria-hidden="true">
       <LotusCorners className={cn(base, 'left-[' + inset + 'px] top-[' + inset + 'px]')} />
-      <LotusCorners className={cn(base, 'right-[' + inset + 'px] top-[' + inset + 'px] rotate-90')} />
-      <LotusCorners className={cn(base, 'bottom-[' + inset + 'px] right-[' + inset + 'px] rotate-180')} />
-      <LotusCorners className={cn(base, 'bottom-[' + inset + 'px] left-[' + inset + 'px] -rotate-90')} />
+      <LotusCorners
+        className={cn(base, 'right-[' + inset + 'px] top-[' + inset + 'px] rotate-90')}
+      />
+      <LotusCorners
+        className={cn(base, 'bottom-[' + inset + 'px] right-[' + inset + 'px] rotate-180')}
+      />
+      <LotusCorners
+        className={cn(base, 'bottom-[' + inset + 'px] left-[' + inset + 'px] -rotate-90')}
+      />
     </div>
   )
 }
@@ -196,13 +206,32 @@ export function CornerFrame({ inset = 10 }: { inset?: number }) {
 
 export function LotusBloom({ className, size = 20 }: { className?: string; size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
       <g stroke="var(--cobalt-500)" strokeWidth="1.4" strokeLinejoin="round" strokeLinecap="round">
-        <path d="M12 4c1.8 2.2 2.6 4.6 2.4 7.2C13.7 9.4 13 7.8 12 6.4c-1 1.4-1.7 3-2.4 4.8C9.4 8.6 10.2 6.2 12 4Z" fill="var(--cobalt-500)" fillOpacity="0.14" />
+        <path
+          d="M12 4c1.8 2.2 2.6 4.6 2.4 7.2C13.7 9.4 13 7.8 12 6.4c-1 1.4-1.7 3-2.4 4.8C9.4 8.6 10.2 6.2 12 4Z"
+          fill="var(--cobalt-500)"
+          fillOpacity="0.14"
+        />
         <path d="M12 4c1.8 2.2 2.6 4.6 2.4 7.2C13.7 9.4 13 7.8 12 6.4c-1 1.4-1.7 3-2.4 4.8C9.4 8.6 10.2 6.2 12 4Z" />
-        <path d="M5 8.5c2.6.4 4.6 1.6 6 3.6-2.3-.5-4.4-.6-6.2-.2" fill="var(--cobalt-500)" fillOpacity="0.08" />
+        <path
+          d="M5 8.5c2.6.4 4.6 1.6 6 3.6-2.3-.5-4.4-.6-6.2-.2"
+          fill="var(--cobalt-500)"
+          fillOpacity="0.08"
+        />
         <path d="M5 8.5c2.6.4 4.6 1.6 6 3.6-2.3-.5-4.4-.6-6.2-.2" />
-        <path d="M19 8.5c-2.6.4-4.6 1.6-6 3.6 2.3-.5 4.4-.6 6.2-.2" fill="var(--cobalt-500)" fillOpacity="0.08" />
+        <path
+          d="M19 8.5c-2.6.4-4.6 1.6-6 3.6 2.3-.5 4.4-.6 6.2-.2"
+          fill="var(--cobalt-500)"
+          fillOpacity="0.08"
+        />
         <path d="M19 8.5c-2.6.4-4.6 1.6-6 3.6 2.3-.5 4.4-.6 6.2-.2" />
         <path d="M6.5 15.5c1.8-.8 3.6-1 5.5-.6 1.9-.4 3.7-.2 5.5.6" />
         <path d="M8.5 18.5c1.2-.5 2.3-.7 3.5-.6 1.2-.1 2.3.1 3.5.6" strokeOpacity="0.5" />

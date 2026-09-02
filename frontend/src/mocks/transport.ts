@@ -198,7 +198,12 @@ function findSku(id: number): { sku: ProductRecord['skus'][number]; product: Pro
 /* Mappers (record → API DTO, per-locale)                              */
 /* ------------------------------------------------------------------ */
 
-function toSKU(sku: ProductRecord['skus'][number], productId: number, locale: MockLocale, currency?: Currency): SKU {
+function toSKU(
+  sku: ProductRecord['skus'][number],
+  productId: number,
+  locale: MockLocale,
+  currency?: Currency,
+): SKU {
   return {
     id: sku.id,
     product_id: productId,
@@ -213,7 +218,12 @@ function toSKU(sku: ProductRecord['skus'][number], productId: number, locale: Mo
   }
 }
 
-function toProduct(rec: ProductRecord, locale: MockLocale, currency?: Currency, detail = false): Product {
+function toProduct(
+  rec: ProductRecord,
+  locale: MockLocale,
+  currency?: Currency,
+  detail = false,
+): Product {
   const tr = pick(rec.translations, locale)
   const other = locale === 'zh-CN' ? rec.translations.enUS : rec.translations.zhCN
   const artist = ARTISTS.find((a) => a.id === rec.artistId)
@@ -305,7 +315,11 @@ function toStory(rec: (typeof STORIES)[number], locale: MockLocale, detail = fal
   return s
 }
 
-function toActivity(rec: (typeof ACTIVITIES)[number], locale: MockLocale, detail = false): Activity {
+function toActivity(
+  rec: (typeof ACTIVITIES)[number],
+  locale: MockLocale,
+  detail = false,
+): Activity {
   const tr = pick(rec.translations, locale)
   const other = locale === 'zh-CN' ? rec.translations.enUS : rec.translations.zhCN
   const a: Activity = {
@@ -439,7 +453,9 @@ async function handle(route: string, ctx: Ctx): Promise<unknown> {
 
     if (q.tag) list = list.filter((pr) => pr.tags?.some((t) => t.key === q.tag))
     if (q.artist) {
-      const artistRec = ARTISTS.find((a) => a.translations.enUS.slug === q.artist || a.translations.zhCN.slug === q.artist)
+      const artistRec = ARTISTS.find(
+        (a) => a.translations.enUS.slug === q.artist || a.translations.zhCN.slug === q.artist,
+      )
       if (artistRec) list = list.filter((pr) => pr.artist_id === artistRec.id)
     }
     if (q.edition) {
@@ -516,15 +532,22 @@ async function handle(route: string, ctx: Ctx): Promise<unknown> {
   if (route === 'GET /artists') return ARTISTS.map((a) => toArtist(a, locale))
   if (ctx.method === 'GET' && pathRegex('/artists/:slug', ctx.path)) {
     const slug = ctx.path.split('/').pop()!
-    const rec = ARTISTS.find((a) => a.translations[locale === 'zh-CN' ? 'zhCN' : 'enUS'].slug === slug)
+    const rec = ARTISTS.find(
+      (a) => a.translations[locale === 'zh-CN' ? 'zhCN' : 'enUS'].slug === slug,
+    )
     if (!rec) throw new ApiError('not_found', 'requested resource not found', 404)
     return toArtist(rec, locale, true)
   }
 
-  if (route === 'GET /ceramicstory') return STORIES.map((s) => toStory(s, locale)).sort((a, b) => a.dynasty_start_year - b.dynasty_start_year)
+  if (route === 'GET /ceramicstory')
+    return STORIES.map((s) => toStory(s, locale)).sort(
+      (a, b) => a.dynasty_start_year - b.dynasty_start_year,
+    )
   if (ctx.method === 'GET' && pathRegex('/ceramicstory/:slug', ctx.path)) {
     const slug = ctx.path.split('/').pop()!
-    const rec = STORIES.find((s) => s.translations[locale === 'zh-CN' ? 'zhCN' : 'enUS'].slug === slug)
+    const rec = STORIES.find(
+      (s) => s.translations[locale === 'zh-CN' ? 'zhCN' : 'enUS'].slug === slug,
+    )
     if (!rec) throw new ApiError('not_found', 'requested resource not found', 404)
     return toStory(rec, locale, true)
   }
@@ -536,7 +559,9 @@ async function handle(route: string, ctx: Ctx): Promise<unknown> {
   }
   if (ctx.method === 'GET' && pathRegex('/engage/:slug', ctx.path)) {
     const slug = ctx.path.split('/').pop()!
-    const rec = ACTIVITIES.find((a) => a.translations[locale === 'zh-CN' ? 'zhCN' : 'enUS'].slug === slug)
+    const rec = ACTIVITIES.find(
+      (a) => a.translations[locale === 'zh-CN' ? 'zhCN' : 'enUS'].slug === slug,
+    )
     if (!rec) throw new ApiError('not_found', 'requested resource not found', 404)
     return toActivity(rec, locale, true)
   }
@@ -603,7 +628,8 @@ async function handle(route: string, ctx: Ctx): Promise<unknown> {
     const code = String(body.code ?? '')
     const entry = pending2FA.get(pending)
     if (!entry) throw new ApiError('unauthorized', 'token not found or expired', 401)
-    if (entry.fails >= 5) throw new ApiError('too_many_attempts', 'too many failed attempts, try again later', 429)
+    if (entry.fails >= 5)
+      throw new ApiError('too_many_attempts', 'too many failed attempts, try again later', 429)
     const found = DEMO_USERS.find((u) => u.id === entry.userId)!
     if (code !== found.demoCode) {
       entry.fails += 1
@@ -621,7 +647,9 @@ async function handle(route: string, ctx: Ctx): Promise<unknown> {
       throw new ApiError('validation_failed', 'invalid email', 422, { email: 'errors.required' })
     }
     if (String(body.password ?? '').length < 8) {
-      throw new ApiError('validation_failed', 'password too short', 422, { password: 'errors.passwordShort' })
+      throw new ApiError('validation_failed', 'password too short', 422, {
+        password: 'errors.passwordShort',
+      })
     }
     if (DEMO_USERS.some((u) => u.email === email)) {
       throw new ApiError('conflict', 'resource conflict, item already exists', 409)
@@ -630,13 +658,22 @@ async function handle(route: string, ctx: Ctx): Promise<unknown> {
       id: `u_${Math.random().toString(36).slice(2, 6)}`,
       email,
       nickname: String(body.nickname ?? email.split('@')[0]),
-      avatar_glyph: String(body.nickname ?? 'U').slice(0, 1).toUpperCase(),
+      avatar_glyph: String(body.nickname ?? 'U')
+        .slice(0, 1)
+        .toUpperCase(),
       role: 'customer',
       preferred_locale: locale,
       preferred_currency: 'USD',
       created_at: new Date().toISOString(),
     }
-    const demo = { id: user.id, email, password: String(body.password), twoFA: false, demoCode: undefined, user } as (typeof DEMO_USERS)[number]
+    const demo = {
+      id: user.id,
+      email,
+      password: String(body.password),
+      twoFA: false,
+      demoCode: undefined,
+      user,
+    } as (typeof DEMO_USERS)[number]
     DEMO_USERS.push(demo)
     const token = `tok_${user.id}_${idSeq.token++}`
     sessions.set(token, user.id)
@@ -651,7 +688,8 @@ async function handle(route: string, ctx: Ctx): Promise<unknown> {
     const demo = authUser(opts)
     if (body.nickname != null) demo.user.nickname = String(body.nickname)
     if (body.preferred_locale != null) demo.user.preferred_locale = String(body.preferred_locale)
-    if (body.preferred_currency != null) demo.user.preferred_currency = String(body.preferred_currency)
+    if (body.preferred_currency != null)
+      demo.user.preferred_currency = String(body.preferred_currency)
     return demo.user
   }
 
@@ -717,7 +755,10 @@ async function handle(route: string, ctx: Ctx): Promise<unknown> {
     const key = cartKey(opts)
     const skuId = Number(ctx.path.split('/').pop())
     const m = key.kind === 'user' ? userCarts : guestCarts
-    m.set(key.id, getLines(key).filter((l) => l.sku_id !== skuId))
+    m.set(
+      key.id,
+      getLines(key).filter((l) => l.sku_id !== skuId),
+    )
     return buildCart(opts)
   }
 
@@ -725,7 +766,10 @@ async function handle(route: string, ctx: Ctx): Promise<unknown> {
     const key = cartKey(opts)
     const ids = (body.sku_ids ?? []) as number[]
     const m = key.kind === 'user' ? userCarts : guestCarts
-    m.set(key.id, getLines(key).filter((l) => !ids.includes(l.sku_id)))
+    m.set(
+      key.id,
+      getLines(key).filter((l) => !ids.includes(l.sku_id)),
+    )
     return buildCart(opts)
   }
 
@@ -740,7 +784,12 @@ async function handle(route: string, ctx: Ctx): Promise<unknown> {
       const existing = userLines.find((l) => l.sku_id === g.sku_id)
       const merged = Math.min(sku.stock, (existing?.qty ?? 0) + g.qty)
       if (existing) existing.qty = merged
-      else userLines.push({ sku_id: g.sku_id, qty: merged, added_at: g.added_at ?? new Date().toISOString() })
+      else
+        userLines.push({
+          sku_id: g.sku_id,
+          qty: merged,
+          added_at: g.added_at ?? new Date().toISOString(),
+        })
     }
     if (guestId) guestCarts.delete(guestId)
     return buildCart(opts)
@@ -767,7 +816,9 @@ async function handle(route: string, ctx: Ctx): Promise<unknown> {
             figure_seed: product.figureSeed,
             figure_kind: product.figureKind,
             stock: sku.stock,
-            ...(currency ? { price: convertMinor(sku.priceCny, currency), price_currency: currency } : {}),
+            ...(currency
+              ? { price: convertMinor(sku.priceCny, currency), price_currency: currency }
+              : {}),
           },
         ]
       } catch {
@@ -790,7 +841,10 @@ async function handle(route: string, ctx: Ctx): Promise<unknown> {
   if (ctx.method === 'DELETE' && pathRegex('/wishlist/:skuId', ctx.path)) {
     const user = authUser(opts)
     const skuId = Number(ctx.path.split('/').pop())
-    wishlists.set(user.id, (wishlists.get(user.id) ?? []).filter((id) => id !== skuId))
+    wishlists.set(
+      user.id,
+      (wishlists.get(user.id) ?? []).filter((id) => id !== skuId),
+    )
     return { ok: true }
   }
 
@@ -800,8 +854,10 @@ async function handle(route: string, ctx: Ctx): Promise<unknown> {
     const user = authUser(opts)
     const key = cartKey(opts)
     const cart = buildCart(opts)
-    if (cart.items.length === 0) throw new ApiError('cart_empty', 'cart is empty; cannot check out', 422)
-    if (body.consent !== true) throw new ApiError('consent_required', 'privacy policy consent is required', 422)
+    if (cart.items.length === 0)
+      throw new ApiError('cart_empty', 'cart is empty; cannot check out', 422)
+    if (body.consent !== true)
+      throw new ApiError('consent_required', 'privacy policy consent is required', 422)
 
     const addressId = Number(body.address_id ?? 0)
     const address = addresses.find((a) => a.id === addressId && a.user_id === user.id)
@@ -814,7 +870,11 @@ async function handle(route: string, ctx: Ctx): Promise<unknown> {
       throw new ApiError('unshippable', 'destination country is not shippable', 422)
     }
     if (q.blocked_reason === 'overweight') {
-      throw new ApiError('overweight', 'order exceeds the maximum shipping weight for the destination', 422)
+      throw new ApiError(
+        'overweight',
+        'order exceeds the maximum shipping weight for the destination',
+        422,
+      )
     }
 
     // atomic stock decrement (TDD §4.3): all-or-nothing
@@ -848,19 +908,19 @@ async function handle(route: string, ctx: Ctx): Promise<unknown> {
       items: cart.items.map((i) => {
         const rec = findSku(i.sku_id).product
         return {
-        id: idSeq.item++,
-        order_id: idSeq.order - 1,
-        sku_id: i.sku_id,
-        qty: i.qty,
-        unit_price_minor: i.unit_price ?? convertMinor(i.unit_price_cny, cur),
-        unit_price_cny: i.unit_price_cny,
-        title_snapshot: {
-          enUS: rec.translations.enUS.title,
-          zhCN: rec.translations.zhCN.title,
-        },
-        attributes_snapshot: i.attributes,
-        figure_seed: i.figure_seed,
-        figure_kind: i.figure_kind,
+          id: idSeq.item++,
+          order_id: idSeq.order - 1,
+          sku_id: i.sku_id,
+          qty: i.qty,
+          unit_price_minor: i.unit_price ?? convertMinor(i.unit_price_cny, cur),
+          unit_price_cny: i.unit_price_cny,
+          title_snapshot: {
+            enUS: rec.translations.enUS.title,
+            zhCN: rec.translations.zhCN.title,
+          },
+          attributes_snapshot: i.attributes,
+          figure_seed: i.figure_seed,
+          figure_kind: i.figure_kind,
         }
       }),
       hosted_url: 'mock://sandbox-checkout',
@@ -877,7 +937,8 @@ async function handle(route: string, ctx: Ctx): Promise<unknown> {
   if (ctx.method === 'POST' && pathRegex('/mock/pay/:id', ctx.path)) {
     const user = authUser(opts)
     const order = orders.find((o) => o.id === Number(ctx.path.split('/').pop()))
-    if (!order || order.user_id !== user.id) throw new ApiError('not_found', 'requested resource not found', 404)
+    if (!order || order.user_id !== user.id)
+      throw new ApiError('not_found', 'requested resource not found', 404)
     if (order.status === 'created') {
       order.status = 'paid'
       order.paid_at = new Date().toISOString()
@@ -906,16 +967,22 @@ async function handle(route: string, ctx: Ctx): Promise<unknown> {
   if (ctx.method === 'GET' && pathRegex('/orders/:id', ctx.path)) {
     const user = authUser(opts)
     const order = orders.find((o) => o.id === Number(ctx.path.split('/').pop()))
-    if (!order || order.user_id !== user.id) throw new ApiError('not_found', 'requested resource not found', 404)
+    if (!order || order.user_id !== user.id)
+      throw new ApiError('not_found', 'requested resource not found', 404)
     return presentOrder(order, locale)
   }
 
   if (ctx.method === 'POST' && pathRegex('/orders/:id/cancel', ctx.path)) {
     const user = authUser(opts)
     const order = orders.find((o) => o.id === Number(ctx.path.split('/').pop()))
-    if (!order || order.user_id !== user.id) throw new ApiError('not_found', 'requested resource not found', 404)
+    if (!order || order.user_id !== user.id)
+      throw new ApiError('not_found', 'requested resource not found', 404)
     if (order.status !== 'created') {
-      throw new ApiError('invalid_operation', 'the requested operation is not valid for the target resource', 409)
+      throw new ApiError(
+        'invalid_operation',
+        'the requested operation is not valid for the target resource',
+        409,
+      )
     }
     order.status = 'cancelled' as OrderStatus
     order.cancelled_at = new Date().toISOString()
@@ -940,9 +1007,12 @@ async function handle(route: string, ctx: Ctx): Promise<unknown> {
 
   if (route === 'POST /itineraries') {
     const user = authUser(opts)
-    if (body.consent !== true) throw new ApiError('consent_required', 'privacy policy consent is required', 422)
+    if (body.consent !== true)
+      throw new ApiError('consent_required', 'privacy policy consent is required', 422)
     if (!body.arrival_date || !body.duration_days || !body.adults) {
-      throw new ApiError('validation_failed', 'missing trip basics', 422, { arrival_date: 'errors.required' })
+      throw new ApiError('validation_failed', 'missing trip basics', 422, {
+        arrival_date: 'errors.required',
+      })
     }
     const now = new Date()
     const sla = new Date(now.getTime() + 24 * 3600 * 1000)

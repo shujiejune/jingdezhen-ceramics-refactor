@@ -86,7 +86,9 @@ class LiveTransport implements Transport {
     })
     const json = await res.json().catch(() => null)
     if (!res.ok) {
-      const env = json as { error?: { code?: string; message?: string; details?: Record<string, string> } } | null
+      const env = json as {
+        error?: { code?: string; message?: string; details?: Record<string, string> }
+      } | null
       throw new ApiError(
         env?.error?.code ?? 'unknown',
         env?.error?.message ?? res.statusText,
@@ -130,11 +132,19 @@ async function t(): Promise<Transport> {
 export const api = {
   /* ---- public catalog ---- */
   getProducts: (query: CatalogQuery) =>
-    t().then((x) => x.call<Paginated<Product>>('GET', '/catalog/products', { params: { ...query } })),
+    t().then((x) =>
+      x.call<Paginated<Product>>('GET', '/catalog/products', { params: { ...query } }),
+    ),
   getProduct: (slug: string, locale: string, currency?: string) =>
-    t().then((x) => x.call<Product>('GET', `/catalog/products/${slug}`, { params: { locale, currency } })),
+    t().then((x) =>
+      x.call<Product>('GET', `/catalog/products/${slug}`, { params: { locale, currency } }),
+    ),
   getTags: (locale: string) =>
-    t().then((x) => x.call<Array<Tag & { product_count: number }>>('GET', '/catalog/tags', { params: { locale } })),
+    t().then((x) =>
+      x.call<Array<Tag & { product_count: number }>>('GET', '/catalog/tags', {
+        params: { locale },
+      }),
+    ),
   getArtists: (locale: string) =>
     t().then((x) => x.call<Artist[]>('GET', '/artists', { params: { locale } })),
   getArtist: (slug: string, locale: string) =>
@@ -150,25 +160,40 @@ export const api = {
   getCertificate: (code: string, locale: string) =>
     t().then((x) => x.call<Certificate>('GET', `/certificates/${code}`, { params: { locale } })),
   getShippingQuote: (country: string, weightGrams: number, currency?: string) =>
-    t().then((x) => x.call<ShippingQuote>('GET', '/shipping/quote', { params: { country, weight: weightGrams, currency } })),
+    t().then((x) =>
+      x.call<ShippingQuote>('GET', '/shipping/quote', {
+        params: { country, weight: weightGrams, currency },
+      }),
+    ),
 
   /* ---- auth ---- */
   login: (email: string, password: string) =>
-    t().then((x) => x.call<AuthResponse | Pending2FAResponse>('POST', '/auth/login', { body: { email, password } })),
+    t().then((x) =>
+      x.call<AuthResponse | Pending2FAResponse>('POST', '/auth/login', {
+        body: { email, password },
+      }),
+    ),
   verify2FA: (pendingToken: string, code: string) =>
-    t().then((x) => x.call<AuthResponse>('POST', '/auth/2fa/verify', { body: { pending_token: pendingToken, code } })),
+    t().then((x) =>
+      x.call<AuthResponse>('POST', '/auth/2fa/verify', {
+        body: { pending_token: pendingToken, code },
+      }),
+    ),
   signup: (body: { email: string; password: string; nickname: string }) =>
     t().then((x) => x.call<AuthResponse>('POST', '/auth/signup', { body })),
 
   /* ---- profile ---- */
-  getProfile: (token: string) =>
-    t().then((x) => x.call<User>('GET', '/profile', { token })),
-  updateProfile: (token: string, patch: Partial<Pick<User, 'nickname' | 'preferred_locale' | 'preferred_currency'>>) =>
-    t().then((x) => x.call<User>('PUT', '/profile', { token, body: patch })),
+  getProfile: (token: string) => t().then((x) => x.call<User>('GET', '/profile', { token })),
+  updateProfile: (
+    token: string,
+    patch: Partial<Pick<User, 'nickname' | 'preferred_locale' | 'preferred_currency'>>,
+  ) => t().then((x) => x.call<User>('PUT', '/profile', { token, body: patch })),
   getAddresses: (token: string) =>
     t().then((x) => x.call<Address[]>('GET', '/profile/addresses', { token })),
-  createAddress: (token: string, body: Omit<Address, 'id' | 'is_default'> & { is_default?: boolean }) =>
-    t().then((x) => x.call<Address>('POST', '/profile/addresses', { token, body })),
+  createAddress: (
+    token: string,
+    body: Omit<Address, 'id' | 'is_default'> & { is_default?: boolean },
+  ) => t().then((x) => x.call<Address>('POST', '/profile/addresses', { token, body })),
 
   /* ---- cart ---- */
   getCart: (o: { token?: string; guestId?: string; locale: string; currency?: string }) =>
@@ -205,7 +230,9 @@ export const api = {
 
   /* ---- wishlist ---- */
   getWishlist: (token: string, locale: string, currency?: string) =>
-    t().then((x) => x.call<WishlistItem[]>('GET', '/wishlist', { token, params: { locale, currency } })),
+    t().then((x) =>
+      x.call<WishlistItem[]>('GET', '/wishlist', { token, params: { locale, currency } }),
+    ),
   addToWishlist: (token: string, skuId: number) =>
     t().then((x) => x.call<void>('POST', '/wishlist', { token, body: { sku_id: skuId } })),
   removeFromWishlist: (token: string, skuId: number) =>
@@ -214,9 +241,14 @@ export const api = {
   /* ---- orders / checkout ---- */
   checkout: (
     token: string,
-    body: { address_id: number; currency: string; gateway: string; locale: string; consent: boolean },
-  ) =>
-    t().then((x) => x.call<Order>('POST', '/checkout', { token, body })),
+    body: {
+      address_id: number
+      currency: string
+      gateway: string
+      locale: string
+      consent: boolean
+    },
+  ) => t().then((x) => x.call<Order>('POST', '/checkout', { token, body })),
   listOrders: (token: string, locale: string) =>
     t().then((x) => x.call<Order[]>('GET', '/orders', { token, params: { locale } })),
   getOrder: (token: string, id: number, locale: string) =>

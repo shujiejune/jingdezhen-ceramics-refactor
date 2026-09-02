@@ -73,7 +73,10 @@ function LoginPage() {
   return (
     <div className="relative overflow-hidden">
       <div className="qinghua-watermark absolute inset-x-0 top-0 h-72 opacity-70" />
-      <PetalScatter seed={77} className="pointer-events-none absolute top-24 right-[12%] opacity-60" />
+      <PetalScatter
+        seed={77}
+        className="pointer-events-none absolute top-24 right-[12%] opacity-60"
+      />
       <div className="relative mx-auto flex max-w-md flex-col px-4 pt-16 pb-20 sm:px-6">
         <div className="flex justify-center">
           <SealMark size={48} />
@@ -129,10 +132,22 @@ function LoginPage() {
               className="flex h-11 w-full items-center justify-center gap-2.5 rounded-lg border border-ink-300/40 bg-white text-[0.88rem] font-medium text-ink-600 opacity-60"
             >
               <svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true">
-                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1Z" />
-                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23Z" />
-                <path fill="#FBBC05" d="M5.84 14.1a6.6 6.6 0 0 1 0-4.2V7.06H2.18a11 11 0 0 0 0 9.88l3.66-2.84Z" />
-                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15A11 11 0 0 0 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52Z" />
+                <path
+                  fill="#4285F4"
+                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1Z"
+                />
+                <path
+                  fill="#34A853"
+                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23Z"
+                />
+                <path
+                  fill="#FBBC05"
+                  d="M5.84 14.1a6.6 6.6 0 0 1 0-4.2V7.06H2.18a11 11 0 0 0 0 9.88l3.66-2.84Z"
+                />
+                <path
+                  fill="#EA4335"
+                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15A11 11 0 0 0 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52Z"
+                />
               </svg>
               {t('auth.google')}
             </button>
@@ -161,7 +176,9 @@ function LoginPage() {
 
             <form onSubmit={onVerify} className="mt-7 flex flex-col gap-4">
               <div>
-                <label className="label-base" htmlFor="login-2fa">{t('auth.codeLabel')}</label>
+                <label className="label-base" htmlFor="login-2fa">
+                  {t('auth.codeLabel')}
+                </label>
                 <input
                   id="login-2fa"
                   required

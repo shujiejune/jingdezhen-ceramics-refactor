@@ -42,19 +42,24 @@
   --ink-800: #1a2338;
   --ink-900: #0d1730;
 
-  /* --- porcelain families (secondary colors) --- */
+  /* --- porcelain families (secondary colors) ---
+     (gold is a config-only alias of imperial for Tailwind classes) */
+  --rose-50: #fdf1f5;
   --rose-100: #fbe3ea;
   --rose-400: #e8798f;
   --rose-500: #d95c77;
   --rose-600: #b94461;
+  --celadon-50: #eef6f2;
   --celadon-100: #d7e9e2;
   --celadon-400: #a3c8b8;
   --celadon-500: #7fb5a0;
   --celadon-600: #5e9a85;
+  --cinnabar-50: #fbefed;
   --cinnabar-100: #f2d4d0;
   --cinnabar-400: #c4544a;
   --cinnabar-500: #b23b32;
   --cinnabar-600: #96302a;
+  --imperial-50: #fdf8ea;
   --imperial-100: #f5e6c4;
   --imperial-400: #d9a93f;
   --imperial-500: #c08f27;
@@ -135,6 +140,21 @@
 .magazine-page body,
 body.magazine-lock {
   overflow: hidden;
+}
+
+/* Respect prefers-reduced-motion: the loop-scroller hook also skips
+   parallax/reveal and snaps instantly when this is set. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* Horizontal grab/drag surface */

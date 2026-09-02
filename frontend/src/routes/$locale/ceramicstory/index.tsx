@@ -25,7 +25,11 @@ export const Route = createFileRoute('/$locale/ceramicstory/')({
   head: () => ({
     meta: [
       { title: 'Heritage — Jingdezhen Ceramics' },
-      { name: 'description', content: 'A thousand years of porcelain, dynasty by dynasty — the history of the kiln city.' },
+      {
+        name: 'description',
+        content:
+          'A thousand years of porcelain, dynasty by dynasty — the history of the kiln city.',
+      },
     ],
   }),
   component: HeritageMagazine,
@@ -36,10 +40,30 @@ export const Route = createFileRoute('/$locale/ceramicstory/')({
 /* ------------------------------------------------------------------ */
 
 const DYNASTY_ACCENTS = [
-  { numeral: 'text-celadon-500/15', chip: 'bg-celadon-500 text-white', band: 'bg-celadon-500', eyebrow: 'text-celadon-600' },
-  { numeral: 'text-cobalt-500/15', chip: 'bg-cobalt-600 text-white', band: 'bg-cobalt-600', eyebrow: 'text-cobalt-600' },
-  { numeral: 'text-cinnabar-500/15', chip: 'bg-cinnabar-500 text-white', band: 'bg-cinnabar-500', eyebrow: 'text-cinnabar-600' },
-  { numeral: 'text-rose-500/15', chip: 'bg-rose-500 text-white', band: 'bg-rose-500', eyebrow: 'text-rose-600' },
+  {
+    numeral: 'text-celadon-500/15',
+    chip: 'bg-celadon-500 text-white',
+    band: 'bg-celadon-500',
+    eyebrow: 'text-celadon-600',
+  },
+  {
+    numeral: 'text-cobalt-500/15',
+    chip: 'bg-cobalt-600 text-white',
+    band: 'bg-cobalt-600',
+    eyebrow: 'text-cobalt-600',
+  },
+  {
+    numeral: 'text-cinnabar-500/15',
+    chip: 'bg-cinnabar-500 text-white',
+    band: 'bg-cinnabar-500',
+    eyebrow: 'text-cinnabar-600',
+  },
+  {
+    numeral: 'text-rose-500/15',
+    chip: 'bg-rose-500 text-white',
+    band: 'bg-rose-500',
+    eyebrow: 'text-rose-600',
+  },
 ] as const
 
 const accentOf = (i: number) => DYNASTY_ACCENTS[i % DYNASTY_ACCENTS.length]
@@ -60,16 +84,27 @@ function HeritageMagazine() {
   const panels = (ariaHidden: boolean) => (
     <div className="flex h-full" aria-hidden={ariaHidden || undefined}>
       {/* ------------------------------ cover ------------------------------ */}
-      <section data-panel className="relative h-full w-screen shrink-0 overflow-hidden bg-gradient-to-b from-porcelain/70 via-paper to-wash">
+      <section
+        data-panel
+        className="relative h-full w-screen shrink-0 overflow-hidden bg-gradient-to-b from-porcelain/70 via-paper to-wash"
+      >
         <div className="qinghua-watermark absolute inset-y-0 right-0 w-2/3 opacity-80" />
-        <PetalScatter seed={33} count={8} className="pointer-events-none absolute top-16 right-[36%] opacity-50" width={190} height={120} />
+        <PetalScatter
+          seed={33}
+          count={8}
+          className="pointer-events-none absolute top-16 right-[36%] opacity-50"
+          width={190}
+          height={120}
+        />
         <div className="relative grid h-full grid-cols-[1.05fr_0.95fr] items-center gap-8 pr-10 pl-10 sm:pl-14">
           <div className="max-w-xl" data-reveal>
             <p className="eyebrow">
               {t('story.title')} · {t('mag.tagline')}
             </p>
             <h1 className="mt-5 text-display text-ink-900">{t('landing.heritageTitle')}</h1>
-            <p className="mt-6 max-w-md text-[1.02rem] leading-relaxed text-ink-500">{t('story.subtitle')}</p>
+            <p className="mt-6 max-w-md text-[1.02rem] leading-relaxed text-ink-500">
+              {t('story.subtitle')}
+            </p>
             <div className="mt-9 flex flex-wrap items-center gap-3.5">
               <Button size="lg" onClick={() => scroller.scrollToPanel(1)}>
                 <BookOpenText size={17} weight="duotone" />
@@ -87,7 +122,12 @@ function HeritageMagazine() {
                     onClick={() => scroller.scrollToPanel(i + 1)}
                     className="group flex flex-col items-start gap-1 text-left"
                   >
-                    <span className={cn('text-[1.1rem] font-semibold tabular-nums', accentOf(i).eyebrow)}>
+                    <span
+                      className={cn(
+                        'text-[1.1rem] font-semibold tabular-nums',
+                        accentOf(i).eyebrow,
+                      )}
+                    >
                       {s.dynasty_start_year}
                     </span>
                     <span className="max-w-24 text-[0.7rem] leading-snug text-ink-400 transition group-hover:text-cobalt-600">
@@ -137,10 +177,20 @@ function HeritageMagazine() {
             <div className="relative grid h-full grid-cols-[1fr_0.85fr] items-center gap-10 py-8 pr-12 pl-12 sm:pl-16">
               <div className="max-w-xl" data-reveal>
                 <p className="flex items-center gap-3">
-                  <span className={cn('rounded-sm px-2 py-0.5 text-[0.7rem] font-bold tracking-wide uppercase', accent.chip)}>
+                  <span
+                    className={cn(
+                      'rounded-sm px-2 py-0.5 text-[0.7rem] font-bold tracking-wide uppercase',
+                      accent.chip,
+                    )}
+                  >
                     {t('heritage.chapterN', { n: String(i + 1).padStart(2, '0') })}
                   </span>
-                  <span className={cn('text-[0.72rem] font-semibold tracking-[0.2em] tabular-nums uppercase', accent.eyebrow)}>
+                  <span
+                    className={cn(
+                      'text-[0.72rem] font-semibold tracking-[0.2em] tabular-nums uppercase',
+                      accent.eyebrow,
+                    )}
+                  >
                     {story.dynasty_start_year}
                   </span>
                 </p>
@@ -157,7 +207,10 @@ function HeritageMagazine() {
                   <ArrowRight size={16} weight="bold" />
                 </ButtonLink>
               </div>
-              <div className="relative mx-auto aspect-square w-full max-w-[24rem]" data-parallax="0.09">
+              <div
+                className="relative mx-auto aspect-square w-full max-w-[24rem]"
+                data-parallax="0.09"
+              >
                 <div className="relative h-full w-full overflow-hidden rounded-md border border-cobalt-100 bg-white shadow-lift">
                   <CornerFrame inset={12} />
                   <PorcelainFigure kind="vase" seed={story.figure_seed} className="h-full w-full" />
@@ -177,33 +230,59 @@ function HeritageMagazine() {
               <div className="flex items-center gap-2.5">
                 <SealMark size={38} />
                 <span className="flex flex-col leading-none">
-                  <span className="text-[0.95rem] font-semibold text-ink-900">{t('common.brand')}</span>
+                  <span className="text-[0.95rem] font-semibold text-ink-900">
+                    {t('common.brand')}
+                  </span>
                   <span className="mt-1 text-[0.62rem] font-medium tracking-[0.16em] text-cobalt-600 uppercase">
                     {t('common.brandSub')}
                   </span>
                 </span>
               </div>
-              <h2 className="mt-6 text-[1.45rem] font-semibold tracking-tight text-ink-900">{t('heritage.tailTitle')}</h2>
+              <h2 className="mt-6 text-[1.45rem] font-semibold tracking-tight text-ink-900">
+                {t('heritage.tailTitle')}
+              </h2>
               <div className="mt-4 flex flex-col gap-2.5">
-                <Link to="/$locale/catalog" params={{ locale }} className="flex items-center gap-2.5 text-[0.95rem] font-medium text-ink-700 transition hover:text-cobalt-700">
-                  <span className="flex h-8 w-8 items-center justify-center rounded-sm bg-white shadow-card"><BookOpenText size={16} className="text-cobalt-500" weight="duotone" /></span>
+                <Link
+                  to="/$locale/catalog"
+                  params={{ locale }}
+                  className="flex items-center gap-2.5 text-[0.95rem] font-medium text-ink-700 transition hover:text-cobalt-700"
+                >
+                  <span className="flex h-8 w-8 items-center justify-center rounded-sm bg-white shadow-card">
+                    <BookOpenText size={16} className="text-cobalt-500" weight="duotone" />
+                  </span>
                   {t('nav.gallery')}
                 </Link>
-                <Link to="/$locale/engage" params={{ locale }} className="flex items-center gap-2.5 text-[0.95rem] font-medium text-ink-700 transition hover:text-cobalt-700">
-                  <span className="flex h-8 w-8 items-center justify-center rounded-sm bg-white shadow-card"><MapPin size={16} className="text-celadon-500" weight="duotone" /></span>
+                <Link
+                  to="/$locale/engage"
+                  params={{ locale }}
+                  className="flex items-center gap-2.5 text-[0.95rem] font-medium text-ink-700 transition hover:text-cobalt-700"
+                >
+                  <span className="flex h-8 w-8 items-center justify-center rounded-sm bg-white shadow-card">
+                    <MapPin size={16} className="text-celadon-500" weight="duotone" />
+                  </span>
                   {t('nav.visit')}
                 </Link>
-                <Link to="/$locale/itinerary" params={{ locale }} className="flex items-center gap-2.5 text-[0.95rem] font-medium text-ink-700 transition hover:text-cobalt-700">
-                  <span className="flex h-8 w-8 items-center justify-center rounded-sm bg-white shadow-card"><Airplane size={16} className="text-rose-500" weight="duotone" /></span>
+                <Link
+                  to="/$locale/itinerary"
+                  params={{ locale }}
+                  className="flex items-center gap-2.5 text-[0.95rem] font-medium text-ink-700 transition hover:text-cobalt-700"
+                >
+                  <span className="flex h-8 w-8 items-center justify-center rounded-sm bg-white shadow-card">
+                    <Airplane size={16} className="text-rose-500" weight="duotone" />
+                  </span>
                   {t('nav.travel')}
                 </Link>
               </div>
-              <p className="mt-6 text-[0.82rem] text-ink-400">{CONTACT.email} · {CONTACT.phone}</p>
+              <p className="mt-6 text-[0.82rem] text-ink-400">
+                {CONTACT.email} · {CONTACT.phone}
+              </p>
             </div>
 
             {/* dynasty recap index */}
             <div className="max-w-md">
-              <h3 className="text-[0.7rem] font-semibold tracking-[0.18em] text-ink-400 uppercase">{t('story.timeline')}</h3>
+              <h3 className="text-[0.7rem] font-semibold tracking-[0.18em] text-ink-400 uppercase">
+                {t('story.timeline')}
+              </h3>
               <ol className="mt-4 flex flex-col divide-y divide-cobalt-100">
                 {stories.map((s, i) => (
                   <li key={s.id}>
@@ -212,18 +291,31 @@ function HeritageMagazine() {
                       params={{ locale, slug: s.slug }}
                       className="group flex items-baseline gap-4 py-3"
                     >
-                      <span className={cn('w-14 text-[0.95rem] font-semibold tabular-nums', accentOf(i).eyebrow)}>
+                      <span
+                        className={cn(
+                          'w-14 text-[0.95rem] font-semibold tabular-nums',
+                          accentOf(i).eyebrow,
+                        )}
+                      >
                         {s.dynasty_start_year}
                       </span>
-                      <span className="flex-1 text-[0.95rem] text-ink-700 transition group-hover:text-cobalt-700">{s.title}</span>
-                      <ArrowUUpRight size={13} className="text-ink-300 transition group-hover:text-cobalt-600" />
+                      <span className="flex-1 text-[0.95rem] text-ink-700 transition group-hover:text-cobalt-700">
+                        {s.title}
+                      </span>
+                      <ArrowUUpRight
+                        size={13}
+                        className="text-ink-300 transition group-hover:text-cobalt-600"
+                      />
                     </Link>
                   </li>
                 ))}
               </ol>
             </div>
           </div>
-          <div className="flex items-center justify-between border-t border-cobalt-100 pt-5" data-reveal>
+          <div
+            className="flex items-center justify-between border-t border-cobalt-100 pt-5"
+            data-reveal
+          >
             <WaveBand width={140} />
             <p className="text-[0.75rem] text-ink-400">{t('footer.rights')}</p>
             <p className="text-[0.75rem] text-ink-300">{t('common.prototypeNote')}</p>

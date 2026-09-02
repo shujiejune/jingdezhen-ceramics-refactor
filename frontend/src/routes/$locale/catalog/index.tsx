@@ -92,8 +92,12 @@ function CatalogPage() {
     void navigate({ search: (prev) => ({ ...prev, ...patch }), replace: true })
   }
 
-  const hasFilters = Boolean(search.tag || search.artist || search.edition || search.priceBand || search.q)
-  const activeIdx = works.length ? ((scroller.activeIndex % works.length) + works.length) % works.length : 0
+  const hasFilters = Boolean(
+    search.tag || search.artist || search.edition || search.priceBand || search.q,
+  )
+  const activeIdx = works.length
+    ? ((scroller.activeIndex % works.length) + works.length) % works.length
+    : 0
   const active = works[activeIdx]
 
   return (
@@ -113,7 +117,10 @@ function CatalogPage() {
             setParam({ q: value || undefined })
           }}
         >
-          <MagnifyingGlass size={16} className="absolute top-1/2 left-3.5 -translate-y-1/2 text-ink-300" />
+          <MagnifyingGlass
+            size={16}
+            className="absolute top-1/2 left-3.5 -translate-y-1/2 text-ink-300"
+          />
           <input
             name="q"
             defaultValue={search.q ?? ''}
@@ -141,9 +148,21 @@ function CatalogPage() {
                     : 'border-cobalt-100 bg-white text-ink-500 hover:border-cobalt-300 hover:text-cobalt-700',
                 )}
               >
-                <span className={cn('h-1.5 w-1.5 rounded-full', search.tag === tag.key ? 'bg-white' : TAG_TONE[tag.key] ?? 'bg-ink-300')} />
+                <span
+                  className={cn(
+                    'h-1.5 w-1.5 rounded-full',
+                    search.tag === tag.key ? 'bg-white' : (TAG_TONE[tag.key] ?? 'bg-ink-300'),
+                  )}
+                />
                 {tag.name}
-                <span className={cn('tabular-nums', search.tag === tag.key ? 'text-white/70' : 'text-ink-300')}>{tag.product_count}</span>
+                <span
+                  className={cn(
+                    'tabular-nums',
+                    search.tag === tag.key ? 'text-white/70' : 'text-ink-300',
+                  )}
+                >
+                  {tag.product_count}
+                </span>
               </button>
             ))}
           </div>
@@ -170,7 +189,9 @@ function CatalogPage() {
             {t('catalog.filterEdition')}
             <select
               value={search.edition ?? ''}
-              onChange={(e) => setParam({ edition: (e.target.value || undefined) as 'one_of_a_kind' })}
+              onChange={(e) =>
+                setParam({ edition: (e.target.value || undefined) as 'one_of_a_kind' })
+              }
               className="rounded border border-ink-300/50 bg-white px-2 py-1 text-[0.8rem] text-ink-700"
             >
               <option value="">{t('catalog.filterEdition')}</option>
@@ -197,7 +218,11 @@ function CatalogPage() {
             {search.q && (
               <span className="flex items-center gap-1">
                 “{search.q}”
-                <button type="button" onClick={() => setParam({ q: undefined })} aria-label="clear search">
+                <button
+                  type="button"
+                  onClick={() => setParam({ q: undefined })}
+                  aria-label="clear search"
+                >
                   <X size={13} weight="bold" className="text-cobalt-600" />
                 </button>
               </span>
@@ -206,7 +231,15 @@ function CatalogPage() {
               <button
                 type="button"
                 className="font-medium text-cobalt-600 hover:underline"
-                onClick={() => setParam({ tag: undefined, artist: undefined, edition: undefined, priceBand: undefined, q: undefined })}
+                onClick={() =>
+                  setParam({
+                    tag: undefined,
+                    artist: undefined,
+                    edition: undefined,
+                    priceBand: undefined,
+                    q: undefined,
+                  })
+                }
               >
                 {t('catalog.clearFilters')}
               </button>
@@ -222,7 +255,18 @@ function CatalogPage() {
           <EmptyState
             title={t('catalog.noResults')}
             action={
-              <Button variant="secondary" onClick={() => setParam({ tag: undefined, artist: undefined, edition: undefined, priceBand: undefined, q: undefined })}>
+              <Button
+                variant="secondary"
+                onClick={() =>
+                  setParam({
+                    tag: undefined,
+                    artist: undefined,
+                    edition: undefined,
+                    priceBand: undefined,
+                    q: undefined,
+                  })
+                }
+              >
                 {t('catalog.noResultsCta')}
               </Button>
             }
@@ -237,7 +281,10 @@ function CatalogPage() {
               style={{ perspective: '1400px' }}
             >
               <div className="qinghua-watermark absolute inset-x-0 top-6 h-24 opacity-60" />
-              <div ref={scroller.trackRef} className="relative flex h-full w-max items-center gap-10 px-6 will-change-transform">
+              <div
+                ref={scroller.trackRef}
+                className="relative flex h-full w-max items-center gap-10 px-6 will-change-transform"
+              >
                 {works.map((p, i) => (
                   <DeckCard
                     key={p.id}
@@ -247,7 +294,13 @@ function CatalogPage() {
                   />
                 ))}
                 {works.map((p, i) => (
-                  <DeckCard key={`${p.id}-copy`} product={p} active={i === activeIdx} ariaHidden onClick={() => undefined} />
+                  <DeckCard
+                    key={`${p.id}-copy`}
+                    product={p}
+                    active={i === activeIdx}
+                    ariaHidden
+                    onClick={() => undefined}
+                  />
                 ))}
               </div>
 
@@ -261,10 +314,20 @@ function CatalogPage() {
             <div className="mt-5 flex items-center justify-between">
               <p className="text-[0.78rem] text-ink-300">{t('catalog.crateHint')}</p>
               <div className="flex items-center gap-2">
-                <Button variant="secondary" size="sm" aria-label={t('catalog.prev')} onClick={() => scroller.scrollToPanel(activeIdx - 1)}>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  aria-label={t('catalog.prev')}
+                  onClick={() => scroller.scrollToPanel(activeIdx - 1)}
+                >
                   <ArrowLeft size={15} weight="bold" />
                 </Button>
-                <Button variant="secondary" size="sm" aria-label={t('catalog.next')} onClick={() => scroller.scrollToPanel(activeIdx + 1)}>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  aria-label={t('catalog.next')}
+                  onClick={() => scroller.scrollToPanel(activeIdx + 1)}
+                >
                   <ArrowRight size={15} weight="bold" />
                 </Button>
               </div>
@@ -272,7 +335,13 @@ function CatalogPage() {
           </div>
 
           {/* ------------------------------ museum label / actions ------------------------------ */}
-          <aside>{active ? <ActiveLabel product={active} /> : <Spinner className="h-6 w-6 text-cobalt-400" />}</aside>
+          <aside>
+            {active ? (
+              <ActiveLabel product={active} />
+            ) : (
+              <Spinner className="h-6 w-6 text-cobalt-400" />
+            )}
+          </aside>
         </div>
       )}
 
@@ -331,7 +400,9 @@ function DeckCard({
         )}
       >
         {/* family-color spine */}
-        <span className={cn('absolute inset-y-0 left-0 w-1.5 rounded-l-md', spineOf(product.tags))} />
+        <span
+          className={cn('absolute inset-y-0 left-0 w-1.5 rounded-l-md', spineOf(product.tags))}
+        />
         {/* record disc peeking out when active */}
         <span
           aria-hidden="true"
@@ -344,7 +415,16 @@ function DeckCard({
           <svg viewBox="0 0 100 100" className="h-full w-full">
             <circle cx="50" cy="50" r="49" fill="#121f49" />
             {Array.from({ length: 7 }, (_, i) => (
-              <circle key={i} cx="50" cy="50" r={14 + i * 5} fill="none" stroke="#e7eef9" strokeOpacity="0.14" strokeWidth="0.8" />
+              <circle
+                key={i}
+                cx="50"
+                cy="50"
+                r={14 + i * 5}
+                fill="none"
+                stroke="#e7eef9"
+                strokeOpacity="0.14"
+                strokeWidth="0.8"
+              />
             ))}
             <circle cx="50" cy="50" r="12" fill="var(--cobalt-600)" />
             <circle cx="50" cy="50" r="3" fill="#ffffff" />
@@ -367,7 +447,12 @@ function DeckCard({
       </div>
 
       {/* museum label */}
-      <div className={cn('mx-auto mt-4 w-[86%] rounded-sm border border-cobalt-100 bg-white px-3.5 py-2.5 shadow-card transition-all duration-300', active && 'border-cobalt-200')}>
+      <div
+        className={cn(
+          'mx-auto mt-4 w-[86%] rounded-sm border border-cobalt-100 bg-white px-3.5 py-2.5 shadow-card transition-all duration-300',
+          active && 'border-cobalt-200',
+        )}
+      >
         <p className="truncate text-[0.86rem] font-semibold text-ink-800">{product.title}</p>
         <p className="mt-0.5 flex items-baseline justify-between gap-2 text-[0.74rem] text-ink-400">
           <span className="truncate">{product.artist_name}</span>
@@ -432,10 +517,17 @@ function ActiveLabel({ product }: { product: Product }) {
       </Link>
 
       <div className="mt-3 flex flex-wrap gap-1.5">
-        {edition === 'one_of_a_kind' && <Badge tone="gold"><SealCheck size={11} weight="fill" />{editionLabel}</Badge>}
+        {edition === 'one_of_a_kind' && (
+          <Badge tone="gold">
+            <SealCheck size={11} weight="fill" />
+            {editionLabel}
+          </Badge>
+        )}
         {edition === 'limited_edition' && <Badge tone="cobalt">{editionLabel}</Badge>}
         {product.tags?.slice(0, 3).map((tag) => (
-          <Badge key={tag.id} tone="neutral">{tag.name}</Badge>
+          <Badge key={tag.id} tone="neutral">
+            {tag.name}
+          </Badge>
         ))}
       </div>
 
@@ -449,7 +541,9 @@ function ActiveLabel({ product }: { product: Product }) {
         </p>
       )}
       {sku && sku.stock > 0 && sku.stock <= sku.low_stock_threshold && (
-        <p className="mt-1.5 text-[0.78rem] text-[color:var(--color-warning)]">{t('product.lowStock', { count: sku.stock })}</p>
+        <p className="mt-1.5 text-[0.78rem] text-[color:var(--color-warning)]">
+          {t('product.lowStock', { count: sku.stock })}
+        </p>
       )}
 
       <div className="mt-5 flex items-center gap-2.5">
@@ -460,7 +554,12 @@ function ActiveLabel({ product }: { product: Product }) {
           onClick={() =>
             void add(sku!.id)
               .then(() => push({ title: t('toast.addedToCart', { title: product.title }) }))
-              .catch((err: unknown) => push({ title: err instanceof Error ? err.message : t('errors.generic'), kind: 'error' }))
+              .catch((err: unknown) =>
+                push({
+                  title: err instanceof Error ? err.message : t('errors.generic'),
+                  kind: 'error',
+                }),
+              )
           }
         >
           <SealCheck size={16} weight="duotone" />
@@ -477,13 +576,20 @@ function ActiveLabel({ product }: { product: Product }) {
                 return
               }
               void toggle(sku!.id).then((r) =>
-                push({ title: t(r === 'added' ? 'toast.addedToWishlist' : 'toast.removedFromWishlist') }),
+                push({
+                  title: t(r === 'added' ? 'toast.addedToWishlist' : 'toast.removedFromWishlist'),
+                }),
               )
             }}
           />
         )}
       </div>
-      <ButtonLink to="/$locale/catalog/$slug" params={{ locale, slug: product.slug }} variant="secondary" className="mt-2.5 w-full">
+      <ButtonLink
+        to="/$locale/catalog/$slug"
+        params={{ locale, slug: product.slug }}
+        variant="secondary"
+        className="mt-2.5 w-full"
+      >
         {t('product.detailsTitle')} →
       </ButtonLink>
     </div>

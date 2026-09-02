@@ -22,12 +22,52 @@ export interface LoopScroller {
 
 const EASE = 0.085
 
+/**
+ * Shortest-path signed delta from `current` to `target` on a modulo
+ * circle of circumference `w` (the infinite-loop seam math).
+ */
+export function wrapDelta(current: number, target: number, w: number): number {
+  let d = target - current
+  d = ((d % w) + w) % w
+  if (d > w / 2) d -= w
+  return d
+}
+
+/** Normalize any coordinate onto [0, w). */
+export function wrapPos(x: number, w: number): number {
+  return ((x % w) + w) % w
+}
+
+/**
+ * Index of the panel whose CENTER is nearest the viewport center,
+ * considering both rendered copies (a card centered just past the seam
+ * is copy 2's first panel). Mixed panel widths safe.
+ */
+export function nearestPanelIndex(
+  offsets: number[],
+  widths: number[],
+  x: number,
+  vw: number,
+  w: number,
+): number {
+  let idx = 0
+  let best = Infinity
+  for (let i = 0; i < offsets.length; i++) {
+    const c = offsets[i] + (widths[i] ?? 0) / 2 - (x + vw / 2)
+    const d = Math.min(Math.abs(c), Math.abs(c + w), Math.abs(c - w))
+    if (d < best) {
+      best = d
+      idx = i
+    }
+  }
+  return idx
+}
+
 export function useLoopScroller(
   panelCount: number,
   opts?: { wheel?: 'all' | 'horizontalOnly'; center?: boolean },
 ): LoopScroller {
   const optsRef = useRef(opts)
-  optsRef.current = opts
   const widths = useRef<number[]>([])
   const didInit = useRef(false)
   const viewportRef = useRef<HTMLDivElement>(null)
@@ -40,13 +80,25 @@ export function useLoopScroller(
     Array<{ el: HTMLElement; speed: number; panel: HTMLElement; deck: boolean }>
   >([])
   const reveals = useRef<Array<{ el: HTMLElement; panel: HTMLElement }>>([])
+  const reduced = useRef(false)
   const [activeIndex, setActiveIndex] = useState(0)
+
+  useEffect(() => {
+    const mq = window.matchMedia?.('(prefers-reduced-motion: reduce)')
+    reduced.current = mq?.matches ?? false
+    mq?.addEventListener('change', (e) => {
+      reduced.current = e.matches
+    })
+  }, [])
 
   const measure = useCallback(() => {
     const track = trackRef.current
     if (!track || panelCount === 0) return
     // panels live inside two copy wrappers; measure the first copy
-    const kids = Array.from(track.querySelectorAll<HTMLElement>('[data-panel]')).slice(0, panelCount)
+    const kids = Array.from(track.querySelectorAll<HTMLElement>('[data-panel]')).slice(
+      0,
+      panelCount,
+    )
     offsets.current = kids.map((k) => k.offsetLeft)
     widths.current = kids.map((k) => k.offsetWidth)
     // crate mode: rest position = first card centered
@@ -75,6 +127,11 @@ export function useLoopScroller(
     }
   }, [panelCount])
 
+  // keep the latest opts for event-time reads (wheel/scroll handlers)
+  useEffect(() => {
+    optsRef.current = opts
+  })
+
   useLayoutEffect(() => {
     measure()
   }, [measure])
@@ -93,10 +150,8 @@ export function useLoopScroller(
     const loop = () => {
       const w = setWidth.current
       // shortest-path delta on the modulo circle
-      let delta = target.current - current.current
-      delta = ((delta % w) + w) % w
-      if (delta > w / 2) delta -= w
-      current.current += delta * EASE
+      current.current +=
+        wrapDelta(current.current, target.current, w) * (reduced.current ? 1 : EASE)
       if (Math.abs(target.current - current.current) < 0.4) current.current = target.current
       // keep both coordinates inside one set (invisible, content duplicated)
       if (current.current >= w) {
@@ -114,20 +169,12 @@ export function useLoopScroller(
       const offs = offsets.current
       const wids = widths.current
       if (offs.length) {
-        // nearest-to-center panel wins, considering BOTH copies (a
-        // centered card just past the seam is copy 2's first panel)
-        const x = ((current.current % w) + w) % w
-        let idx = 0
-        let best = Infinity
-        for (let i = 0; i < offs.length; i++) {
-          const c = offs[i] + (wids[i] ?? 0) / 2 - (x + vw / 2)
-          const d = Math.min(Math.abs(c), Math.abs(c + w), Math.abs(c - w))
-          if (d < best) {
-            best = d
-            idx = i
-          }
-        }
+        const idx = nearestPanelIndex(offs, wids, wrapPos(current.current, w), vw, w)
         setActiveIndex((prev) => (prev === idx ? prev : idx))
+      }
+      if (reduced.current) {
+        raf = requestAnimationFrame(loop)
+        return
       }
       for (const { el, speed, panel, deck } of parallax.current) {
         if (deck) {
@@ -184,7 +231,8 @@ export function useLoopScroller(
     let startTarget = 0
     let moved = 0
     const interactive = (t: EventTarget | null) =>
-      t instanceof HTMLElement && !!t.closest('a,button,input,select,textarea,label,[role="button"]')
+      t instanceof HTMLElement &&
+      !!t.closest('a,button,input,select,textarea,label,[role="button"]')
     const pd = (e: PointerEvent) => {
       if (e.pointerType === 'mouse' && interactive(e.target)) return
       down = true

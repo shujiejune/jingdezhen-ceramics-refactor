@@ -1,10 +1,27 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { ArrowRight, ArrowUUpRight, PaperPlaneTilt, SealCheck, GlobeHemisphereWest } from '@phosphor-icons/react'
+import {
+  ArrowRight,
+  ArrowUUpRight,
+  PaperPlaneTilt,
+  SealCheck,
+  GlobeHemisphereWest,
+} from '@phosphor-icons/react'
 import { useEffect, useState } from 'react'
 
-import { PorcelainFigure, PorcelainLandscape, ArtistMedallion } from '~/components/artwork/PorcelainFigure'
+import {
+  PorcelainFigure,
+  PorcelainLandscape,
+  ArtistMedallion,
+} from '~/components/artwork/PorcelainFigure'
 import { ActivityCard, ArtistCard, ProductCard } from '~/components/cards'
-import { BrushRule, CloudScroll, CornerFrame, PetalScatter, SealMark, WaveBand } from '~/components/ornaments'
+import {
+  BrushRule,
+  CloudScroll,
+  CornerFrame,
+  PetalScatter,
+  SealMark,
+  WaveBand,
+} from '~/components/ornaments'
 import { Button, ButtonLink } from '~/components/common/ui'
 import { Spine } from '~/components/layout/Spine'
 import { api } from '~/lib/api'
@@ -32,7 +49,12 @@ export const Route = createFileRoute('/$locale/')({
       api.getArtists(locale),
       api.getProducts({ locale, currency, page: 1, limit: 48 }),
     ])
-    return { featured: featured.data, destinations: destinations.slice(0, 3), artists, catalog: catalog.data }
+    return {
+      featured: featured.data,
+      destinations: destinations.slice(0, 3),
+      artists,
+      catalog: catalog.data,
+    }
   },
   head: () => ({
     meta: [
@@ -127,9 +149,18 @@ function LandingMagazine() {
   const panels = (ariaHidden: boolean) => (
     <div className="flex h-full" aria-hidden={ariaHidden || undefined}>
       {/* ------------------------------ 1 · cover ------------------------------ */}
-      <section data-panel className="relative h-full w-screen shrink-0 overflow-hidden bg-gradient-to-b from-wash via-paper to-porcelain/70">
+      <section
+        data-panel
+        className="relative h-full w-screen shrink-0 overflow-hidden bg-gradient-to-b from-wash via-paper to-porcelain/70"
+      >
         <div className="qinghua-watermark absolute inset-y-0 right-0 w-2/3 opacity-80" />
-        <PetalScatter seed={11} count={9} className="pointer-events-none absolute top-14 right-[38%] opacity-60" width={200} height={120} />
+        <PetalScatter
+          seed={11}
+          count={9}
+          className="pointer-events-none absolute top-14 right-[38%] opacity-60"
+          width={200}
+          height={120}
+        />
         <div className="relative grid h-full grid-cols-[1.05fr_0.95fr] items-center gap-8 pr-10 pl-10 sm:pl-14">
           <div className="max-w-xl" data-reveal>
             <p className="eyebrow flex items-center gap-2.5">
@@ -137,7 +168,9 @@ function LandingMagazine() {
               {t('mag.tagline')} · {t('mag.issue')}
             </p>
             <h1 className="mt-5 text-display text-ink-900">{t('landing.heroTitle')}</h1>
-            <p className="mt-6 max-w-md text-[1.05rem] leading-relaxed text-ink-500">{t('landing.heroSub')}</p>
+            <p className="mt-6 max-w-md text-[1.05rem] leading-relaxed text-ink-500">
+              {t('landing.heroSub')}
+            </p>
             <div className="mt-9 flex flex-wrap items-center gap-3.5">
               <Button size="lg" onClick={() => scroller.scrollToPanel(2)}>
                 {t('landing.ctaGallery')}
@@ -156,7 +189,9 @@ function LandingMagazine() {
                 ] as const
               ).map(([v, l]) => (
                 <div key={v}>
-                  <dd className="text-[1.35rem] font-semibold tracking-tight text-cobalt-700">{t(v)}</dd>
+                  <dd className="text-[1.35rem] font-semibold tracking-tight text-cobalt-700">
+                    {t(v)}
+                  </dd>
                   <dt className="mt-1 max-w-28 text-[0.72rem] leading-snug text-ink-400">{t(l)}</dt>
                 </div>
               ))}
@@ -199,13 +234,22 @@ function LandingMagazine() {
                   <div style={{ filter: 'hue-rotate(0deg)' }} className="h-full w-full">
                     <FamilyFigure family={f.key} seed={f.seed} figure={f.figure} />
                   </div>
-                  <span className={cn('absolute top-2.5 right-2.5 rounded-sm px-2 py-0.5 text-[0.72rem] font-bold', f.chip)}>
+                  <span
+                    className={cn(
+                      'absolute top-2.5 right-2.5 rounded-sm px-2 py-0.5 text-[0.72rem] font-bold',
+                      f.chip,
+                    )}
+                  >
                     {f.zh}
                   </span>
                 </div>
                 <div className="flex flex-1 flex-col p-4">
-                  <h3 className="text-[0.95rem] font-semibold text-ink-800 group-hover:text-cobalt-700">{t(f.nameKey)}</h3>
-                  <p className="mt-1.5 flex-1 text-[0.8rem] leading-relaxed text-ink-500">{t(f.bodyKey)}</p>
+                  <h3 className="text-[0.95rem] font-semibold text-ink-800 group-hover:text-cobalt-700">
+                    {t(f.nameKey)}
+                  </h3>
+                  <p className="mt-1.5 flex-1 text-[0.8rem] leading-relaxed text-ink-500">
+                    {t(f.bodyKey)}
+                  </p>
                   <span className="mt-3 inline-flex items-center gap-1 text-[0.78rem] font-medium text-cobalt-600">
                     {t('mag.familiesBrowse')}
                     <ArrowRight size={12} className="transition group-hover:translate-x-0.5" />
@@ -225,9 +269,17 @@ function LandingMagazine() {
             <div className="max-w-lg">
               <p className="eyebrow">{t('landing.featuredEyebrow')}</p>
               <h2 className="mt-2.5 text-display-sm text-ink-900">{t('landing.featuredTitle')}</h2>
-              <p className="mt-3 text-[0.92rem] leading-relaxed text-ink-500">{t('landing.featuredSub')}</p>
+              <p className="mt-3 text-[0.92rem] leading-relaxed text-ink-500">
+                {t('landing.featuredSub')}
+              </p>
             </div>
-            <ButtonLink to="/$locale/catalog" params={{ locale }} variant="secondary" size="sm" className="shrink-0">
+            <ButtonLink
+              to="/$locale/catalog"
+              params={{ locale }}
+              variant="secondary"
+              size="sm"
+              className="shrink-0"
+            >
               {t('common.viewAll')}
               <ArrowUUpRight size={13} weight="bold" />
             </ButtonLink>
@@ -247,9 +299,19 @@ function LandingMagazine() {
       </section>
 
       {/* ------------------------------ 4 · heritage ------------------------------ */}
-      <section data-panel className="relative h-full w-screen shrink-0 overflow-hidden bg-cobalt-800">
-        <div className="qinghua-watermark absolute inset-0 opacity-[0.14]" style={{ filter: 'invert(1)' }} />
-        <PetalScatter seed={23} count={8} className="pointer-events-none absolute top-10 right-10 opacity-20" />
+      <section
+        data-panel
+        className="relative h-full w-screen shrink-0 overflow-hidden bg-cobalt-800"
+      >
+        <div
+          className="qinghua-watermark absolute inset-0 opacity-[0.14]"
+          style={{ filter: 'invert(1)' }}
+        />
+        <PetalScatter
+          seed={23}
+          count={8}
+          className="pointer-events-none absolute top-10 right-10 opacity-20"
+        />
         <div className="relative grid h-full grid-cols-2 items-center gap-10 pr-12 pl-10 sm:pl-14">
           <div className="max-w-lg" data-reveal>
             <p className="text-[0.72rem] font-semibold tracking-[0.2em] text-white/60 uppercase">
@@ -267,7 +329,10 @@ function LandingMagazine() {
               <ArrowRight size={16} weight="bold" />
             </ButtonLink>
           </div>
-          <div className="relative mx-auto w-full max-w-[30rem] overflow-hidden rounded-md border border-white/15 shadow-pop" data-parallax="0.08">
+          <div
+            className="relative mx-auto w-full max-w-[30rem] overflow-hidden rounded-md border border-white/15 shadow-pop"
+            data-parallax="0.08"
+          >
             <PorcelainLandscape seed={201} tone="deep" className="h-auto w-full" />
           </div>
         </div>
@@ -281,7 +346,13 @@ function LandingMagazine() {
               <p className="eyebrow">{t('landing.visitEyebrow')}</p>
               <h2 className="mt-2.5 text-display-sm text-ink-900">{t('landing.visitTitle')}</h2>
             </div>
-            <ButtonLink to="/$locale/engage" params={{ locale }} variant="secondary" size="sm" className="shrink-0">
+            <ButtonLink
+              to="/$locale/engage"
+              params={{ locale }}
+              variant="secondary"
+              size="sm"
+              className="shrink-0"
+            >
               {t('landing.visitCta')}
               <ArrowUUpRight size={13} weight="bold" />
             </ButtonLink>
@@ -297,7 +368,10 @@ function LandingMagazine() {
       </section>
 
       {/* ------------------------------ 6 · artists ------------------------------ */}
-      <section data-panel className="relative h-full w-screen shrink-0 bg-gradient-to-l from-porcelain/60 to-paper">
+      <section
+        data-panel
+        className="relative h-full w-screen shrink-0 bg-gradient-to-l from-porcelain/60 to-paper"
+      >
         <div className="flex h-full flex-col items-start justify-center gap-8 pr-12 pl-10 sm:pl-14">
           <div className="max-w-lg" data-reveal>
             <p className="eyebrow">{t('landing.artistsEyebrow')}</p>
@@ -305,8 +379,14 @@ function LandingMagazine() {
           </div>
           <div className="flex items-stretch gap-6" data-reveal>
             {data.artists.slice(0, 3).map((a, i) => (
-              <div key={a.id} className={cn('w-72 shrink-0', i === 1 ? 'mt-10' : i === 2 ? 'mt-4' : '')}>
-                <ArtistCard artist={a} works={data.catalog.filter((p) => p.artist_id === a.id).length} />
+              <div
+                key={a.id}
+                className={cn('w-72 shrink-0', i === 1 ? 'mt-10' : i === 2 ? 'mt-4' : '')}
+              >
+                <ArtistCard
+                  artist={a}
+                  works={data.catalog.filter((p) => p.artist_id === a.id).length}
+                />
               </div>
             ))}
             <div className="flex w-52 shrink-0 flex-col items-center justify-center gap-3 border-l border-cobalt-100 pl-6">
@@ -322,9 +402,19 @@ function LandingMagazine() {
       </section>
 
       {/* ------------------------------ 7 · journey ------------------------------ */}
-      <section data-panel className="bg-cobalt-band relative h-full w-screen shrink-0 overflow-hidden">
-        <div className="qinghua-watermark absolute inset-0 opacity-[0.12]" style={{ filter: 'invert(1)' }} />
-        <PetalScatter seed={42} count={9} className="pointer-events-none absolute bottom-10 left-1/3 opacity-20" />
+      <section
+        data-panel
+        className="bg-cobalt-band relative h-full w-screen shrink-0 overflow-hidden"
+      >
+        <div
+          className="qinghua-watermark absolute inset-0 opacity-[0.12]"
+          style={{ filter: 'invert(1)' }}
+        />
+        <PetalScatter
+          seed={42}
+          count={9}
+          className="pointer-events-none absolute bottom-10 left-1/3 opacity-20"
+        />
         <div className="relative flex h-full flex-col items-start justify-center gap-9 pr-12 pl-10 sm:pl-14">
           <div className="max-w-xl" data-reveal>
             <p className="text-[0.72rem] font-semibold tracking-[0.2em] text-white/70 uppercase">
@@ -342,9 +432,17 @@ function LandingMagazine() {
                 ['landing.travelStep4', 'landing.travelStep4Body', 'bg-imperial-400'],
               ] as const
             ).map(([title, body, chip], i) => (
-              <div key={title} className="w-56 rounded-md border border-white/15 bg-white/10 px-4 py-5 backdrop-blur-sm">
+              <div
+                key={title}
+                className="w-56 rounded-md border border-white/15 bg-white/10 px-4 py-5 backdrop-blur-sm"
+              >
                 <p className="flex items-center gap-2 text-[0.85rem] font-semibold text-white">
-                  <span className={cn('flex h-5 w-5 items-center justify-center rounded-sm text-[0.68rem] font-bold text-white', chip)}>
+                  <span
+                    className={cn(
+                      'flex h-5 w-5 items-center justify-center rounded-sm text-[0.68rem] font-bold text-white',
+                      chip,
+                    )}
+                  >
                     {i + 1}
                   </span>
                   {t(title)}
@@ -373,7 +471,9 @@ function LandingMagazine() {
               <div className="flex items-center gap-2.5">
                 <SealMark size={38} />
                 <span className="flex flex-col leading-none">
-                  <span className="text-[0.95rem] font-semibold text-ink-900">{t('common.brand')}</span>
+                  <span className="text-[0.95rem] font-semibold text-ink-900">
+                    {t('common.brand')}
+                  </span>
                   <span className="mt-1 text-[0.62rem] font-medium tracking-[0.16em] text-cobalt-600 uppercase">
                     {t('common.brandSub')}
                   </span>
@@ -388,7 +488,10 @@ function LandingMagazine() {
             </div>
             <FooterCols />
           </div>
-          <div className="flex items-center justify-between border-t border-cobalt-100 pt-5" data-reveal>
+          <div
+            className="flex items-center justify-between border-t border-cobalt-100 pt-5"
+            data-reveal
+          >
             <WaveBand width={140} />
             <p className="text-[0.75rem] text-ink-400">{t('footer.rights')}</p>
             <p className="text-[0.75rem] text-ink-300">{t('common.prototypeNote')}</p>
@@ -440,11 +543,23 @@ const FAMILY_TINTS: Record<string, string> = {
   yanseyou: 'hue-rotate(150deg) saturate(1.35)',
 }
 
-function FamilyFigure({ family, seed, figure }: { family: string; seed: number; figure: 'vase' | 'bowl' | 'plate' | 'teapot' | 'jar' }) {
+function FamilyFigure({
+  family,
+  seed,
+  figure,
+}: {
+  family: string
+  seed: number
+  figure: 'vase' | 'bowl' | 'plate' | 'teapot' | 'jar'
+}) {
   const tint = FAMILY_TINTS[family] ?? 'none'
   return (
     <div className="h-full w-full" style={{ filter: tint === 'none' ? undefined : tint }}>
-      <PorcelainFigure kind={figure} seed={seed} className="h-full w-full transition duration-500 [div:hover>&]:scale-[1.04]" />
+      <PorcelainFigure
+        kind={figure}
+        seed={seed}
+        className="h-full w-full transition duration-500 [div:hover>&]:scale-[1.04]"
+      />
     </div>
   )
 }
@@ -522,11 +637,16 @@ function FooterCols() {
     <div className="flex gap-14">
       {cols.map((col) => (
         <nav key={col.title} aria-label={col.title}>
-          <h3 className="text-[0.7rem] font-semibold tracking-[0.18em] text-ink-400 uppercase">{col.title}</h3>
+          <h3 className="text-[0.7rem] font-semibold tracking-[0.18em] text-ink-400 uppercase">
+            {col.title}
+          </h3>
           <ul className="mt-4 flex flex-col gap-2.5">
             {col.links.map((l) => (
               <li key={l.label}>
-                <Link to={l.to as never} className="text-sm text-ink-600 transition hover:text-cobalt-700">
+                <Link
+                  to={l.to as never}
+                  className="text-sm text-ink-600 transition hover:text-cobalt-700"
+                >
                   {l.label}
                 </Link>
               </li>

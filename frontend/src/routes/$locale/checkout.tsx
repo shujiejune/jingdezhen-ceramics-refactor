@@ -39,7 +39,10 @@ function CheckoutPage() {
   const [placing, setPlacing] = useState(false)
   const [sandboxOrder, setSandboxOrder] = useState<Order | null>(null)
 
-  const weight = useMemo(() => cart?.items.reduce((s, i) => s + i.weight_grams * i.qty, 0) ?? 0, [cart])
+  const weight = useMemo(
+    () => cart?.items.reduce((s, i) => s + i.weight_grams * i.qty, 0) ?? 0,
+    [cart],
+  )
   const address = addresses?.find((a) => a.id === addressId) ?? null
   const blocked = quote?.blocked_reason
 
@@ -148,7 +151,9 @@ function CheckoutPage() {
   }
 
   const total =
-    cart?.total !== undefined && !blocked && quote?.fee !== undefined ? cart.total + quote.fee : cart?.total
+    cart?.total !== undefined && !blocked && quote?.fee !== undefined
+      ? cart.total + quote.fee
+      : cart?.total
 
   return (
     <div className="mx-auto max-w-shell px-4 pt-10 sm:px-6">
@@ -178,7 +183,9 @@ function CheckoutPage() {
                     }
                   >
                     <span className="flex items-center justify-between">
-                      <span className="text-[0.88rem] font-semibold text-ink-800">{a.recipient}</span>
+                      <span className="text-[0.88rem] font-semibold text-ink-800">
+                        {a.recipient}
+                      </span>
                       {a.is_default && <Badge tone="cobalt">{t('checkout.defaultBadge')}</Badge>}
                     </span>
                     <span className="mt-1.5 block text-[0.82rem] leading-relaxed text-ink-500">
@@ -212,10 +219,16 @@ function CheckoutPage() {
             {address && (
               <p className="mt-5 rounded-lg bg-mist px-4 py-3 text-[0.85rem] text-ink-600">
                 {t('checkout.shippingTo', {
-                  country: new Intl.DisplayNames([locale], { type: 'region' }).of(address.country) ?? '',
+                  country:
+                    new Intl.DisplayNames([locale], { type: 'region' }).of(address.country) ?? '',
                 })}{' '}
                 · {t('checkout.weightLabel')}: {formatWeight(weight, locale)}
-                {quote && !blocked && <> · {t('cart.estimatedShipping')}: <strong>{price(quote.fee)}</strong></>}
+                {quote && !blocked && (
+                  <>
+                    {' '}
+                    · {t('cart.estimatedShipping')}: <strong>{price(quote.fee)}</strong>
+                  </>
+                )}
               </p>
             )}
 
@@ -228,7 +241,10 @@ function CheckoutPage() {
                 <p className="mt-2 text-[0.84rem] leading-relaxed text-ink-600">
                   {blocked === 'overweight' ? t('cart.overweightBody') : t('cart.unshippableBody')}
                 </p>
-                <a href="mailto:hello@jdz-atelier.example" className="mt-2 inline-block text-[0.84rem] font-medium text-cobalt-600 hover:underline">
+                <a
+                  href="mailto:hello@jdz-atelier.example"
+                  className="mt-2 inline-block text-[0.84rem] font-medium text-cobalt-600 hover:underline"
+                >
                   {t('cart.contactUs')}
                 </a>
               </div>
@@ -237,7 +253,9 @@ function CheckoutPage() {
 
           {/* ------------------------- payment ------------------------- */}
           <section className="card-surface p-6">
-            <h2 className="text-[1.02rem] font-semibold text-ink-900">2 · {t('checkout.payment')}</h2>
+            <h2 className="text-[1.02rem] font-semibold text-ink-900">
+              2 · {t('checkout.payment')}
+            </h2>
             <p className="mt-1">
               <Badge tone="warning">SANDBOX</Badge>
             </p>
@@ -269,7 +287,11 @@ function CheckoutPage() {
               <div className="mt-5 grid gap-4 sm:grid-cols-2">
                 <div className="sm:col-span-2">
                   <label className="label-base">{t('checkout.cardNumber')}</label>
-                  <input className="input-base" placeholder="4242 4242 4242 4242" inputMode="numeric" />
+                  <input
+                    className="input-base"
+                    placeholder="4242 4242 4242 4242"
+                    inputMode="numeric"
+                  />
                 </div>
                 <div>
                   <label className="label-base">{t('checkout.cardExpiry')}</label>
@@ -301,7 +323,9 @@ function CheckoutPage() {
                   <span className="min-w-0 truncate text-ink-600">
                     {i.product_title} <span className="text-ink-300">× {i.qty}</span>
                   </span>
-                  <span className="shrink-0 font-medium text-ink-800">{price(i.line_total ?? i.line_total_cny)}</span>
+                  <span className="shrink-0 font-medium text-ink-800">
+                    {price(i.line_total ?? i.line_total_cny)}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -325,11 +349,21 @@ function CheckoutPage() {
           {/* consent */}
           <div className="mt-5 flex flex-col gap-2.5">
             <label className="flex cursor-pointer items-start gap-2.5 text-[0.82rem] leading-snug text-ink-600">
-              <input type="checkbox" checked={agreeToS} onChange={(e) => setAgreeToS(e.target.checked)} className="mt-0.5 h-4 w-4 accent-[var(--cobalt-600)]" />
+              <input
+                type="checkbox"
+                checked={agreeToS}
+                onChange={(e) => setAgreeToS(e.target.checked)}
+                className="mt-0.5 h-4 w-4 accent-[var(--cobalt-600)]"
+              />
               {t('checkout.tos')}
             </label>
             <label className="flex cursor-pointer items-start gap-2.5 text-[0.82rem] leading-snug text-ink-600">
-              <input type="checkbox" checked={agreePrivacy} onChange={(e) => setAgreePrivacy(e.target.checked)} className="mt-0.5 h-4 w-4 accent-[var(--cobalt-600)]" />
+              <input
+                type="checkbox"
+                checked={agreePrivacy}
+                onChange={(e) => setAgreePrivacy(e.target.checked)}
+                className="mt-0.5 h-4 w-4 accent-[var(--cobalt-600)]"
+              />
               {t('checkout.privacy')}
             </label>
           </div>
@@ -351,7 +385,9 @@ function CheckoutPage() {
             {t('checkout.placeOrder', { amount: price(total) })}
           </Button>
 
-          <p className="mt-4 text-[0.74rem] leading-relaxed text-ink-300">{t('checkout.customs')}</p>
+          <p className="mt-4 text-[0.74rem] leading-relaxed text-ink-300">
+            {t('checkout.customs')}
+          </p>
         </aside>
       </div>
 
@@ -363,7 +399,9 @@ function CheckoutPage() {
             <h2 className="mt-4 text-[1.25rem] font-semibold text-ink-900">
               {t('checkout.placeOrder', { amount: price(sandboxOrder.total_minor) })}
             </h2>
-            <p className="mt-2.5 text-[0.88rem] leading-relaxed text-ink-500">{t('checkout.sandboxBody')}</p>
+            <p className="mt-2.5 text-[0.88rem] leading-relaxed text-ink-500">
+              {t('checkout.sandboxBody')}
+            </p>
             <p className="mt-3 text-[0.78rem] text-ink-300">
               {t('orders.orderN', { id: sandboxOrder.id })} · {gateway}
             </p>
@@ -373,7 +411,10 @@ function CheckoutPage() {
                 className="flex-1"
                 onClick={() => {
                   setSandboxOrder(null)
-                  void navigate({ to: '/$locale/orders/$id', params: { locale, id: String(sandboxOrder.id) } })
+                  void navigate({
+                    to: '/$locale/orders/$id',
+                    params: { locale, id: String(sandboxOrder.id) },
+                  })
                 }}
               >
                 {t('checkout.declinePayment')}
@@ -408,8 +449,9 @@ function NewAddressForm({ onCreated }: { onCreated: (a: Address) => void }) {
   })
   const [formError, setFormError] = useState<string | null>(null)
 
-  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
-    setForm((f) => ({ ...f, [k]: e.target.value }))
+  const set =
+    (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+      setForm((f) => ({ ...f, [k]: e.target.value }))
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -418,7 +460,7 @@ function NewAddressForm({ onCreated }: { onCreated: (a: Address) => void }) {
     try {
       const a = await api.createAddress(token!, form)
       onCreated(a)
-    } catch (err) {
+    } catch {
       setFormError(t('errors.validation_failed'))
     } finally {
       setSaving(false)
@@ -426,7 +468,10 @@ function NewAddressForm({ onCreated }: { onCreated: (a: Address) => void }) {
   }
 
   return (
-    <form onSubmit={submit} className="mt-5 grid gap-4 rounded-xl border border-cobalt-100 bg-wash/60 p-5 sm:grid-cols-2">
+    <form
+      onSubmit={submit}
+      className="mt-5 grid gap-4 rounded-xl border border-cobalt-100 bg-wash/60 p-5 sm:grid-cols-2"
+    >
       {(
         [
           ['recipient', t('checkout.addressName'), true],

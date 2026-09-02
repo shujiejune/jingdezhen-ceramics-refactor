@@ -1,5 +1,11 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { ArrowLeft, ArrowRight, CheckCircle, ClockCountdown, FloppyDisk } from '@phosphor-icons/react'
+import {
+  ArrowLeft,
+  ArrowRight,
+  CheckCircle,
+  ClockCountdown,
+  FloppyDisk,
+} from '@phosphor-icons/react'
 import { useEffect, useMemo, useState } from 'react'
 import { z } from 'zod'
 
@@ -143,7 +149,11 @@ function ItineraryWizard() {
 
   const submit = async () => {
     if (!token) {
-      void navigate({ to: '/$locale/auth/login', params: { locale }, search: { returnTo: `/${locale}/itinerary` } })
+      void navigate({
+        to: '/$locale/auth/login',
+        params: { locale },
+        search: { returnTo: `/${locale}/itinerary` },
+      })
       return
     }
     if (!form.consent) {
@@ -237,20 +247,35 @@ function ItineraryWizard() {
     )
   }
 
-  const stepTitles = [t('itin.step1'), t('itin.step2'), t('itin.step3'), t('itin.step4'), t('itin.review')]
+  const stepTitles = [
+    t('itin.step1'),
+    t('itin.step2'),
+    t('itin.step3'),
+    t('itin.step4'),
+    t('itin.review'),
+  ]
 
   return (
     <div className="mx-auto max-w-3xl px-4 pt-10 sm:px-6">
       {/* head */}
       <div className="relative">
-        <PetalScatter seed={31} count={6} className="pointer-events-none absolute -top-4 right-0 opacity-50" />
+        <PetalScatter
+          seed={31}
+          count={6}
+          className="pointer-events-none absolute -top-4 right-0 opacity-50"
+        />
         <p className="eyebrow">{t('landing.travelEyebrow')}</p>
         <h1 className="mt-2 text-display-sm text-ink-900">{t('itin.title')}</h1>
         <p className="mt-2 text-[0.92rem] text-ink-500">{t('itin.subtitle')}</p>
         {!token && user === null && (
           <p className="mt-3 text-[0.82rem] text-cobalt-600">
             {t('itin.signInFirst')} —{' '}
-            <Link to="/$locale/auth/login" params={{ locale }} search={{ returnTo: `/${locale}/itinerary` }} className="link-quiet">
+            <Link
+              to="/$locale/auth/login"
+              params={{ locale }}
+              search={{ returnTo: `/${locale}/itinerary` }}
+              className="link-quiet"
+            >
               {t('nav.login')}
             </Link>
           </p>
@@ -279,7 +304,9 @@ function ItineraryWizard() {
                   {done ? <CheckCircle size={14} weight="fill" /> : n}
                 </button>
                 {n < stepTitles.length && (
-                  <div className={cn('mx-2 h-px flex-1', step > n ? 'bg-cobalt-500' : 'bg-cobalt-100')} />
+                  <div
+                    className={cn('mx-2 h-px flex-1', step > n ? 'bg-cobalt-500' : 'bg-cobalt-100')}
+                  />
                 )}
               </div>
             )
@@ -367,7 +394,12 @@ function ItineraryWizard() {
                       key={key}
                       type="button"
                       onClick={() =>
-                        set('interests', active ? form.interests.filter((i) => i !== key) : [...form.interests, key])
+                        set(
+                          'interests',
+                          active
+                            ? form.interests.filter((i) => i !== key)
+                            : [...form.interests, key],
+                        )
                       }
                       className={cn(
                         'rounded-full border px-3.5 py-1.5 text-[0.84rem] font-medium transition',
@@ -487,8 +519,16 @@ function ItineraryWizard() {
               )}
             </ToggleRow>
 
-            <ToggleRow label={t('itin.pickup')} checked={form.pickup} onChange={(v) => set('pickup', v)} />
-            <ToggleRow label={t('itin.experience')} checked={form.experience} onChange={(v) => set('experience', v)} />
+            <ToggleRow
+              label={t('itin.pickup')}
+              checked={form.pickup}
+              onChange={(v) => set('pickup', v)}
+            />
+            <ToggleRow
+              label={t('itin.experience')}
+              checked={form.experience}
+              onChange={(v) => set('experience', v)}
+            />
 
             <div>
               <label className="label-base">
@@ -521,7 +561,9 @@ function ItineraryWizard() {
                         : 'border-ink-300/40 hover:border-cobalt-300',
                     )}
                   >
-                    <span className="block text-[0.88rem] font-medium text-ink-800">{t(`itin.channel.${c}` as Parameters<typeof t>[0])}</span>
+                    <span className="block text-[0.88rem] font-medium text-ink-800">
+                      {t(`itin.channel.${c}` as Parameters<typeof t>[0])}
+                    </span>
                     {c === 'email' && user && (
                       <span className="mt-0.5 block text-[0.76rem] text-ink-400">{user.email}</span>
                     )}
@@ -573,7 +615,8 @@ function ItineraryWizard() {
 
             <ReviewSection onEdit={() => goStep(1)} title={t('itin.step1')}>
               <p>
-                {t('itin.arrivalDate')}: <strong>{form.arrival_date}</strong> · {form.duration_days} {t('itin.days')}
+                {t('itin.arrivalDate')}: <strong>{form.arrival_date}</strong> · {form.duration_days}{' '}
+                {t('itin.days')}
                 {form.flexible && ` · ${t('itin.flexible')}`}
               </p>
               <p className="mt-1">
@@ -586,14 +629,16 @@ function ItineraryWizard() {
               <p className="mt-1">
                 {t('itin.budget')}:{' '}
                 {formatMinor(form.budget_min * 100, form.budget_currency, locale)} –{' '}
-                {formatMinor(form.budget_max * 100, form.budget_currency, locale)} · {t(`itin.pace.${form.pace}` as Parameters<typeof t>[0])}
+                {formatMinor(form.budget_max * 100, form.budget_currency, locale)} ·{' '}
+                {t(`itin.pace.${form.pace}` as Parameters<typeof t>[0])}
               </p>
             </ReviewSection>
 
             <ReviewSection onEdit={() => goStep(3)} title={t('itin.step3')}>
               <p>
                 {t(`itin.guide.${form.guide}` as Parameters<typeof t>[0])}
-                {form.hotel && ` · ${t('itin.hotel')} (${t(`itin.hotelLevel.${form.hotel_level}` as Parameters<typeof t>[0])})`}
+                {form.hotel &&
+                  ` · ${t('itin.hotel')} (${t(`itin.hotelLevel.${form.hotel_level}` as Parameters<typeof t>[0])})`}
                 {form.pickup && ` · ${t('itin.pickup')}`}
                 {form.experience && ` · ${t('itin.experience')}`}
               </p>
@@ -611,7 +656,12 @@ function ItineraryWizard() {
             {!token && (
               <p className="rounded-lg border border-[color:var(--color-warning)]/30 bg-[color:var(--color-warning-bg)] px-4 py-3 text-[0.84rem] text-ink-600">
                 {t('itin.signInBody')}{' '}
-                <Link to="/$locale/auth/login" params={{ locale }} search={{ returnTo: `/${locale}/itinerary` }} className="link-quiet">
+                <Link
+                  to="/$locale/auth/login"
+                  params={{ locale }}
+                  search={{ returnTo: `/${locale}/itinerary` }}
+                  className="link-quiet"
+                >
                   {t('nav.login')}
                 </Link>
               </p>
@@ -655,14 +705,31 @@ function interestLabel(key: string, locale: string): string {
   return locale === 'zh-CN' ? opt.translations.zhCN : opt.translations.enUS
 }
 
-function Counter({ value, min, onChange }: { value: number; min: number; onChange: (v: number) => void }) {
+function Counter({
+  value,
+  min,
+  onChange,
+}: {
+  value: number
+  min: number
+  onChange: (v: number) => void
+}) {
   return (
     <div className="inline-flex h-11 items-center rounded-lg border border-ink-300/50">
-      <button type="button" className="h-full w-10 text-ink-500 hover:text-cobalt-600 disabled:opacity-30" disabled={value <= min} onClick={() => onChange(value - 1)}>
+      <button
+        type="button"
+        className="h-full w-10 text-ink-500 hover:text-cobalt-600 disabled:opacity-30"
+        disabled={value <= min}
+        onClick={() => onChange(value - 1)}
+      >
         −
       </button>
       <span className="w-10 text-center font-medium text-ink-800">{value}</span>
-      <button type="button" className="h-full w-10 text-ink-500 hover:text-cobalt-600" onClick={() => onChange(value + 1)}>
+      <button
+        type="button"
+        className="h-full w-10 text-ink-500 hover:text-cobalt-600"
+        onClick={() => onChange(value + 1)}
+      >
         +
       </button>
     </div>
@@ -681,10 +748,20 @@ function ToggleRow({
   children?: React.ReactNode
 }) {
   return (
-    <div className={cn('rounded-xl border p-4 transition', checked ? 'border-cobalt-200 bg-cobalt-50/40' : 'border-ink-300/30')}>
+    <div
+      className={cn(
+        'rounded-xl border p-4 transition',
+        checked ? 'border-cobalt-200 bg-cobalt-50/40' : 'border-ink-300/30',
+      )}
+    >
       <label className="flex cursor-pointer items-center justify-between">
         <span className="text-[0.88rem] font-medium text-ink-700">{label}</span>
-        <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="h-4 w-4 accent-[var(--cobalt-600)]" />
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={(e) => onChange(e.target.checked)}
+          className="h-4 w-4 accent-[var(--cobalt-600)]"
+        />
       </label>
       {children}
     </div>
@@ -704,8 +781,14 @@ function ReviewSection({
   return (
     <div className="rounded-xl border border-cobalt-100 bg-wash/50 p-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-[0.8rem] font-semibold tracking-wide text-cobalt-600 uppercase">{title}</h3>
-        <button type="button" onClick={onEdit} className="text-[0.78rem] font-medium text-cobalt-600 hover:underline">
+        <h3 className="text-[0.8rem] font-semibold tracking-wide text-cobalt-600 uppercase">
+          {title}
+        </h3>
+        <button
+          type="button"
+          onClick={onEdit}
+          className="text-[0.78rem] font-medium text-cobalt-600 hover:underline"
+        >
           {t('common.back')}
         </button>
       </div>

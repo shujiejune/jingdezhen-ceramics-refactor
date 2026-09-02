@@ -18,7 +18,8 @@ const buttonVariants: Record<ButtonVariant, string> = {
   secondary:
     'border border-cobalt-200 bg-white text-cobalt-700 shadow-card hover:border-cobalt-300 hover:bg-cobalt-50',
   ghost: 'text-cobalt-600 hover:bg-cobalt-50 hover:text-cobalt-700',
-  danger: 'border border-[color:var(--color-danger)]/30 bg-white text-[color:var(--color-danger)] hover:bg-[color:var(--color-danger-bg)]',
+  danger:
+    'border border-[color:var(--color-danger)]/30 bg-white text-[color:var(--color-danger)] hover:bg-[color:var(--color-danger-bg)]',
 }
 
 const buttonSizes: Record<ButtonSize, string> = {
@@ -33,7 +34,15 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
   loading?: boolean
 }
 
-export function Button({ variant = 'primary', size = 'md', loading, className, children, disabled, ...rest }: ButtonProps) {
+export function Button({
+  variant = 'primary',
+  size = 'md',
+  loading,
+  className,
+  children,
+  disabled,
+  ...rest
+}: ButtonProps) {
   return (
     <button
       className={cn(buttonBase, buttonVariants[variant], buttonSizes[size], className)}
@@ -78,7 +87,12 @@ export function ButtonLink({
 
 export function Spinner({ className }: { className?: string }) {
   return (
-    <svg className={cn('animate-spin', className)} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <svg
+      className={cn('animate-spin', className)}
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+    >
       <circle cx="12" cy="12" r="9" stroke="currentColor" strokeOpacity="0.25" strokeWidth="3" />
       <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
     </svg>
@@ -101,8 +115,10 @@ export function Badge({
       className={cn(
         'inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[0.72rem] font-semibold tracking-wide',
         tone === 'cobalt' && 'bg-cobalt-50 text-cobalt-700',
-        tone === 'success' && 'bg-[color:var(--color-success-bg)] text-[color:var(--color-success)]',
-        tone === 'warning' && 'bg-[color:var(--color-warning-bg)] text-[color:var(--color-warning)]',
+        tone === 'success' &&
+          'bg-[color:var(--color-success-bg)] text-[color:var(--color-success)]',
+        tone === 'warning' &&
+          'bg-[color:var(--color-warning-bg)] text-[color:var(--color-warning)]',
         tone === 'danger' && 'bg-[color:var(--color-danger-bg)] text-[color:var(--color-danger)]',
         tone === 'neutral' && 'bg-mist text-ink-500',
         tone === 'gold' && 'bg-gold-400/15 text-gold-600',
@@ -206,7 +222,12 @@ export function QuantityStepper({
       >
         <Minus size={size === 'sm' ? 12 : 14} weight="bold" />
       </button>
-      <span className={cn('min-w-6 text-center font-medium text-ink-800', size === 'sm' ? 'text-xs' : 'text-sm')}>
+      <span
+        className={cn(
+          'min-w-6 text-center font-medium text-ink-800',
+          size === 'sm' ? 'text-xs' : 'text-sm',
+        )}
+      >
         {value}
       </span>
       <button
@@ -262,12 +283,23 @@ export function Breadcrumbs({
   items: Array<{ label: string; to?: LinkProps['to'] | string; params?: Record<string, string> }>
 }) {
   return (
-    <nav aria-label="breadcrumb" className="mb-6 flex flex-wrap items-center gap-1.5 text-[0.82rem] text-ink-400">
+    <nav
+      aria-label="breadcrumb"
+      className="mb-6 flex flex-wrap items-center gap-1.5 text-[0.82rem] text-ink-400"
+    >
       {items.map((item, i) => (
         <span key={i} className="flex items-center gap-1.5">
-          {i > 0 && <span aria-hidden="true" className="text-ink-300">/</span>}
+          {i > 0 && (
+            <span aria-hidden="true" className="text-ink-300">
+              /
+            </span>
+          )}
           {item.to ? (
-            <Link to={item.to as never} params={item.params as never} className="transition hover:text-cobalt-600">
+            <Link
+              to={item.to as never}
+              params={item.params as never}
+              className="transition hover:text-cobalt-600"
+            >
               {item.label}
             </Link>
           ) : (

@@ -68,11 +68,20 @@ function WishlistPage() {
             <article key={w.sku_id} className="card-surface group overflow-hidden">
               <button
                 type="button"
-                onClick={() => void navigate({ to: '/$locale/catalog/$slug', params: { locale, slug: w.product_slug } })}
+                onClick={() =>
+                  void navigate({
+                    to: '/$locale/catalog/$slug',
+                    params: { locale, slug: w.product_slug },
+                  })
+                }
                 className="block w-full"
               >
                 <div className="relative aspect-[4/4.4] bg-gradient-to-b from-wash to-porcelain">
-                  <PorcelainFigure kind={w.figure_kind} seed={w.figure_seed} className="h-full w-full transition duration-500 group-hover:scale-[1.04]" />
+                  <PorcelainFigure
+                    kind={w.figure_kind}
+                    seed={w.figure_seed}
+                    className="h-full w-full transition duration-500 group-hover:scale-[1.04]"
+                  />
                   {w.stock === 0 && (
                     <Badge tone="neutral" className="absolute top-3 left-3">
                       {t('product.outOfStock')}
@@ -81,7 +90,9 @@ function WishlistPage() {
                 </div>
               </button>
               <div className="p-4">
-                <h3 className="truncate text-[0.92rem] font-semibold text-ink-800">{w.product_title}</h3>
+                <h3 className="truncate text-[0.92rem] font-semibold text-ink-800">
+                  {w.product_title}
+                </h3>
                 <p className="mt-0.5 truncate text-[0.78rem] text-ink-400">{w.artist_name}</p>
                 <p className="mt-2 text-[0.95rem] font-semibold text-ink-900">
                   {price(w.price, w.price_currency)}
@@ -106,7 +117,11 @@ function WishlistPage() {
                     aria-label={t('common.remove')}
                     onClick={() =>
                       void toggle(w.sku_id).then((r) =>
-                        push({ title: t(r === 'removed' ? 'toast.removedFromWishlist' : 'toast.addedToWishlist') }),
+                        push({
+                          title: t(
+                            r === 'removed' ? 'toast.removedFromWishlist' : 'toast.addedToWishlist',
+                          ),
+                        }),
                       )
                     }
                   >

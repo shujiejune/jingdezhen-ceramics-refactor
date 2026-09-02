@@ -115,7 +115,11 @@ function CartPage() {
                 className="h-4 w-4 shrink-0 accent-[var(--cobalt-600)]"
               />
               <div className="h-20 w-20 shrink-0 overflow-hidden rounded-lg border border-cobalt-100 bg-wash">
-                <PorcelainFigure kind={item.figure_kind} seed={item.figure_seed} className="h-full w-full" />
+                <PorcelainFigure
+                  kind={item.figure_kind}
+                  seed={item.figure_seed}
+                  className="h-full w-full"
+                />
               </div>
               <div className="min-w-0 flex-1">
                 <a
@@ -229,8 +233,12 @@ function CartPage() {
                 {blocked === 'overweight' ? t('cart.overweightBody') : t('cart.unshippableBody')}
               </p>
               <p className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1 text-[0.82rem] font-medium text-cobalt-600">
-                <a href={`mailto:${CONTACT.email}`} className="hover:underline">{CONTACT.email}</a>
-                <a href={`tel:${CONTACT.phone.replace(/\s/g, '')}`} className="hover:underline">{CONTACT.phone}</a>
+                <a href={`mailto:${CONTACT.email}`} className="hover:underline">
+                  {CONTACT.email}
+                </a>
+                <a href={`tel:${CONTACT.phone.replace(/\s/g, '')}`} className="hover:underline">
+                  {CONTACT.phone}
+                </a>
               </p>
             </div>
           )}

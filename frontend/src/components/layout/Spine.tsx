@@ -43,7 +43,11 @@ export function Spine({
     <aside className="absolute inset-y-0 left-0 z-40 flex w-14 flex-col items-center justify-between border-r border-cobalt-100/80 bg-white/92 py-4 backdrop-blur-md sm:w-16">
       {/* brand */}
       <div className="flex flex-col items-center gap-3">
-        <Link to={`/${locale}` as never} aria-label={t('common.brand')} className="transition hover:scale-105">
+        <Link
+          to={`/${locale}` as never}
+          aria-label={t('common.brand')}
+          className="transition hover:scale-105"
+        >
           <SealMark size={34} />
         </Link>
         <span
@@ -59,32 +63,32 @@ export function Spine({
         {chapters.map((ch, i) => {
           const label = ch.label ?? t(ch.labelKey ?? 'mag.cover')
           return (
-          <button
-            key={ch.labelKey ?? ch.label ?? i}
-            type="button"
-            onClick={() => onJump(i)}
-            aria-label={label}
-            aria-current={i === activeIndex}
-            className="group relative flex h-8 w-8 items-center justify-center"
-          >
-            <span
-              className={cn(
-                'pointer-events-none absolute left-1/2 -translate-x-1/2 rounded-sm border border-cobalt-100 bg-white px-2 py-1 text-[0.68rem] font-medium whitespace-nowrap text-ink-600 opacity-0 shadow-card transition group-hover:opacity-100',
-                i === activeIndex && 'hidden',
-              )}
-              style={{ writingMode: 'horizontal-tb', left: '130%' }}
+            <button
+              key={ch.labelKey ?? ch.label ?? i}
+              type="button"
+              onClick={() => onJump(i)}
+              aria-label={label}
+              aria-current={i === activeIndex}
+              className="group relative flex h-8 w-8 items-center justify-center"
             >
-              {label}
-            </span>
-            <span
-              className={cn(
-                'block rounded-full transition-all duration-300',
-                i === activeIndex
-                  ? 'h-2.5 w-2.5 bg-cobalt-600 ring-4 ring-cobalt-100'
-                  : 'h-1.5 w-1.5 bg-ink-300 group-hover:bg-cobalt-400',
-              )}
-            />
-          </button>
+              <span
+                className={cn(
+                  'pointer-events-none absolute left-1/2 -translate-x-1/2 rounded-sm border border-cobalt-100 bg-white px-2 py-1 text-[0.68rem] font-medium whitespace-nowrap text-ink-600 opacity-0 shadow-card transition group-hover:opacity-100',
+                  i === activeIndex && 'hidden',
+                )}
+                style={{ writingMode: 'horizontal-tb', left: '130%' }}
+              >
+                {label}
+              </span>
+              <span
+                className={cn(
+                  'block rounded-full transition-all duration-300',
+                  i === activeIndex
+                    ? 'h-2.5 w-2.5 bg-cobalt-600 ring-4 ring-cobalt-100'
+                    : 'h-1.5 w-1.5 bg-ink-300 group-hover:bg-cobalt-400',
+                )}
+              />
+            </button>
           )
         })}
       </nav>

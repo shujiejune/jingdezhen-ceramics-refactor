@@ -2,7 +2,11 @@
 import { Link } from '@tanstack/react-router'
 import { ArrowRight, SealCheck } from '@phosphor-icons/react'
 
-import { PorcelainFigure, PorcelainLandscape, ArtistMedallion } from '~/components/artwork/PorcelainFigure'
+import {
+  PorcelainFigure,
+  PorcelainLandscape,
+  ArtistMedallion,
+} from '~/components/artwork/PorcelainFigure'
 import { WaveBand } from '~/components/ornaments'
 import { Badge, HeartButton } from '~/components/common/ui'
 import { useToast } from '~/components/common/Toaster'
@@ -153,7 +157,9 @@ export function StoryCard({ story }: { story: CeramicStory }) {
         <h3 className="mt-1.5 text-[1.02rem] leading-snug font-semibold text-ink-800 transition group-hover:text-cobalt-700">
           {story.title}
         </h3>
-        <p className="mt-2 line-clamp-2 text-[0.84rem] leading-relaxed text-ink-500">{story.summary}</p>
+        <p className="mt-2 line-clamp-2 text-[0.84rem] leading-relaxed text-ink-500">
+          {story.summary}
+        </p>
         <span className="mt-3 inline-flex items-center gap-1 text-[0.8rem] font-medium text-cobalt-600">
           {t('story.read')}
           <ArrowRight size={12} className="transition group-hover:translate-x-0.5" />
@@ -178,7 +184,10 @@ export function ActivityCard({ activity }: { activity: Activity }) {
           seed={activity.figure_seed}
           className="h-full w-full transition duration-500 group-hover:scale-[1.05]"
         />
-        <Badge tone={activity.type === 'destination' ? 'cobalt' : 'neutral'} className="absolute top-3 left-3 shadow-card">
+        <Badge
+          tone={activity.type === 'destination' ? 'cobalt' : 'neutral'}
+          className="absolute top-3 left-3 shadow-card"
+        >
           {activity.type === 'destination' ? t('engage.destinations') : t('engage.lifestyle')}
         </Badge>
       </div>
@@ -186,7 +195,9 @@ export function ActivityCard({ activity }: { activity: Activity }) {
         <h3 className="text-[0.98rem] font-semibold text-ink-800 transition group-hover:text-cobalt-700">
           {activity.title}
         </h3>
-        <p className="mt-1.5 line-clamp-2 flex-1 text-[0.84rem] leading-relaxed text-ink-500">{activity.summary}</p>
+        <p className="mt-1.5 line-clamp-2 flex-1 text-[0.84rem] leading-relaxed text-ink-500">
+          {activity.summary}
+        </p>
         <span className="mt-3 inline-flex items-center gap-1 text-[0.8rem] font-medium text-cobalt-600">
           {t('engage.readMore')}
           <ArrowRight size={12} className="transition group-hover:translate-x-0.5" />
@@ -208,7 +219,9 @@ export function CertificateChip({ onClick }: { onClick: () => void }) {
     >
       <SealCheck size={22} className="text-gold-500" weight="duotone" />
       <span>
-        <span className="block text-[0.82rem] font-semibold text-ink-800">{t('product.certificateTitle')}</span>
+        <span className="block text-[0.82rem] font-semibold text-ink-800">
+          {t('product.certificateTitle')}
+        </span>
         <span className="block text-[0.75rem] text-cobalt-600 underline decoration-cobalt-200 underline-offset-2">
           {t('product.viewCertificate')}
         </span>

@@ -52,7 +52,16 @@ function waveBand(y: number, x1: number, x2: number, amp: number, wave: number, 
   for (let x = x1; x < x2; x += wave) {
     d += `q${wave / 4} ${-amp} ${wave / 2} 0 q${wave / 4} ${amp} ${wave / 2} 0 `
   }
-  return <path d={d} fill="none" stroke="var(--cobalt-500)" strokeOpacity={opacity} strokeWidth="1.6" strokeLinecap="round" />
+  return (
+    <path
+      d={d}
+      fill="none"
+      stroke="var(--cobalt-500)"
+      strokeOpacity={opacity}
+      strokeWidth="1.6"
+      strokeLinecap="round"
+    />
+  )
 }
 
 /** A row of small dots. */
@@ -99,8 +108,24 @@ function Medallion({ cx, cy, r, seed }: { cx: number; cy: number; r: number; see
 
   return (
     <g>
-      <circle cx={cx} cy={cy} r={r} fill="none" stroke={stroke} strokeOpacity="0.5" strokeWidth="1.2" />
-      <circle cx={cx} cy={cy} r={r - 5} fill="none" stroke={stroke} strokeOpacity="0.25" strokeWidth="0.8" />
+      <circle
+        cx={cx}
+        cy={cy}
+        r={r}
+        fill="none"
+        stroke={stroke}
+        strokeOpacity="0.5"
+        strokeWidth="1.2"
+      />
+      <circle
+        cx={cx}
+        cy={cy}
+        r={r - 5}
+        fill="none"
+        stroke={stroke}
+        strokeOpacity="0.25"
+        strokeWidth="0.8"
+      />
 
       {variant === 0 && (
         /* Peony spray */
@@ -120,7 +145,16 @@ function Medallion({ cx, cy, r, seed }: { cx: number; cy: number; r: number; see
               transform={`rotate(${a} ${cx} ${cy})`}
             />
           ))}
-          <circle cx={cx} cy={cy} r={r * 0.2} fill={wash} fillOpacity="0.3" stroke={stroke} strokeOpacity="0.8" strokeWidth="1.1" />
+          <circle
+            cx={cx}
+            cy={cy}
+            r={r * 0.2}
+            fill={wash}
+            fillOpacity="0.3"
+            stroke={stroke}
+            strokeOpacity="0.8"
+            strokeWidth="1.1"
+          />
           <path
             d={`M${cx} ${cy + r * 0.6} q10 -14 24 -10 M${cx} ${cy + r * 0.62} q-6 -16 6 -24`}
             fill="none"
@@ -135,7 +169,16 @@ function Medallion({ cx, cy, r, seed }: { cx: number; cy: number; r: number; see
       {variant === 1 && (
         /* River landscape — mountains, moon, boat */
         <g>
-          <circle cx={cx + r * 0.42} cy={cy - r * 0.42} r={r * 0.16} fill={wash} fillOpacity="0.22" stroke={stroke} strokeOpacity="0.5" strokeWidth="1" />
+          <circle
+            cx={cx + r * 0.42}
+            cy={cy - r * 0.42}
+            r={r * 0.16}
+            fill={wash}
+            fillOpacity="0.22"
+            stroke={stroke}
+            strokeOpacity="0.5"
+            strokeWidth="1"
+          />
           <path
             d={`M${cx - r * 0.7} ${cy + r * 0.18} L${cx - r * 0.28} ${cy - r * 0.42} L${cx + r * 0.02} ${cy + r * 0.1} L${cx + r * 0.3} ${cy - r * 0.3} L${cx + r * 0.68} ${cy + r * 0.18} Z`}
             fill={wash}
@@ -145,9 +188,29 @@ function Medallion({ cx, cy, r, seed }: { cx: number; cy: number; r: number; see
             strokeWidth="1.2"
             strokeLinejoin="round"
           />
-          <path d={`M${cx - r * 0.55} ${cy + r * 0.42} q${r * 0.3} ${-r * 0.1} ${r * 0.6} 0 q${r * 0.3} ${r * 0.1} ${r * 0.6} 0`} fill="none" stroke={stroke} strokeOpacity="0.5" strokeWidth="1.3" strokeLinecap="round" />
-          <path d={`M${cx - r * 0.22} ${cy + r * 0.58} l${r * 0.44} 0 l${-r * 0.08} ${r * 0.1} l${-r * 0.28} 0 Z`} fill={wash} fillOpacity="0.28" stroke={stroke} strokeOpacity="0.7" strokeWidth="1" />
-          <path d={`M${cx} ${cy + r * 0.58} l0 ${-r * 0.34}`} stroke={stroke} strokeOpacity="0.6" strokeWidth="1.2" strokeLinecap="round" />
+          <path
+            d={`M${cx - r * 0.55} ${cy + r * 0.42} q${r * 0.3} ${-r * 0.1} ${r * 0.6} 0 q${r * 0.3} ${r * 0.1} ${r * 0.6} 0`}
+            fill="none"
+            stroke={stroke}
+            strokeOpacity="0.5"
+            strokeWidth="1.3"
+            strokeLinecap="round"
+          />
+          <path
+            d={`M${cx - r * 0.22} ${cy + r * 0.58} l${r * 0.44} 0 l${-r * 0.08} ${r * 0.1} l${-r * 0.28} 0 Z`}
+            fill={wash}
+            fillOpacity="0.28"
+            stroke={stroke}
+            strokeOpacity="0.7"
+            strokeWidth="1"
+          />
+          <path
+            d={`M${cx} ${cy + r * 0.58} l0 ${-r * 0.34}`}
+            stroke={stroke}
+            strokeOpacity="0.6"
+            strokeWidth="1.2"
+            strokeLinecap="round"
+          />
         </g>
       )}
 
@@ -166,7 +229,16 @@ function Medallion({ cx, cy, r, seed }: { cx: number; cy: number; r: number; see
               transform={`rotate(${a} ${cx} ${cy - r * 0.27}) translate(0 ${r * 0.27}) rotate(0)`}
             />
           ))}
-          <circle cx={cx} cy={cy} r={r * 0.16} fill={wash} fillOpacity="0.3" stroke={stroke} strokeOpacity="0.8" strokeWidth="1.1" />
+          <circle
+            cx={cx}
+            cy={cy}
+            r={r * 0.16}
+            fill={wash}
+            fillOpacity="0.3"
+            stroke={stroke}
+            strokeOpacity="0.8"
+            strokeWidth="1.1"
+          />
           {[30, 150, 210, 330].map((a) => (
             <path
               key={a}
@@ -271,7 +343,16 @@ function vesselSpec(kind: FigureKind, seed: number): VesselSpec {
       shadowRx: 110,
       bands: (
         <>
-          <ellipse cx="200" cy="200" rx="118" ry="37" fill="none" stroke="var(--cobalt-600)" strokeOpacity="0.45" strokeWidth="1.1" />
+          <ellipse
+            cx="200"
+            cy="200"
+            rx="118"
+            ry="37"
+            fill="none"
+            stroke="var(--cobalt-600)"
+            strokeOpacity="0.45"
+            strokeWidth="1.1"
+          />
           {rayFan(200, 200, 112, 35, 14, 0.35)}
         </>
       ),
@@ -281,14 +362,32 @@ function vesselSpec(kind: FigureKind, seed: number): VesselSpec {
   if (kind === 'teapot') {
     const body =
       'M200 148 C245 148 283 186 283 234 C283 282 245 316 200 316 C155 316 117 282 117 234 C117 186 155 148 200 148 Z M283 214 C305 204 322 190 328 172 C332 188 326 214 292 232 M117 210 C96 202 82 214 78 236 C74 214 88 196 112 194'
-    const clip = 'M200 148 C245 148 283 186 283 234 C283 282 245 316 200 316 C155 316 117 282 117 234 C117 186 155 148 200 148 Z'
+    const clip =
+      'M200 148 C245 148 283 186 283 234 C283 282 245 316 200 316 C155 316 117 282 117 234 C117 186 155 148 200 148 Z'
     return {
       body,
       clip,
       extras: (
         <g>
-          <ellipse cx="200" cy="146" rx="56" ry="13" fill="#fff" stroke="var(--cobalt-700)" strokeOpacity="0.55" strokeWidth="1.4" />
-          <circle cx="200" cy="132" r="9" fill="#fff" stroke="var(--cobalt-700)" strokeOpacity="0.55" strokeWidth="1.4" />
+          <ellipse
+            cx="200"
+            cy="146"
+            rx="56"
+            ry="13"
+            fill="#fff"
+            stroke="var(--cobalt-700)"
+            strokeOpacity="0.55"
+            strokeWidth="1.4"
+          />
+          <circle
+            cx="200"
+            cy="132"
+            r="9"
+            fill="#fff"
+            stroke="var(--cobalt-700)"
+            strokeOpacity="0.55"
+            strokeWidth="1.4"
+          />
         </g>
       ),
       medallion: { cx: 200, cy: jit(234, 6), r: jit(40, 5) },
@@ -318,7 +417,15 @@ function vesselSpec(kind: FigureKind, seed: number): VesselSpec {
           strokeOpacity="0.55"
           strokeWidth="1.4"
         />
-        <circle cx="200" cy="82" r="8" fill="#fff" stroke="var(--cobalt-700)" strokeOpacity="0.55" strokeWidth="1.4" />
+        <circle
+          cx="200"
+          cy="82"
+          r="8"
+          fill="#fff"
+          stroke="var(--cobalt-700)"
+          strokeOpacity="0.55"
+          strokeWidth="1.4"
+        />
       </g>
     ),
     medallion: { cx: 200, cy: jit(232, 8), r: jit(50, 6) },
@@ -379,11 +486,30 @@ export function PorcelainFigure({
       </defs>
 
       {/* ground shadow */}
-      <ellipse cx="200" cy={spec.shadowY} rx={spec.shadowRx} ry="11" fill="var(--ink-900)" opacity="0.08" />
+      <ellipse
+        cx="200"
+        cy={spec.shadowY}
+        rx={spec.shadowRx}
+        ry="11"
+        fill="var(--ink-900)"
+        opacity="0.08"
+      />
 
       {/* vessel body */}
-      <path d={spec.body} fill={`url(#${gid}-body)`} stroke="var(--cobalt-700)" strokeOpacity="0.5" strokeWidth="1.6" strokeLinejoin="round" />
-      <path d={spec.clip} fill={`url(#${gid}-glaze)`} style={{ mixBlendMode: 'multiply' }} opacity="0.7" />
+      <path
+        d={spec.body}
+        fill={`url(#${gid}-body)`}
+        stroke="var(--cobalt-700)"
+        strokeOpacity="0.5"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <path
+        d={spec.clip}
+        fill={`url(#${gid}-glaze)`}
+        style={{ mixBlendMode: 'multiply' }}
+        opacity="0.7"
+      />
 
       {/* decoration, clipped to the silhouette */}
       <g clipPath={`url(#${gid}-clip)`}>
@@ -392,7 +518,14 @@ export function PorcelainFigure({
       </g>
 
       {/* re-stroke outline above decoration */}
-      <path d={spec.clip} fill="none" stroke="var(--cobalt-700)" strokeOpacity="0.55" strokeWidth="1.6" strokeLinejoin="round" />
+      <path
+        d={spec.clip}
+        fill="none"
+        stroke="var(--cobalt-700)"
+        strokeOpacity="0.55"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
       {spec.extras}
     </svg>
   )
@@ -423,7 +556,14 @@ export function PorcelainLandscape({
   const wash = deep ? '#ffffff' : 'var(--cobalt-500)'
 
   return (
-    <svg viewBox="0 0 400 300" className={className} role={label ? 'img' : undefined} aria-label={label} aria-hidden={label ? undefined : true} fill="none">
+    <svg
+      viewBox="0 0 400 300"
+      className={className}
+      role={label ? 'img' : undefined}
+      aria-label={label}
+      aria-hidden={label ? undefined : true}
+      fill="none"
+    >
       {/* sky wash */}
       {deep ? (
         <rect width="400" height="300" fill="url(#pl-sky-deep)" />
@@ -438,7 +578,16 @@ export function PorcelainLandscape({
       </defs>
 
       {/* moon */}
-      <circle cx={moonX} cy="72" r="26" fill={wash} fillOpacity={deep ? 0.2 : 0.18} stroke={ink} strokeOpacity="0.5" strokeWidth="1.2" />
+      <circle
+        cx={moonX}
+        cy="72"
+        r="26"
+        fill={wash}
+        fillOpacity={deep ? 0.2 : 0.18}
+        stroke={ink}
+        strokeOpacity="0.5"
+        strokeWidth="1.2"
+      />
 
       {/* birds */}
       <g stroke={ink} strokeOpacity="0.55" strokeWidth="1.3" strokeLinecap="round">
@@ -479,13 +628,34 @@ export function PorcelainLandscape({
       />
       {/* boat */}
       <g transform="translate(226 244) rotate(-4)">
-        <path d="M0 0 l34 0 l-7 9 l-21 0 Z" fill={wash} fillOpacity={deep ? 0.4 : 0.3} stroke={ink} strokeOpacity="0.7" strokeWidth="1.1" />
+        <path
+          d="M0 0 l34 0 l-7 9 l-21 0 Z"
+          fill={wash}
+          fillOpacity={deep ? 0.4 : 0.3}
+          stroke={ink}
+          strokeOpacity="0.7"
+          strokeWidth="1.1"
+        />
         <path d="M16 0 l1 -18" stroke={ink} strokeOpacity="0.6" strokeWidth="1.2" />
-        <path d="M17 -16 l10 12 l-10 0 Z" fill={wash} fillOpacity="0.2" stroke={ink} strokeOpacity="0.45" strokeWidth="1" />
+        <path
+          d="M17 -16 l10 12 l-10 0 Z"
+          fill={wash}
+          fillOpacity="0.2"
+          stroke={ink}
+          strokeOpacity="0.45"
+          strokeWidth="1"
+        />
       </g>
 
       {/* pagoda */}
-      <g transform={`translate(${318 + ox * 0.4} 240) scale(0.9)`} stroke={ink} strokeOpacity="0.65" strokeWidth="1.2" fill={wash} fillOpacity={deep ? 0.25 : 0.16}>
+      <g
+        transform={`translate(${318 + ox * 0.4} 240) scale(0.9)`}
+        stroke={ink}
+        strokeOpacity="0.65"
+        strokeWidth="1.2"
+        fill={wash}
+        fillOpacity={deep ? 0.25 : 0.16}
+      >
         <path d="M-8 0 h16 l-3 -10 h-10 Z M-6 -10 h12 l-6 -8 Z" />
         <path d="M-11 -18 h22 M-4 -26 h8" strokeLinecap="round" />
       </g>
@@ -534,8 +704,25 @@ export function ArtistMedallion({
   return (
     <svg width={size} height={size} viewBox="0 0 100 100" className={className} aria-hidden="true">
       <circle cx="50" cy="50" r="48" fill="var(--porcelain)" />
-      <circle cx="50" cy="50" r="48" fill="none" stroke="var(--cobalt-600)" strokeOpacity="0.5" strokeWidth="1.6" />
-      <circle cx="50" cy="50" r="41" fill="none" stroke="var(--cobalt-500)" strokeOpacity="0.3" strokeWidth="1" strokeDasharray="3 4" />
+      <circle
+        cx="50"
+        cy="50"
+        r="48"
+        fill="none"
+        stroke="var(--cobalt-600)"
+        strokeOpacity="0.5"
+        strokeWidth="1.6"
+      />
+      <circle
+        cx="50"
+        cy="50"
+        r="41"
+        fill="none"
+        stroke="var(--cobalt-500)"
+        strokeOpacity="0.3"
+        strokeWidth="1"
+        strokeDasharray="3 4"
+      />
       {dots}
       <text
         x="50"

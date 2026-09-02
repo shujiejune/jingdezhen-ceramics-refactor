@@ -57,8 +57,7 @@ export const zhCN: Catalog = {
 
   'landing.heroEyebrow': '千年瓷都',
   'landing.heroTitle': '千年窑火，一抹青花',
-  'landing.heroSub':
-    '来自景德镇在世名窑的馆藏级瓷器——每件作品皆有档案、可认证、直邮全球。',
+  'landing.heroSub': '来自景德镇在世名窑的馆藏级瓷器——每件作品皆有档案、可认证、直邮全球。',
   'landing.ctaGallery': '进入画廊',
   'landing.ctaTravel': '规划定制之旅',
   'landing.statYears': '1000+',
@@ -347,8 +346,7 @@ export const zhCN: Catalog = {
   'itin.submit': '发送需求',
   'itin.submitting': '发送中…',
   'itin.submittedTitle': '需求已收到',
-  'itin.submittedBody':
-    '您的行程需求已交给规划师。确认邮件即刻发出，我们将在 24 小时内人工回复。',
+  'itin.submittedBody': '您的行程需求已交给规划师。确认邮件即刻发出，我们将在 24 小时内人工回复。',
   'itin.slaBadge': '24 小时内回复',
   'itin.requestN': '需求单 #{id}',
   'itin.viewMyJourneys': '查看我的旅程',

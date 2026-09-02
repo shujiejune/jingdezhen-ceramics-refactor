@@ -72,7 +72,11 @@ function OrderDetailPage() {
       <div className="mx-auto max-w-shell px-4 pt-16 sm:px-6">
         <EmptyState
           title={t('errors.not_found')}
-          action={<Button onClick={() => void navigate({ to: `/${locale}/orders` })}>{t('orders.title')}</Button>}
+          action={
+            <Button onClick={() => void navigate({ to: `/${locale}/orders` })}>
+              {t('orders.title')}
+            </Button>
+          }
         />
       </div>
     )
@@ -96,12 +100,19 @@ function OrderDetailPage() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 pt-8 sm:px-6">
-      <Breadcrumbs items={[{ label: t('orders.title'), to: `/${locale}/orders` }, { label: t('orders.orderN', { id: order.id }) }]} />
+      <Breadcrumbs
+        items={[
+          { label: t('orders.title'), to: `/${locale}/orders` },
+          { label: t('orders.orderN', { id: order.id }) },
+        ]}
+      />
 
       {search.placed === 1 && (
         <div className="mb-8 flex items-center gap-3 rounded-xl border border-[color:var(--color-success)]/25 bg-[color:var(--color-success-bg)] px-5 py-4">
           <CheckCircle size={22} weight="duotone" className="text-[color:var(--color-success)]" />
-          <p className="text-[0.92rem] font-medium text-[color:var(--color-success)]">{t('orders.placedBanner')}</p>
+          <p className="text-[0.92rem] font-medium text-[color:var(--color-success)]">
+            {t('orders.placedBanner')}
+          </p>
         </div>
       )}
 
@@ -112,7 +123,9 @@ function OrderDetailPage() {
           </h1>
           <OrderStatusBadge status={order.status} />
         </div>
-        <p className="text-[0.84rem] text-ink-400">{t('orders.placedOn', { date: formatDateTime(order.placed_at, locale) })}</p>
+        <p className="text-[0.84rem] text-ink-400">
+          {t('orders.placedOn', { date: formatDateTime(order.placed_at, locale) })}
+        </p>
       </div>
 
       {/* ------------------------- timeline ------------------------- */}
@@ -124,7 +137,9 @@ function OrderDetailPage() {
               {order.cancelled_at ? ` · ${formatDateTime(order.cancelled_at, locale)}` : ''}
               {order.refunded_at ? ` · ${formatDateTime(order.refunded_at, locale)}` : ''}
             </Badge>
-            {order.cancel_reason && <span className="text-[0.84rem] text-ink-400">“{order.cancel_reason}”</span>}
+            {order.cancel_reason && (
+              <span className="text-[0.84rem] text-ink-400">“{order.cancel_reason}”</span>
+            )}
           </div>
         ) : (
           <ol className="grid gap-4 sm:grid-cols-4">
@@ -141,14 +156,22 @@ function OrderDetailPage() {
                   {i + 1}
                 </span>
                 <div>
-                  <p className={'text-[0.85rem] font-medium ' + (i <= step ? 'text-ink-800' : 'text-ink-300')}>
+                  <p
+                    className={
+                      'text-[0.85rem] font-medium ' + (i <= step ? 'text-ink-800' : 'text-ink-300')
+                    }
+                  >
                     {t(f.label)}
                   </p>
                   <p className="mt-0.5 text-[0.72rem] text-ink-300">
                     {f.status === 'created' && formatDateTime(order.placed_at, locale)}
                     {f.status === 'paid' && order.paid_at && formatDateTime(order.paid_at, locale)}
-                    {f.status === 'shipped' && order.shipped_at && formatDateTime(order.shipped_at, locale)}
-                    {f.status === 'completed' && order.completed_at && formatDateTime(order.completed_at, locale)}
+                    {f.status === 'shipped' &&
+                      order.shipped_at &&
+                      formatDateTime(order.shipped_at, locale)}
+                    {f.status === 'completed' &&
+                      order.completed_at &&
+                      formatDateTime(order.completed_at, locale)}
                   </p>
                 </div>
               </li>
@@ -160,8 +183,12 @@ function OrderDetailPage() {
           <div className="mt-6 flex flex-wrap items-center gap-3 rounded-lg bg-mist px-4 py-3.5">
             <Truck size={20} className="text-cobalt-500" weight="duotone" />
             <div>
-              <p className="text-[0.84rem] text-ink-500">{t('orders.trackingNote', { carrier: order.carrier_name })}</p>
-              <p className="mt-0.5 font-mono text-[0.9rem] font-semibold text-ink-800">{order.tracking_number}</p>
+              <p className="text-[0.84rem] text-ink-500">
+                {t('orders.trackingNote', { carrier: order.carrier_name })}
+              </p>
+              <p className="mt-0.5 font-mono text-[0.9rem] font-semibold text-ink-800">
+                {order.tracking_number}
+              </p>
             </div>
           </div>
         )}
@@ -169,18 +196,28 @@ function OrderDetailPage() {
 
       {/* ------------------------- items ------------------------- */}
       <div className="card-surface mt-6 p-6">
-        <h2 className="text-[0.82rem] font-semibold tracking-wide text-ink-600 uppercase">{t('orders.items')}</h2>
+        <h2 className="text-[0.82rem] font-semibold tracking-wide text-ink-600 uppercase">
+          {t('orders.items')}
+        </h2>
         <ul className="mt-4 flex flex-col divide-y divide-cobalt-50">
           {order.items?.map((i) => (
             <li key={i.id} className="flex items-center gap-4 py-3.5">
               <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-cobalt-100 bg-wash">
-                <PorcelainFigure kind={i.figure_kind ?? 'vase'} seed={i.figure_seed ?? 1} className="h-full w-full" />
+                <PorcelainFigure
+                  kind={i.figure_kind ?? 'vase'}
+                  seed={i.figure_seed ?? 1}
+                  className="h-full w-full"
+                />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[0.9rem] font-medium text-ink-800">{i.title_snapshot as string}</p>
+                <p className="truncate text-[0.9rem] font-medium text-ink-800">
+                  {i.title_snapshot as string}
+                </p>
                 <p className="mt-0.5 text-[0.78rem] text-ink-400">× {i.qty}</p>
               </div>
-              <p className="text-[0.9rem] font-semibold text-ink-900">{price(i.unit_price_minor * i.qty, order.currency)}</p>
+              <p className="text-[0.9rem] font-semibold text-ink-900">
+                {price(i.unit_price_minor * i.qty, order.currency)}
+              </p>
             </li>
           ))}
         </ul>
@@ -188,15 +225,21 @@ function OrderDetailPage() {
         <dl className="mt-4 flex flex-col gap-2 border-t border-cobalt-100 pt-4 text-[0.9rem]">
           <div className="flex justify-between">
             <dt className="text-ink-500">{t('cart.subtotal')}</dt>
-            <dd className="font-medium text-ink-800">{price(order.subtotal_minor, order.currency)}</dd>
+            <dd className="font-medium text-ink-800">
+              {price(order.subtotal_minor, order.currency)}
+            </dd>
           </div>
           <div className="flex justify-between">
             <dt className="text-ink-500">{t('cart.estimatedShipping')}</dt>
-            <dd className="font-medium text-ink-800">{price(order.shipping_minor, order.currency)}</dd>
+            <dd className="font-medium text-ink-800">
+              {price(order.shipping_minor, order.currency)}
+            </dd>
           </div>
           <div className="flex justify-between border-t border-cobalt-100 pt-2.5 text-[1.05rem]">
             <dt className="font-semibold text-ink-800">{t('orders.total')}</dt>
-            <dd className="font-semibold text-ink-900">{price(order.total_minor, order.currency)}</dd>
+            <dd className="font-semibold text-ink-900">
+              {price(order.total_minor, order.currency)}
+            </dd>
           </div>
         </dl>
         <p className="mt-3 text-[0.74rem] text-ink-300">
@@ -208,7 +251,8 @@ function OrderDetailPage() {
           <p className="font-semibold text-ink-700">{t('checkout.deliverTo')}</p>
           <p className="mt-1">
             {order.address.recipient}, {order.address.line1}
-            {order.address.line2 ? `, ${order.address.line2}` : ''}, {order.address.city} {order.address.postal_code},{' '}
+            {order.address.line2 ? `, ${order.address.line2}` : ''}, {order.address.city}{' '}
+            {order.address.postal_code},{' '}
             {new Intl.DisplayNames([locale], { type: 'region' }).of(order.address.country)}
           </p>
         </div>
@@ -223,7 +267,9 @@ function OrderDetailPage() {
               </Button>
             ) : (
               <div className="rounded-xl border border-[color:var(--color-danger)]/25 bg-[color:var(--color-danger-bg)]/50 p-5">
-                <p className="text-[0.86rem] leading-relaxed text-ink-600">{t('orders.cancelBody')}</p>
+                <p className="text-[0.86rem] leading-relaxed text-ink-600">
+                  {t('orders.cancelBody')}
+                </p>
                 <input
                   className="input-base mt-3"
                   placeholder={t('orders.cancelReason')}
@@ -234,7 +280,12 @@ function OrderDetailPage() {
                   <Button variant="ghost" size="sm" onClick={() => setShowCancel(false)}>
                     {t('common.close')}
                   </Button>
-                  <Button variant="danger" size="sm" loading={cancelling} onClick={() => void cancel()}>
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    loading={cancelling}
+                    onClick={() => void cancel()}
+                  >
                     {t('orders.cancelConfirm')}
                   </Button>
                 </div>

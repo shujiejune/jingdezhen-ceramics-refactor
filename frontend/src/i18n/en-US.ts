@@ -24,8 +24,7 @@ export const enUS = {
   'common.reset': 'Reset',
   'common.search': 'Search',
   'common.optional': 'optional',
-  'common.prototypeNote':
-    'Hi-fi prototype — data is simulated and no real payments are processed.',
+  'common.prototypeNote': 'Hi-fi prototype — data is simulated and no real payments are processed.',
 
   'nav.gallery': 'Gallery',
   'nav.artists': 'Artists',
@@ -286,7 +285,8 @@ export const enUS = {
   'orders.carrier': 'Carrier',
   'orders.trackingNote': 'Track this parcel on {carrier}’s website:',
   'orders.cancelOrder': 'Cancel order',
-  'orders.cancelBody': 'This order is unpaid — cancelling releases the pieces back to the studio. This cannot be undone.',
+  'orders.cancelBody':
+    'This order is unpaid — cancelling releases the pieces back to the studio. This cannot be undone.',
   'orders.cancelConfirm': 'Yes, cancel order',
   'orders.cancelReason': 'Reason (optional)',
   'orders.refundNote':
@@ -422,8 +422,7 @@ export const enUS = {
   'errors.too_many_attempts': 'Too many attempts — please wait a moment and try again.',
   'errors.cart_empty': 'Your cart is empty.',
   'errors.unshippable': 'We can’t ship to that destination yet.',
-  'errors.overweight':
-    'Your order exceeds the maximum shipping weight for your destination.',
+  'errors.overweight': 'Your order exceeds the maximum shipping weight for your destination.',
   'errors.consent_required': 'Please accept the required agreement to continue.',
   'errors.conflict': 'That just changed — please refresh and try again.',
   'errors.validation_failed': 'Please check the highlighted fields.',

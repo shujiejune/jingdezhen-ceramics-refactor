@@ -7,11 +7,7 @@ import { nitro } from 'nitro/vite'
 
 const config = defineConfig({
   resolve: { tsconfigPaths: true },
-  plugins: [
-    nitro({ rollupConfig: { external: [] } }),
-    tanstackStart(),
-    viteReact(),
-  ],
+  plugins: [nitro({ rollupConfig: { external: [] } }), tanstackStart(), viteReact()],
 })
 
 export default config

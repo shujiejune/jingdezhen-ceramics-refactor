@@ -27,16 +27,18 @@ export const Route = createFileRoute('/$locale/artists/$slug')({
         ]
       : [],
   }),
-  notFoundComponent: () => {
-    const { t } = useI18n()
-    return (
-      <div className="mx-auto max-w-shell px-6 py-32 text-center">
-        <h1 className="text-display-sm text-ink-900">{t('errors.not_found')}</h1>
-      </div>
-    )
-  },
+  notFoundComponent: ArtistNotFound,
   component: ArtistDetailPage,
 })
+
+function ArtistNotFound() {
+  const { t } = useI18n()
+  return (
+    <div className="mx-auto max-w-shell px-6 py-32 text-center">
+      <h1 className="text-display-sm text-ink-900">{t('errors.not_found')}</h1>
+    </div>
+  )
+}
 
 function ArtistDetailPage() {
   const { t, locale } = useI18n()
@@ -50,7 +52,10 @@ function ArtistDetailPage() {
       />
 
       <div className="relative overflow-hidden rounded-2xl border border-cobalt-100 bg-gradient-to-b from-porcelain/70 to-wash">
-        <PetalScatter seed={artist.id * 7} className="pointer-events-none absolute top-4 right-8 opacity-60" />
+        <PetalScatter
+          seed={artist.id * 7}
+          className="pointer-events-none absolute top-4 right-8 opacity-60"
+        />
         <div className="relative grid gap-10 px-6 py-12 sm:px-10 lg:grid-cols-[auto_1fr_auto] lg:items-center">
           <ArtistMedallion glyph={artist.glyph} seed={artist.id} size={104} className="mx-auto" />
           <div className="max-w-2xl text-center lg:text-left">
@@ -66,7 +71,11 @@ function ArtistDetailPage() {
                   key={g.media_id}
                   className="relative overflow-hidden rounded-lg border border-cobalt-100 bg-white"
                 >
-                  <PorcelainFigure kind={g.figure_kind} seed={g.figure_seed} className="h-auto w-full" />
+                  <PorcelainFigure
+                    kind={g.figure_kind}
+                    seed={g.figure_seed}
+                    className="h-auto w-full"
+                  />
                   <CornerFrame inset={7} />
                 </div>
               ))}

@@ -3,18 +3,13 @@
  * modules (TDD §7, PRD §3.2.3). Runs "server-side" inside the mock
  * transport; the frontend never re-implements any of this math.
  */
-import {
-  FX_MARKUP,
-  FX_RATES,
-  SHIPPING_TIERS,
-  type Translation,
-} from './data'
+import { FX_MARKUP, FX_RATES, SHIPPING_TIERS, type Translation } from './data'
 
 export type MockLocale = 'en-US' | 'zh-CN'
 
 /** Resolve a bilingual record to the requested locale (zh-CN → en-US fallback). */
 export function pick<T>(t: Translation<T>, locale: MockLocale): T {
-  return locale === 'zh-CN' ? t.zhCN ?? t.enUS : t.enUS
+  return locale === 'zh-CN' ? (t.zhCN ?? t.enUS) : t.enUS
 }
 
 /** Effective rate (CNY per 1 unit) after the default 2% markup. */
@@ -33,10 +28,7 @@ export function roundPresentment(major: number): number {
 }
 
 /** CNY minor units → presentment minor units. */
-export function convertMinor(
-  cnyMinor: number,
-  currency: 'USD' | 'EUR' | 'GBP',
-): number {
+export function convertMinor(cnyMinor: number, currency: 'USD' | 'EUR' | 'GBP'): number {
   const majorCny = cnyMinor / 100
   const major = majorCny / effectiveRate(currency)
   return Math.round(roundPresentment(major) * 100)

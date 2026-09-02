@@ -75,7 +75,13 @@ export function CartProvider({
           const guestId = getGuestId()
           const guest = await api.getCart({ guestId, locale, currency })
           if (guest && guest.items.length > 0) {
-            const merged = await api.mergeCart(token, guestId, guest.items.map((i) => ({ sku_id: i.sku_id, qty: i.qty })), locale, currency)
+            const merged = await api.mergeCart(
+              token,
+              guestId,
+              guest.items.map((i) => ({ sku_id: i.sku_id, qty: i.qty })),
+              locale,
+              currency,
+            )
             if (!cancelled) setCart(merged)
             return
           }
@@ -122,7 +128,6 @@ export function CartProvider({
       remove: (skuId) => mutate((o) => api.removeCartItem(withCtx(o), skuId)),
       bulkRemove: (skuIds) => mutate((o) => api.bulkRemoveCartItems(withCtx(o), skuIds)),
     }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [cart, busy, load, mutate, withCtx],
   )
 

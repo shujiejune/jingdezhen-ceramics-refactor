@@ -6,7 +6,7 @@ import { SealMark, WaveBand, PetalScatter } from '~/components/ornaments'
 import { Badge, Button } from '~/components/common/ui'
 import { api, ApiError } from '~/lib/api'
 import { useI18n } from '~/lib/i18n'
-import { formatDate } from '~/lib/utils'
+import { formatDate, seededRandom } from '~/lib/utils'
 import type { Certificate } from '~/lib/types'
 
 /**
@@ -41,10 +41,19 @@ function CertNotFound() {
         className="mt-6 flex gap-2.5"
         onSubmit={(e) => {
           e.preventDefault()
-          if (code.trim()) void navigate({ to: '/$locale/certificates/$code', params: { locale, code: code.trim() } })
+          if (code.trim())
+            void navigate({
+              to: '/$locale/certificates/$code',
+              params: { locale, code: code.trim() },
+            })
         }}
       >
-        <input className="input-base" value={code} onChange={(e) => setCode(e.target.value)} placeholder="JDZ-…" />
+        <input
+          className="input-base"
+          value={code}
+          onChange={(e) => setCode(e.target.value)}
+          placeholder="JDZ-…"
+        />
         <Button type="submit">{t('cert.verify')}</Button>
       </form>
     </div>
@@ -54,28 +63,37 @@ function CertNotFound() {
 /** Deterministic QR-style pattern for the prototype (real QR served by the API). */
 function QrMotif({ seed, size = 108 }: { seed: number; size?: number }) {
   const cells: React.ReactNode[] = []
-  let s = seed * 2654435761
-  const rand = () => {
-    s = (s * 1103515245 + 12345) & 0x7fffffff
-    return s / 0x7fffffff
-  }
+  const rand = seededRandom(seed)
   const n = 13
   for (let y = 0; y < n; y++) {
     for (let x = 0; x < n; x++) {
-      const inFinder =
-        (x < 4 && y < 4) || (x >= n - 4 && y < 4) || (x < 4 && y >= n - 4)
+      const inFinder = (x < 4 && y < 4) || (x >= n - 4 && y < 4) || (x < 4 && y >= n - 4)
       if (inFinder) continue
       if (rand() > 0.52) cells.push(<rect key={`${x}-${y}`} x={x} y={y} width="1" height="1" />)
     }
   }
   const finder = (fx: number, fy: number) => (
     <g>
-      <rect x={fx} y={fy} width="4" height="4" fill="none" stroke="var(--ink-900)" strokeWidth="0.9" />
+      <rect
+        x={fx}
+        y={fy}
+        width="4"
+        height="4"
+        fill="none"
+        stroke="var(--ink-900)"
+        strokeWidth="0.9"
+      />
       <rect x={fx + 1.2} y={fy + 1.2} width="1.6" height="1.6" fill="var(--ink-900)" />
     </g>
   )
   return (
-    <svg width={size} height={size} viewBox={`-0.5 -0.5 ${n} ${n}`} fill="var(--ink-900)" aria-hidden="true">
+    <svg
+      width={size}
+      height={size}
+      viewBox={`-0.5 -0.5 ${n} ${n}`}
+      fill="var(--ink-900)"
+      aria-hidden="true"
+    >
       {cells}
       {finder(0, 0)}
       {finder(n - 4, 0)}
@@ -92,7 +110,10 @@ function CertificatePage() {
 
   return (
     <div className="relative mx-auto max-w-3xl px-4 pt-12 pb-16 sm:px-6">
-      <PetalScatter seed={cert.figure_seed} className="pointer-events-none absolute top-8 right-6 opacity-40" />
+      <PetalScatter
+        seed={cert.figure_seed}
+        className="pointer-events-none absolute top-8 right-6 opacity-40"
+      />
 
       {/* certificate card */}
       <div className="card-surface relative overflow-hidden p-8 sm:p-10">
@@ -105,12 +126,16 @@ function CertificatePage() {
                 <SealCheck size={12} weight="fill" />
                 {t('cert.verified')}
               </Badge>
-              <h1 className="mt-2 text-[1.35rem] font-semibold tracking-tight text-ink-900">{t('cert.title')}</h1>
+              <h1 className="mt-2 text-[1.35rem] font-semibold tracking-tight text-ink-900">
+                {t('cert.title')}
+              </h1>
             </div>
           </div>
           <div className="rounded-xl border border-cobalt-100 bg-white p-3 shadow-card">
             <QrMotif seed={cert.figure_seed} />
-            <p className="mt-2 text-center font-mono text-[0.72rem] text-ink-400">{cert.cert_code}</p>
+            <p className="mt-2 text-center font-mono text-[0.72rem] text-ink-400">
+              {cert.cert_code}
+            </p>
           </div>
         </div>
 
@@ -119,13 +144,20 @@ function CertificatePage() {
         {/* artwork */}
         <div className="relative grid gap-8 sm:grid-cols-[10rem_1fr]">
           <div className="mx-auto w-40 overflow-hidden rounded-xl border border-cobalt-100 bg-gradient-to-b from-wash to-porcelain">
-            <PorcelainFigure kind={cert.figure_kind} seed={cert.figure_seed} className="h-auto w-full" />
+            <PorcelainFigure
+              kind={cert.figure_kind}
+              seed={cert.figure_seed}
+              className="h-auto w-full"
+            />
           </div>
           <div>
             <p className="eyebrow">{t('catalog.title')}</p>
-            <h2 className="mt-1.5 text-[1.25rem] font-semibold text-ink-900">{cert.product_title}</h2>
+            <h2 className="mt-1.5 text-[1.25rem] font-semibold text-ink-900">
+              {cert.product_title}
+            </h2>
             <p className="mt-1.5 text-[0.88rem] text-ink-500">
-              {t('cert.artist')}: <span className="font-medium text-ink-700">{cert.artist_name}</span>
+              {t('cert.artist')}:{' '}
+              <span className="font-medium text-ink-700">{cert.artist_name}</span>
             </p>
             <dl className="mt-5 grid gap-x-8 gap-y-2 text-[0.85rem] sm:grid-cols-2">
               <div className="flex justify-between border-b border-cobalt-50 pb-1.5">
@@ -162,7 +194,9 @@ function CertificatePage() {
 
       {/* provenance */}
       <section className="mt-10">
-        <h2 className="text-[0.82rem] font-semibold tracking-[0.18em] text-ink-400 uppercase">{t('cert.provenance')}</h2>
+        <h2 className="text-[0.82rem] font-semibold tracking-[0.18em] text-ink-400 uppercase">
+          {t('cert.provenance')}
+        </h2>
         <ol className="relative mt-5 flex flex-col gap-6 border-l-2 border-cobalt-100 pl-6">
           {cert.provenance.map((p) => (
             <li key={p.id} className="relative">
@@ -178,7 +212,11 @@ function CertificatePage() {
       {/* verify another */}
       <div className="card-surface mt-10 flex flex-wrap items-center justify-between gap-4 p-6">
         <p className="text-[0.86rem] text-ink-500">{t('cert.verifyHint')}</p>
-        <a href="#" onClick={(e) => e.preventDefault()} className="text-[0.84rem] font-medium text-cobalt-600 hover:underline">
+        <a
+          href="#"
+          onClick={(e) => e.preventDefault()}
+          className="text-[0.84rem] font-medium text-cobalt-600 hover:underline"
+        >
           {t('cert.checkOther')}
         </a>
       </div>

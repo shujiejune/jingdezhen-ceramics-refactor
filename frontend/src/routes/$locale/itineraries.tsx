@@ -9,15 +9,16 @@ import { useI18n } from '~/lib/i18n'
 import { formatDate } from '~/lib/utils'
 import type { ItineraryRequest, ItineraryStatus } from '~/lib/types'
 
-const statusTone: Record<ItineraryStatus, 'cobalt' | 'success' | 'warning' | 'neutral' | 'danger'> = {
-  pending: 'warning',
-  processing: 'cobalt',
-  quoted: 'cobalt',
-  deposit_paid: 'cobalt',
-  confirmed: 'success',
-  cancelled: 'neutral',
-  closed: 'neutral',
-}
+const statusTone: Record<ItineraryStatus, 'cobalt' | 'success' | 'warning' | 'neutral' | 'danger'> =
+  {
+    pending: 'warning',
+    processing: 'cobalt',
+    quoted: 'cobalt',
+    deposit_paid: 'cobalt',
+    confirmed: 'success',
+    cancelled: 'neutral',
+    closed: 'neutral',
+  }
 
 /** My journeys — submitted itinerary requests + statuses (PRD §3.3.2). */
 export const Route = createFileRoute('/$locale/itineraries')({
@@ -30,7 +31,11 @@ function ItinerariesPage() {
   const [list, setList] = useState<ItineraryRequest[] | null>(null)
 
   useEffect(() => {
-    if (ready && token) void api.listItineraries(token).then(setList).catch(() => setList([]))
+    if (ready && token)
+      void api
+        .listItineraries(token)
+        .then(setList)
+        .catch(() => setList([]))
     else if (ready) setList([])
   }, [ready, token])
 
@@ -77,7 +82,10 @@ function ItinerariesPage() {
       ) : (
         <div className="mt-8 flex flex-col gap-4">
           {list?.map((r) => (
-            <div key={r.id} className="card-surface flex flex-wrap items-center justify-between gap-4 p-5">
+            <div
+              key={r.id}
+              className="card-surface flex flex-wrap items-center justify-between gap-4 p-5"
+            >
               <div>
                 <div className="flex items-center gap-3">
                   <span className="text-[0.95rem] font-semibold text-ink-900">
@@ -103,7 +111,11 @@ function ItinerariesPage() {
                   {t('itin.viewQuote')}
                 </span>
               ) : (
-                <Link to="/$locale/itinerary" params={{ locale }} className="text-[0.82rem] font-medium text-cobalt-600 hover:underline">
+                <Link
+                  to="/$locale/itinerary"
+                  params={{ locale }}
+                  className="text-[0.82rem] font-medium text-cobalt-600 hover:underline"
+                >
                   {t('landing.travelCta')}
                 </Link>
               )}

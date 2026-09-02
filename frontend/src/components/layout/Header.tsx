@@ -54,10 +54,16 @@ export function Header() {
     <header className="sticky top-0 z-50 border-b border-cobalt-100/70 bg-white/90 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-shell items-center gap-6 px-4 sm:px-6">
         {/* brand */}
-        <Link to={base as never} className="flex shrink-0 items-center gap-2.5" aria-label={t('common.brand')}>
+        <Link
+          to={base as never}
+          className="flex shrink-0 items-center gap-2.5"
+          aria-label={t('common.brand')}
+        >
           <SealMark size={34} />
           <span className="flex flex-col leading-none">
-            <span className="text-[0.95rem] font-semibold tracking-tight text-ink-900">{t('common.brand')}</span>
+            <span className="text-[0.95rem] font-semibold tracking-tight text-ink-900">
+              {t('common.brand')}
+            </span>
             <span className="mt-1 text-[0.62rem] font-medium tracking-[0.16em] text-cobalt-600 uppercase">
               {t('common.brandSub')}
             </span>
@@ -72,7 +78,9 @@ export function Header() {
               to={item.to as never}
               className={cn(
                 'rounded-md px-3 py-2 text-sm font-medium transition',
-                isActive(item.to) ? 'bg-cobalt-50 text-cobalt-700' : 'text-ink-600 hover:bg-mist hover:text-ink-800',
+                isActive(item.to)
+                  ? 'bg-cobalt-50 text-cobalt-700'
+                  : 'text-ink-600 hover:bg-mist hover:text-ink-800',
               )}
             >
               {item.label}
@@ -110,7 +118,9 @@ export function Header() {
                     onSelect={() => c !== currency && setCurrency(c)}
                     className={cn(
                       'flex cursor-pointer items-center justify-between rounded-md px-3 py-2 text-sm outline-none',
-                      c === currency ? 'bg-cobalt-50 text-cobalt-700' : 'text-ink-600 data-[highlighted]:bg-mist',
+                      c === currency
+                        ? 'bg-cobalt-50 text-cobalt-700'
+                        : 'text-ink-600 data-[highlighted]:bg-mist',
                     )}
                   >
                     <span className="font-medium">{c}</span>
@@ -173,9 +183,21 @@ export function Header() {
                     <p className="truncate text-sm font-semibold text-ink-800">{user.nickname}</p>
                     <p className="truncate text-[0.75rem] text-ink-400">{user.email}</p>
                   </div>
-                  <MenuLink icon={<Package size={15} />} label={t('nav.orders')} to={`${base}/orders`} />
-                  <MenuLink icon={<Wrench size={15} />} label={t('nav.itineraries')} to={`${base}/itineraries`} />
-                  <MenuLink icon={<UserCircle size={15} />} label={t('nav.profile')} to={`${base}/account`} />
+                  <MenuLink
+                    icon={<Package size={15} />}
+                    label={t('nav.orders')}
+                    to={`${base}/orders`}
+                  />
+                  <MenuLink
+                    icon={<Wrench size={15} />}
+                    label={t('nav.itineraries')}
+                    to={`${base}/itineraries`}
+                  />
+                  <MenuLink
+                    icon={<UserCircle size={15} />}
+                    label={t('nav.profile')}
+                    to={`${base}/account`}
+                  />
                   <DropdownMenu.Item
                     onSelect={() => {
                       logout()
@@ -208,7 +230,10 @@ export function Header() {
       </div>
 
       {mobileOpen && (
-        <nav className="border-t border-cobalt-100/70 bg-white px-4 pt-2 pb-4 lg:hidden" aria-label="mobile">
+        <nav
+          className="border-t border-cobalt-100/70 bg-white px-4 pt-2 pb-4 lg:hidden"
+          aria-label="mobile"
+        >
           {navItems.map((item) => (
             <Link
               key={item.to}
@@ -222,7 +247,10 @@ export function Header() {
             </Link>
           ))}
           <div className="mt-2 flex items-center gap-3 border-t border-cobalt-50 pt-3">
-            <Link to={otherPath as never} className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-ink-600">
+            <Link
+              to={otherPath as never}
+              className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-ink-600"
+            >
               <GlobeHemisphereWest size={16} />
               {otherLocale === 'zh-CN' ? '中文' : 'English'}
             </Link>

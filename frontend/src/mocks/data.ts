@@ -6,10 +6,7 @@
  * Dates are fixed ISO strings so SSR and client renders match.
  * Money is minor units (fen) throughout, authored in CNY (TDD §7).
  */
-import type {
-  ContentBlock,
-  SKUAttributes,
-} from '~/lib/types'
+import type { ContentBlock, SKUAttributes } from '~/lib/types'
 
 export interface Translation<T> {
   enUS: T
@@ -235,8 +232,24 @@ export const PRODUCTS: ProductRecord[] = [
         weightGrams: 2600,
         lowStockThreshold: 2,
         attributes: {
-          enUS: { size: 'H 38 cm', technique: 'Underglaze blue (qinghua)', glaze: 'Clear glaze', edition_type: 'limited_edition', edition_number: '60', year: 2025, kiln: 'Xianghu Kiln' },
-          zhCN: { size: '高 38 cm', technique: '釉下青花', glaze: '透明釉', edition_type: 'limited_edition', edition_number: '60', year: 2025, kiln: '湘湖窑' },
+          enUS: {
+            size: 'H 38 cm',
+            technique: 'Underglaze blue (qinghua)',
+            glaze: 'Clear glaze',
+            edition_type: 'limited_edition',
+            edition_number: '60',
+            year: 2025,
+            kiln: 'Xianghu Kiln',
+          },
+          zhCN: {
+            size: '高 38 cm',
+            technique: '釉下青花',
+            glaze: '透明釉',
+            edition_type: 'limited_edition',
+            edition_number: '60',
+            year: 2025,
+            kiln: '湘湖窑',
+          },
         },
       },
       {
@@ -247,8 +260,24 @@ export const PRODUCTS: ProductRecord[] = [
         weightGrams: 3900,
         lowStockThreshold: 2,
         attributes: {
-          enUS: { size: 'H 45 cm', technique: 'Underglaze blue (qinghua)', glaze: 'Clear glaze', edition_type: 'limited_edition', edition_number: '60', year: 2025, kiln: 'Xianghu Kiln' },
-          zhCN: { size: '高 45 cm', technique: '釉下青花', glaze: '透明釉', edition_type: 'limited_edition', edition_number: '60', year: 2025, kiln: '湘湖窑' },
+          enUS: {
+            size: 'H 45 cm',
+            technique: 'Underglaze blue (qinghua)',
+            glaze: 'Clear glaze',
+            edition_type: 'limited_edition',
+            edition_number: '60',
+            year: 2025,
+            kiln: 'Xianghu Kiln',
+          },
+          zhCN: {
+            size: '高 45 cm',
+            technique: '釉下青花',
+            glaze: '透明釉',
+            edition_type: 'limited_edition',
+            edition_number: '60',
+            year: 2025,
+            kiln: '湘湖窑',
+          },
         },
       },
     ],
@@ -270,7 +299,8 @@ export const PRODUCTS: ProductRecord[] = [
         description:
           'Everyday bowls with an imperial pedigree: the lotus-scroll border is drawn from a Yongle-era pattern book, scaled for the modern table. Dishwasher-fearless, museum-adjacent.',
         metaTitle: 'Lotus Scroll Bowls — qinghua tableware set',
-        metaDescription: 'Set of two blue-and-white lotus bowls from Jingdezhen. Open edition, daily use, shipped worldwide.',
+        metaDescription:
+          'Set of two blue-and-white lotus bowls from Jingdezhen. Open edition, daily use, shipped worldwide.',
       },
       zhCN: {
         title: '缠枝莲纹碗（一对）',
@@ -290,8 +320,22 @@ export const PRODUCTS: ProductRecord[] = [
         weightGrams: 850,
         lowStockThreshold: 4,
         attributes: {
-          enUS: { size: 'Ø 12.5 cm', technique: 'Underglaze blue', glaze: 'Clear glaze', edition_type: 'open_production', year: 2026, kiln: 'Xianghu Kiln' },
-          zhCN: { size: '口径 12.5 cm', technique: '釉下青花', glaze: '透明釉', edition_type: 'open_production', year: 2026, kiln: '湘湖窑' },
+          enUS: {
+            size: 'Ø 12.5 cm',
+            technique: 'Underglaze blue',
+            glaze: 'Clear glaze',
+            edition_type: 'open_production',
+            year: 2026,
+            kiln: 'Xianghu Kiln',
+          },
+          zhCN: {
+            size: '口径 12.5 cm',
+            technique: '釉下青花',
+            glaze: '透明釉',
+            edition_type: 'open_production',
+            year: 2026,
+            kiln: '湘湖窑',
+          },
         },
       },
     ],
@@ -313,7 +357,8 @@ export const PRODUCTS: ProductRecord[] = [
         description:
           'A charger whose well boils with wave medallions under a full moon rim. Painted in the “heaped and piled” style of early Ming, when cobalt was precious and applied thick.',
         metaTitle: 'Moon Plate — qinghua charger by Chen Yuqing',
-        metaDescription: 'Blue-and-white charger plate with wave medallion. Limited edition 200 from Jingdezhen.',
+        metaDescription:
+          'Blue-and-white charger plate with wave medallion. Limited edition 200 from Jingdezhen.',
       },
       zhCN: {
         title: '月华盘·海浪纹',
@@ -333,8 +378,24 @@ export const PRODUCTS: ProductRecord[] = [
         weightGrams: 1900,
         lowStockThreshold: 3,
         attributes: {
-          enUS: { size: 'Ø 32 cm', technique: 'Underglaze blue, heaped & piled', glaze: 'Clear glaze', edition_type: 'limited_edition', edition_number: '200', year: 2026, kiln: 'Xianghu Kiln' },
-          zhCN: { size: '口径 32 cm', technique: '釉下青花·浓笔堆料', glaze: '透明釉', edition_type: 'limited_edition', edition_number: '200', year: 2026, kiln: '湘湖窑' },
+          enUS: {
+            size: 'Ø 32 cm',
+            technique: 'Underglaze blue, heaped & piled',
+            glaze: 'Clear glaze',
+            edition_type: 'limited_edition',
+            edition_number: '200',
+            year: 2026,
+            kiln: 'Xianghu Kiln',
+          },
+          zhCN: {
+            size: '口径 32 cm',
+            technique: '釉下青花·浓笔堆料',
+            glaze: '透明釉',
+            edition_type: 'limited_edition',
+            edition_number: '200',
+            year: 2026,
+            kiln: '湘湖窑',
+          },
         },
       },
     ],
@@ -356,7 +417,8 @@ export const PRODUCTS: ProductRecord[] = [
         description:
           'Thrown and painted by Yu Tiancheng for this gallery alone: a full-bodied pot carrying three auspicious clouds across its shoulder. One exists. When it sells, the provenance chain begins on its certificate.',
         metaTitle: 'Cloud Teapot — one-of-a-kind qinghua teapot',
-        metaDescription: 'Unique blue-and-white teapot by master potter Yu Tiancheng. One of one, certified.',
+        metaDescription:
+          'Unique blue-and-white teapot by master potter Yu Tiancheng. One of one, certified.',
       },
       zhCN: {
         title: '祥云壶（孤品）',
@@ -376,8 +438,22 @@ export const PRODUCTS: ProductRecord[] = [
         weightGrams: 1050,
         lowStockThreshold: 1,
         attributes: {
-          enUS: { size: '480 ml', technique: 'Underglaze blue', glaze: 'Clear glaze', edition_type: 'one_of_a_kind', year: 2026, kiln: 'Yu Studio' },
-          zhCN: { size: '480 ml', technique: '釉下青花', glaze: '透明釉', edition_type: 'one_of_a_kind', year: 2026, kiln: '余氏工作室' },
+          enUS: {
+            size: '480 ml',
+            technique: 'Underglaze blue',
+            glaze: 'Clear glaze',
+            edition_type: 'one_of_a_kind',
+            year: 2026,
+            kiln: 'Yu Studio',
+          },
+          zhCN: {
+            size: '480 ml',
+            technique: '釉下青花',
+            glaze: '透明釉',
+            edition_type: 'one_of_a_kind',
+            year: 2026,
+            kiln: '余氏工作室',
+          },
         },
       },
     ],
@@ -398,7 +474,8 @@ export const PRODUCTS: ProductRecord[] = [
         description:
           'The jiangjun guan takes its name from generals’ helmet crests. This one blooms with a peony medallion over a lotus-petal foot, cobalt deepening toward the base the way Kangxi jars do.',
         metaTitle: 'General’s Jar — qinghua jar with peony medallion',
-        metaDescription: 'Blue-and-white general’s jar from Jingdezhen. Limited edition, certified, worldwide shipping.',
+        metaDescription:
+          'Blue-and-white general’s jar from Jingdezhen. Limited edition, certified, worldwide shipping.',
       },
       zhCN: {
         title: '将军罐·牡丹',
@@ -418,8 +495,24 @@ export const PRODUCTS: ProductRecord[] = [
         weightGrams: 3100,
         lowStockThreshold: 2,
         attributes: {
-          enUS: { size: 'H 30 cm', technique: 'Underglaze blue', glaze: 'Clear glaze', edition_type: 'limited_edition', edition_number: '80', year: 2025, kiln: 'Xianghu Kiln' },
-          zhCN: { size: '高 30 cm', technique: '釉下青花', glaze: '透明釉', edition_type: 'limited_edition', edition_number: '80', year: 2025, kiln: '湘湖窑' },
+          enUS: {
+            size: 'H 30 cm',
+            technique: 'Underglaze blue',
+            glaze: 'Clear glaze',
+            edition_type: 'limited_edition',
+            edition_number: '80',
+            year: 2025,
+            kiln: 'Xianghu Kiln',
+          },
+          zhCN: {
+            size: '高 30 cm',
+            technique: '釉下青花',
+            glaze: '透明釉',
+            edition_type: 'limited_edition',
+            edition_number: '80',
+            year: 2025,
+            kiln: '湘湖窑',
+          },
         },
       },
     ],
@@ -441,7 +534,8 @@ export const PRODUCTS: ProductRecord[] = [
         description:
           'From Lin Haiming’s wood-fired “River Mist” series: a celadon form whose ash glaze pooled like dawn fog on the Chang. Fired 72 hours; the kiln signed the base where embers sat closest.',
         metaTitle: 'River Mist No. 7 — wood-fired celadon sculpture',
-        metaDescription: 'One-of-a-kind wood-fired celadon sculpture by Lin Haiming, Jingdezhen. Certified.',
+        metaDescription:
+          'One-of-a-kind wood-fired celadon sculpture by Lin Haiming, Jingdezhen. Certified.',
       },
       zhCN: {
         title: '江雾·柒（孤品）',
@@ -461,8 +555,22 @@ export const PRODUCTS: ProductRecord[] = [
         weightGrams: 5400,
         lowStockThreshold: 1,
         attributes: {
-          enUS: { size: 'H 42 cm', technique: 'Wood-fired, ash glaze', glaze: 'Natural ash celadon', edition_type: 'one_of_a_kind', year: 2025, kiln: 'Sanbao wood kiln' },
-          zhCN: { size: '高 42 cm', technique: '柴烧·落灰釉', glaze: '自然灰青釉', edition_type: 'one_of_a_kind', year: 2025, kiln: '三宝柴窑' },
+          enUS: {
+            size: 'H 42 cm',
+            technique: 'Wood-fired, ash glaze',
+            glaze: 'Natural ash celadon',
+            edition_type: 'one_of_a_kind',
+            year: 2025,
+            kiln: 'Sanbao wood kiln',
+          },
+          zhCN: {
+            size: '高 42 cm',
+            technique: '柴烧·落灰釉',
+            glaze: '自然灰青釉',
+            edition_type: 'one_of_a_kind',
+            year: 2025,
+            kiln: '三宝柴窑',
+          },
         },
       },
     ],
@@ -483,7 +591,8 @@ export const PRODUCTS: ProductRecord[] = [
         description:
           'Su Wanqing’s famille-rose cups carry a garden at dusk — one bloom opening, one about to. The translucent enamels sit on a white ground so clean it reads as moonlight.',
         metaTitle: 'Quiet Garden Cups — famille rose teacups pair',
-        metaDescription: 'Pair of famille-rose teacups by Su Wanqing, Jingdezhen. Open edition, certified.',
+        metaDescription:
+          'Pair of famille-rose teacups by Su Wanqing, Jingdezhen. Open edition, certified.',
       },
       zhCN: {
         title: '静园对杯',
@@ -503,8 +612,22 @@ export const PRODUCTS: ProductRecord[] = [
         weightGrams: 480,
         lowStockThreshold: 3,
         attributes: {
-          enUS: { size: '80 ml × 2', technique: 'Famille rose (fencai) enamel', glaze: 'White ground', edition_type: 'open_production', year: 2026, kiln: 'Su Studio' },
-          zhCN: { size: '80 ml × 2', technique: '粉彩', glaze: '白地', edition_type: 'open_production', year: 2026, kiln: '苏氏工作室' },
+          enUS: {
+            size: '80 ml × 2',
+            technique: 'Famille rose (fencai) enamel',
+            glaze: 'White ground',
+            edition_type: 'open_production',
+            year: 2026,
+            kiln: 'Su Studio',
+          },
+          zhCN: {
+            size: '80 ml × 2',
+            technique: '粉彩',
+            glaze: '白地',
+            edition_type: 'open_production',
+            year: 2026,
+            kiln: '苏氏工作室',
+          },
         },
       },
     ],
@@ -525,7 +648,8 @@ export const PRODUCTS: ProductRecord[] = [
         description:
           'Eighteen pieces of everyday imperial: dinner plates, side plates, and rice bowls wearing a willow border distilled from export-ware that sailed for Europe two centuries ago. Packed as one substantial crate.',
         metaTitle: 'Dinner Service for Six — qinghua tableware',
-        metaDescription: 'Eighteen-piece blue-and-white dinner set from Jingdezhen, packed for worldwide shipping.',
+        metaDescription:
+          'Eighteen-piece blue-and-white dinner set from Jingdezhen, packed for worldwide shipping.',
       },
       zhCN: {
         title: '六人餐具·柳纹边',
@@ -545,8 +669,22 @@ export const PRODUCTS: ProductRecord[] = [
         weightGrams: 12500, // 12.5 kg — the overweight demo (exceeds some countries' top tier)
         lowStockThreshold: 2,
         attributes: {
-          enUS: { size: '18 pieces', technique: 'Underglaze blue', glaze: 'Clear glaze', edition_type: 'open_production', year: 2026, kiln: 'Xianghu Kiln' },
-          zhCN: { size: '18 件', technique: '釉下青花', glaze: '透明釉', edition_type: 'open_production', year: 2026, kiln: '湘湖窑' },
+          enUS: {
+            size: '18 pieces',
+            technique: 'Underglaze blue',
+            glaze: 'Clear glaze',
+            edition_type: 'open_production',
+            year: 2026,
+            kiln: 'Xianghu Kiln',
+          },
+          zhCN: {
+            size: '18 件',
+            technique: '釉下青花',
+            glaze: '透明釉',
+            edition_type: 'open_production',
+            year: 2026,
+            kiln: '湘湖窑',
+          },
         },
       },
     ],
@@ -567,7 +705,8 @@ export const PRODUCTS: ProductRecord[] = [
         description:
           'Jiang Xue’s skyline vase: the ridge above Sanbao valley at blue hour, its contour echoing a Song meiping while the skyline lights read as stamped neon. The collision is the point.',
         metaTitle: 'Sanbao Ridge — contemporary qinghua vase',
-        metaDescription: 'One-of-a-kind contemporary blue-and-white vase by Jingdrifter artist Jiang Xue.',
+        metaDescription:
+          'One-of-a-kind contemporary blue-and-white vase by Jingdrifter artist Jiang Xue.',
       },
       zhCN: {
         title: '三宝山脊（孤品）',
@@ -587,8 +726,22 @@ export const PRODUCTS: ProductRecord[] = [
         weightGrams: 2200,
         lowStockThreshold: 1,
         attributes: {
-          enUS: { size: 'H 35 cm', technique: 'Underglaze blue, decal neon', glaze: 'Satin clear', edition_type: 'one_of_a_kind', year: 2026, kiln: 'Taoxichuan studio' },
-          zhCN: { size: '高 35 cm', technique: '釉下青花·霓虹贴花', glaze: '亚光釉', edition_type: 'one_of_a_kind', year: 2026, kiln: '陶溪川工作室' },
+          enUS: {
+            size: 'H 35 cm',
+            technique: 'Underglaze blue, decal neon',
+            glaze: 'Satin clear',
+            edition_type: 'one_of_a_kind',
+            year: 2026,
+            kiln: 'Taoxichuan studio',
+          },
+          zhCN: {
+            size: '高 35 cm',
+            technique: '釉下青花·霓虹贴花',
+            glaze: '亚光釉',
+            edition_type: 'one_of_a_kind',
+            year: 2026,
+            kiln: '陶溪川工作室',
+          },
         },
       },
     ],
@@ -629,8 +782,24 @@ export const PRODUCTS: ProductRecord[] = [
         weightGrams: 520,
         lowStockThreshold: 2,
         attributes: {
-          enUS: { size: '110 ml × 2', technique: 'Reduction-fired celadon', glaze: 'Kiln-transmutation', edition_type: 'limited_edition', edition_number: '150', year: 2026, kiln: 'Sanbao wood kiln' },
-          zhCN: { size: '110 ml × 2', technique: '还原焰青瓷', glaze: '窑变釉', edition_type: 'limited_edition', edition_number: '150', year: 2026, kiln: '三宝柴窑' },
+          enUS: {
+            size: '110 ml × 2',
+            technique: 'Reduction-fired celadon',
+            glaze: 'Kiln-transmutation',
+            edition_type: 'limited_edition',
+            edition_number: '150',
+            year: 2026,
+            kiln: 'Sanbao wood kiln',
+          },
+          zhCN: {
+            size: '110 ml × 2',
+            technique: '还原焰青瓷',
+            glaze: '窑变釉',
+            edition_type: 'limited_edition',
+            edition_number: '150',
+            year: 2026,
+            kiln: '三宝柴窑',
+          },
         },
       },
     ],
@@ -651,7 +820,8 @@ export const PRODUCTS: ProductRecord[] = [
         description:
           'The yellow reserved for emperors, poured over a ribbed jar and closed with a domed lid. Su Wanqing fires it only in short winter windows, when the kiln cools slowly enough to keep the color tender.',
         metaTitle: 'Imperial Yellow Ginger Jar — enamel porcelain',
-        metaDescription: 'Imperial-yellow enamel ginger jar by Su Wanqing, Jingdezhen. Open edition.',
+        metaDescription:
+          'Imperial-yellow enamel ginger jar by Su Wanqing, Jingdezhen. Open edition.',
       },
       zhCN: {
         title: '明黄地瓜楞罐',
@@ -671,8 +841,22 @@ export const PRODUCTS: ProductRecord[] = [
         weightGrams: 1600,
         lowStockThreshold: 3,
         attributes: {
-          enUS: { size: 'H 18 cm', technique: 'Lead-glaze enamel', glaze: 'Imperial yellow', edition_type: 'open_production', year: 2025, kiln: 'Su Studio' },
-          zhCN: { size: '高 18 cm', technique: '低温釉彩', glaze: '明黄', edition_type: 'open_production', year: 2025, kiln: '苏氏工作室' },
+          enUS: {
+            size: 'H 18 cm',
+            technique: 'Lead-glaze enamel',
+            glaze: 'Imperial yellow',
+            edition_type: 'open_production',
+            year: 2025,
+            kiln: 'Su Studio',
+          },
+          zhCN: {
+            size: '高 18 cm',
+            technique: '低温釉彩',
+            glaze: '明黄',
+            edition_type: 'open_production',
+            year: 2025,
+            kiln: '苏氏工作室',
+          },
         },
       },
     ],
@@ -713,8 +897,22 @@ export const PRODUCTS: ProductRecord[] = [
         weightGrams: 720,
         lowStockThreshold: 5,
         attributes: {
-          enUS: { size: '90 ml × 4', technique: 'Underglaze blue', glaze: 'Clear glaze', edition_type: 'open_production', year: 2026, kiln: 'Taoxichuan studio' },
-          zhCN: { size: '90 ml × 4', technique: '釉下青花', glaze: '透明釉', edition_type: 'open_production', year: 2026, kiln: '陶溪川工作室' },
+          enUS: {
+            size: '90 ml × 4',
+            technique: 'Underglaze blue',
+            glaze: 'Clear glaze',
+            edition_type: 'open_production',
+            year: 2026,
+            kiln: 'Taoxichuan studio',
+          },
+          zhCN: {
+            size: '90 ml × 4',
+            technique: '釉下青花',
+            glaze: '透明釉',
+            edition_type: 'open_production',
+            year: 2026,
+            kiln: '陶溪川工作室',
+          },
         },
       },
     ],
@@ -737,10 +935,19 @@ export const STORIES: StoryRecord[] = [
         summary:
           'In 1004, an emperor’s reign name — Jingde — was given to a river town already firing translucent ware. The rest is porcelain history.',
         content: [
-          { type: 'paragraph', text: 'When the Song emperor Zhenzong decreed in 1004 that the town of Changnanzhen should stamp his reign name — Jingde — on the bases of its wares, he was registering a brand. The town kept the name and outlived the dynasty.' },
-          { type: 'paragraph', text: 'What earned the decree was qingbai: “shadow blue” porcelain so translucent that bowls were said to hold light the way paper lanterns do. Kilns lined the Chang river for miles, and the river itself became the supply chain — kaolin washed downstream from the hills, crates of fired ware floated out to the world.' },
+          {
+            type: 'paragraph',
+            text: 'When the Song emperor Zhenzong decreed in 1004 that the town of Changnanzhen should stamp his reign name — Jingde — on the bases of its wares, he was registering a brand. The town kept the name and outlived the dynasty.',
+          },
+          {
+            type: 'paragraph',
+            text: 'What earned the decree was qingbai: “shadow blue” porcelain so translucent that bowls were said to hold light the way paper lanterns do. Kilns lined the Chang river for miles, and the river itself became the supply chain — kaolin washed downstream from the hills, crates of fired ware floated out to the world.',
+          },
           { type: 'heading', level: 2, text: 'Why here' },
-          { type: 'paragraph', text: 'Two clays made the miracle: plastic kaolin and stone-rich porcelain stone. Mixed in the right ratio, they could be thrown thin, survive 1,300°C, and ring when struck. Jingdezhen sat on both, with pine forests for fuel and a river for transport. Geography, fired into an industry.' },
+          {
+            type: 'paragraph',
+            text: 'Two clays made the miracle: plastic kaolin and stone-rich porcelain stone. Mixed in the right ratio, they could be thrown thin, survive 1,300°C, and ring when struck. Jingdezhen sat on both, with pine forests for fuel and a river for transport. Geography, fired into an industry.',
+          },
         ],
       },
       zhCN: {
@@ -749,10 +956,19 @@ export const STORIES: StoryRecord[] = [
         summary:
           '公元 1004 年，皇帝的年号“景德”被赐给一座已能烧制透光瓷器的河畔小镇。此后的历史，就是瓷器的历史。',
         content: [
-          { type: 'paragraph', text: '宋真宗景德元年，下旨将昌南镇所制瓷器底书“景德年制”——这几乎是一次“御用品牌注册”。王朝早已更迭，小镇却把年号留成了自己的名字。' },
-          { type: 'paragraph', text: '获此殊荣的是青白瓷：“影青”透光如纸灯笼盛光。窑火沿昌江绵延数十里，江水即是供应链——高岭自山中淘洗而下，成器的木箱顺流漂向世界。' },
+          {
+            type: 'paragraph',
+            text: '宋真宗景德元年，下旨将昌南镇所制瓷器底书“景德年制”——这几乎是一次“御用品牌注册”。王朝早已更迭，小镇却把年号留成了自己的名字。',
+          },
+          {
+            type: 'paragraph',
+            text: '获此殊荣的是青白瓷：“影青”透光如纸灯笼盛光。窑火沿昌江绵延数十里，江水即是供应链——高岭自山中淘洗而下，成器的木箱顺流漂向世界。',
+          },
           { type: 'heading', level: 2, text: '为什么是这里' },
-          { type: 'paragraph', text: '两种土成就了奇迹：可塑的高岭土与瓷石。以恰当配比混合，即可拉薄坯、耐一千三百度高温、叩之有声。景德镇坐拥二者，又有松柴为薪、江水为路。地理，被烧成了一个产业。' },
+          {
+            type: 'paragraph',
+            text: '两种土成就了奇迹：可塑的高岭土与瓷石。以恰当配比混合，即可拉薄坯、耐一千三百度高温、叩之有声。景德镇坐拥二者，又有松柴为薪、江水为路。地理，被烧成了一个产业。',
+          },
         ],
       },
     },
@@ -768,22 +984,39 @@ export const STORIES: StoryRecord[] = [
         summary:
           'Persian cobalt met Chinese clay on Yuan trade routes — and qinghua, blue-and-white, was born of the encounter.',
         content: [
-          { type: 'paragraph', text: 'Under the Yuan, caravans and sea lanes brought “Sumali blue” — cobalt oxide from Persian mines — to Jingdezhen’s kilns. Painted under the glaze onto porcelain and fired once, it produced a blue that never faded, never washed, never wore.' },
-          { type: 'paragraph', text: 'The first great blue-and-whites were export ware: enormous dishes made to Islamic specifications, their dense scrollwork mirroring Persian metalwork. Chinese potters learned the taste of distant customers and invented a visual language the whole world would claim as its own.' },
+          {
+            type: 'paragraph',
+            text: 'Under the Yuan, caravans and sea lanes brought “Sumali blue” — cobalt oxide from Persian mines — to Jingdezhen’s kilns. Painted under the glaze onto porcelain and fired once, it produced a blue that never faded, never washed, never wore.',
+          },
+          {
+            type: 'paragraph',
+            text: 'The first great blue-and-whites were export ware: enormous dishes made to Islamic specifications, their dense scrollwork mirroring Persian metalwork. Chinese potters learned the taste of distant customers and invented a visual language the whole world would claim as its own.',
+          },
           { type: 'heading', level: 2, text: 'A trade glyph' },
-          { type: 'paragraph', text: 'Within a century, qinghua was being copied in Vietnam, imitated in Persia, coveted in Istanbul, and painted onto Dutch delft. The blue had become the first global image — recognizable from the Strait of Malacca to the canals of Amsterdam.' },
+          {
+            type: 'paragraph',
+            text: 'Within a century, qinghua was being copied in Vietnam, imitated in Persia, coveted in Istanbul, and painted onto Dutch delft. The blue had become the first global image — recognizable from the Strait of Malacca to the canals of Amsterdam.',
+          },
         ],
       },
       zhCN: {
         title: '苏麻离青：元的发明',
         slug: 'sumali-qing',
-        summary:
-          '波斯的钴料沿元代商路抵达中国的瓷土——青花，诞生于这场相遇。',
+        summary: '波斯的钴料沿元代商路抵达中国的瓷土——青花，诞生于这场相遇。',
         content: [
-          { type: 'paragraph', text: '元代，商队与海路将“苏麻离青”——波斯矿藏所出的氧化钴——带入景德镇窑口。以釉下彩绘于瓷坯，一次烧成，其蓝永不褪色、不磨损、不流散。' },
-          { type: 'paragraph', text: '最早的青花大器皆为外销：硕大的盘子按伊斯兰世界的定制烧造，繁密的缠枝纹映照着波斯金银器的趣味。景德镇的窑工学会了远方顾客的审美，并由此发明了被全世界认领的视觉语言。' },
+          {
+            type: 'paragraph',
+            text: '元代，商队与海路将“苏麻离青”——波斯矿藏所出的氧化钴——带入景德镇窑口。以釉下彩绘于瓷坯，一次烧成，其蓝永不褪色、不磨损、不流散。',
+          },
+          {
+            type: 'paragraph',
+            text: '最早的青花大器皆为外销：硕大的盘子按伊斯兰世界的定制烧造，繁密的缠枝纹映照着波斯金银器的趣味。景德镇的窑工学会了远方顾客的审美，并由此发明了被全世界认领的视觉语言。',
+          },
           { type: 'heading', level: 2, text: '贸易的符号' },
-          { type: 'paragraph', text: '不过百年，青花已被越南仿制、波斯效法、伊斯坦布尔珍藏，并绘上荷兰代尔夫特的陶器。这抹蓝，成了第一张全球通行的图像——从马六甲海峡到阿姆斯特丹运河，无人不识。' },
+          {
+            type: 'paragraph',
+            text: '不过百年，青花已被越南仿制、波斯效法、伊斯坦布尔珍藏，并绘上荷兰代尔夫特的陶器。这抹蓝，成了第一张全球通行的图像——从马六甲海峡到阿姆斯特丹运河，无人不识。',
+          },
         ],
       },
     },
@@ -799,22 +1032,39 @@ export const STORIES: StoryRecord[] = [
         summary:
           'The Ming turned Jingdezhen into a state factory: official kilns, secret recipes, and the porcelain that defined “China” abroad.',
         content: [
-          { type: 'paragraph', text: 'The Ming founded the Imperial Porcelain Factory at Zhushan — Pear Hill — in the heart of town. Its rejects were smashed and buried so that flawed imperial ware could never circulate; archaeologists now read those shards like minutes of court taste.' },
-          { type: 'paragraph', text: 'This was porcelain as administration: quotas of plates for the palace, altar vessels for the temples, diplomatic gifts calibrated to the rank of the receiving envoy. The Yongle and Xuande eras perfected the thick “heaped and piled” cobalt; Chenghua’s tiny chicken cups became, five centuries on, the most expensive ceramics ever sold at auction.' },
+          {
+            type: 'paragraph',
+            text: 'The Ming founded the Imperial Porcelain Factory at Zhushan — Pear Hill — in the heart of town. Its rejects were smashed and buried so that flawed imperial ware could never circulate; archaeologists now read those shards like minutes of court taste.',
+          },
+          {
+            type: 'paragraph',
+            text: 'This was porcelain as administration: quotas of plates for the palace, altar vessels for the temples, diplomatic gifts calibrated to the rank of the receiving envoy. The Yongle and Xuande eras perfected the thick “heaped and piled” cobalt; Chenghua’s tiny chicken cups became, five centuries on, the most expensive ceramics ever sold at auction.',
+          },
           { type: 'heading', level: 2, text: 'The 72 hands' },
-          { type: 'paragraph', text: 'Ming writers counted seventy-two separate trades in the town — clay washers, throwers, trimmers, painters of outlines, painters of washes, kiln watchers who could read flame color like text. The division of labor was the real invention: porcelain as a system, not a craft.' },
+          {
+            type: 'paragraph',
+            text: 'Ming writers counted seventy-two separate trades in the town — clay washers, throwers, trimmers, painters of outlines, painters of washes, kiln watchers who could read flame color like text. The division of labor was the real invention: porcelain as a system, not a craft.',
+          },
         ],
       },
       zhCN: {
         title: '明代御器厂',
         slug: 'mingde-yuqichang',
-        summary:
-          '明朝将景德镇变成国家工厂：御窑、秘方，以及定义了海外“中国”意象的瓷器。',
+        summary: '明朝将景德镇变成国家工厂：御窑、秘方，以及定义了海外“中国”意象的瓷器。',
         content: [
-          { type: 'paragraph', text: '明廷在镇中心的珠山设立御器厂。落选的贡品须砸碎掩埋，不得流入民间——考古学者如今像读宫廷品味纪要一样研读那些碎瓷片。' },
-          { type: 'paragraph', text: '这是作为行政的制瓷：宫殿的配额用盘、祭坛的礼器、按受赠使节品级校准的国礼。永乐宣德的浓笔堆料登峰造极；成化的鸡缸杯在五百年后成为拍卖史上最贵的瓷器。' },
+          {
+            type: 'paragraph',
+            text: '明廷在镇中心的珠山设立御器厂。落选的贡品须砸碎掩埋，不得流入民间——考古学者如今像读宫廷品味纪要一样研读那些碎瓷片。',
+          },
+          {
+            type: 'paragraph',
+            text: '这是作为行政的制瓷：宫殿的配额用盘、祭坛的礼器、按受赠使节品级校准的国礼。永乐宣德的浓笔堆料登峰造极；成化的鸡缸杯在五百年后成为拍卖史上最贵的瓷器。',
+          },
           { type: 'heading', level: 2, text: '过手七十二' },
-          { type: 'paragraph', text: '明人记载镇上有七十二行当——淘泥的、拉坯的、利坯的、画线的、分水的，还有能将火焰颜色读成文章的看火师傅。分工协作才是真正的发明：瓷器作为一个系统，而非一门手艺。' },
+          {
+            type: 'paragraph',
+            text: '明人记载镇上有七十二行当——淘泥的、拉坯的、利坯的、画线的、分水的，还有能将火焰颜色读成文章的看火师傅。分工协作才是真正的发明：瓷器作为一个系统，而非一门手艺。',
+          },
         ],
       },
     },
@@ -830,22 +1080,39 @@ export const STORIES: StoryRecord[] = [
         summary:
           'From planned-economy porcelain mills to today’s river of young artists — how Jingdezhen became, again, a place people drift toward.',
         content: [
-          { type: 'paragraph', text: 'The Qing court fell, imperial kilns closed, and war scattered the trades. In the 1950s the state reorganized everything into numbered porcelain factories — quality stayed formidable, export contracts kept kilns hot, but the seventy-two trades were consolidated into assembly lines.' },
-          { type: 'paragraph', text: 'When the factories privatized in the 1990s, the town looked finished. Instead, something unexpected: young graduates arrived, renting cheap studios by the river. They are the “Jingdrifters” — 景漂 — now tens of thousands strong, throwing, painting, failing, and occasionally inventing the next chapter.' },
+          {
+            type: 'paragraph',
+            text: 'The Qing court fell, imperial kilns closed, and war scattered the trades. In the 1950s the state reorganized everything into numbered porcelain factories — quality stayed formidable, export contracts kept kilns hot, but the seventy-two trades were consolidated into assembly lines.',
+          },
+          {
+            type: 'paragraph',
+            text: 'When the factories privatized in the 1990s, the town looked finished. Instead, something unexpected: young graduates arrived, renting cheap studios by the river. They are the “Jingdrifters” — 景漂 — now tens of thousands strong, throwing, painting, failing, and occasionally inventing the next chapter.',
+          },
           { type: 'heading', level: 2, text: 'Today' },
-          { type: 'paragraph', text: 'Sculptors, enamel painters, teapot throwers, and performance artists share supply chains with makers of dentist-grade kaolin. The ecosystem that once served emperors now serves anyone with an idea and a kiln slot — including the artists in this gallery.' },
+          {
+            type: 'paragraph',
+            text: 'Sculptors, enamel painters, teapot throwers, and performance artists share supply chains with makers of dentist-grade kaolin. The ecosystem that once served emperors now serves anyone with an idea and a kiln slot — including the artists in this gallery.',
+          },
         ],
       },
       zhCN: {
         title: '国营瓷厂与景漂',
         slug: 'guoying-yu-jingpiao',
-        summary:
-          '从计划经济的瓷厂到今天涌向此地的年轻艺术家——景德镇如何再次成为人们“漂”向的地方。',
+        summary: '从计划经济的瓷厂到今天涌向此地的年轻艺术家——景德镇如何再次成为人们“漂”向的地方。',
         content: [
-          { type: 'paragraph', text: '清廷倾覆，御窑停烧，战乱驱散了各行当。上世纪五十年代，国家将一切重组为编号瓷厂——品质依然可观，出口订单窑火不熄，但七十二行被并入了流水线。' },
-          { type: 'paragraph', text: '九十年代工厂改制，小镇看似落幕。然而意想不到的事发生了：年轻人来了，在江边租下便宜的工作室。他们就是“景漂”——如今数以万计，拉坯、绘制、失败，也偶尔发明出下一个篇章。' },
+          {
+            type: 'paragraph',
+            text: '清廷倾覆，御窑停烧，战乱驱散了各行当。上世纪五十年代，国家将一切重组为编号瓷厂——品质依然可观，出口订单窑火不熄，但七十二行被并入了流水线。',
+          },
+          {
+            type: 'paragraph',
+            text: '九十年代工厂改制，小镇看似落幕。然而意想不到的事发生了：年轻人来了，在江边租下便宜的工作室。他们就是“景漂”——如今数以万计，拉坯、绘制、失败，也偶尔发明出下一个篇章。',
+          },
           { type: 'heading', level: 2, text: '今天' },
-          { type: 'paragraph', text: '雕塑家、粉彩画师、制壶师与行为艺术家，与生产牙科级高岭土的厂商共享同一条供应链。曾为帝王服务的生态，如今服务于任何一个有想法、有窑位的人——包括本画廊的艺术家们。' },
+          {
+            type: 'paragraph',
+            text: '雕塑家、粉彩画师、制壶师与行为艺术家，与生产牙科级高岭土的厂商共享同一条供应链。曾为帝王服务的生态，如今服务于任何一个有想法、有窑位的人——包括本画廊的艺术家们。',
+          },
         ],
       },
     },
@@ -867,7 +1134,10 @@ export const ACTIVITIES: ActivityRecord[] = [
       enUS: '103 Cidu Avenue, Zhushan District, Jingdezhen',
       zhCN: '景德镇市珠山区瓷都大道103号',
     },
-    opening: { enUS: 'Museum Tue–Sun 9:00–17:00 · Avenue always open', zhCN: '博物馆 周二至周日 9:00–17:00 · 街区全天开放' },
+    opening: {
+      enUS: 'Museum Tue–Sun 9:00–17:00 · Avenue always open',
+      zhCN: '博物馆 周二至周日 9:00–17:00 · 街区全天开放',
+    },
     translations: {
       enUS: {
         title: 'Taoxichuan Ceramic Art Avenue',
@@ -875,9 +1145,18 @@ export const ACTIVITIES: ActivityRecord[] = [
         summary:
           'Old factory kilns reborn as studios, markets, and night life — the beating heart of the Jingdrifter scene.',
         content: [
-          { type: 'paragraph', text: 'Taoxichuan (“creek flowing toward porcelain”) occupies the campus of the former Universal Porcelain Factory. Its preserved ring kilns and chimneys now frame design studios, glass galleries, and a weekend market where two hundred young potters sell direct.' },
-          { type: 'paragraph', text: 'Come at dusk on a Friday: the market lights come on, the wood-fired pizza of the kiln courtyard meets the smell of fresh bisque, and somewhere a band is tuning beside a 1960s chimney. It is the friendliest possible introduction to contemporary Jingdezhen.' },
-          { type: 'paragraph', text: 'The October “Spring Festival of Porcelain” fills the avenue with collectors; in ordinary weeks, you can commission a custom tea set over coffee and pick it up fired before you fly home.' },
+          {
+            type: 'paragraph',
+            text: 'Taoxichuan (“creek flowing toward porcelain”) occupies the campus of the former Universal Porcelain Factory. Its preserved ring kilns and chimneys now frame design studios, glass galleries, and a weekend market where two hundred young potters sell direct.',
+          },
+          {
+            type: 'paragraph',
+            text: 'Come at dusk on a Friday: the market lights come on, the wood-fired pizza of the kiln courtyard meets the smell of fresh bisque, and somewhere a band is tuning beside a 1960s chimney. It is the friendliest possible introduction to contemporary Jingdezhen.',
+          },
+          {
+            type: 'paragraph',
+            text: 'The October “Spring Festival of Porcelain” fills the avenue with collectors; in ordinary weeks, you can commission a custom tea set over coffee and pick it up fired before you fly home.',
+          },
         ],
       },
       zhCN: {
@@ -885,9 +1164,18 @@ export const ACTIVITIES: ActivityRecord[] = [
         slug: 'taoxichuan',
         summary: '老窑厂重生为工作室、市集与夜生活——景漂现场的心脏。',
         content: [
-          { type: 'paragraph', text: '陶溪川，取“溪水常流、陶源致远”之意，坐落于此前的宇宙瓷厂厂区。保留下来的环形窑与烟囱之间，如今是设计工作室、玻璃展厅，以及两百多位年轻陶作者直营的周末市集。' },
-          { type: 'paragraph', text: '周五黄昏最宜前来：市集灯亮起，窑院里的柴火披萨混着新出窑的素坯气息，某支乐队正在六十年代的烟囱旁调音。这是认识当代景德镇最友好的方式。' },
-          { type: 'paragraph', text: '十月“瓷博会”期间整条大道人头攒动；寻常日子里，你可以就着一杯咖啡定制一套茶器，赶在回国前取到烧成的成品。' },
+          {
+            type: 'paragraph',
+            text: '陶溪川，取“溪水常流、陶源致远”之意，坐落于此前的宇宙瓷厂厂区。保留下来的环形窑与烟囱之间，如今是设计工作室、玻璃展厅，以及两百多位年轻陶作者直营的周末市集。',
+          },
+          {
+            type: 'paragraph',
+            text: '周五黄昏最宜前来：市集灯亮起，窑院里的柴火披萨混着新出窑的素坯气息，某支乐队正在六十年代的烟囱旁调音。这是认识当代景德镇最友好的方式。',
+          },
+          {
+            type: 'paragraph',
+            text: '十月“瓷博会”期间整条大道人头攒动；寻常日子里，你可以就着一杯咖啡定制一套茶器，赶在回国前取到烧成的成品。',
+          },
         ],
       },
     },
@@ -902,7 +1190,10 @@ export const ACTIVITIES: ActivityRecord[] = [
       enUS: 'Sanbao Village, Jingdezhen (7 km southeast of the city)',
       zhCN: '景德镇市三宝村（市区东南 7 公里）',
     },
-    opening: { enUS: 'Studios vary · valley walks always open', zhCN: '各工作室时间不一 · 山谷步道全天开放' },
+    opening: {
+      enUS: 'Studios vary · valley walks always open',
+      zhCN: '各工作室时间不一 · 山谷步道全天开放',
+    },
     translations: {
       enUS: {
         title: 'Sanbao International Ceramic Valley',
@@ -910,9 +1201,18 @@ export const ACTIVITIES: ActivityRecord[] = [
         summary:
           'A wooded valley of studios, wood kilns, and tea houses — where the mist and the clay come from.',
         content: [
-          { type: 'paragraph', text: 'Sanbao is the porcelain heart behind the city: a narrow valley of paddies and workshops where some of the world’s best ceramic artists keep studios among the tea bushes. Wood kilns fire here on weekends; the smoke reads as weather.' },
-          { type: 'paragraph', text: 'Walk the valley road past the Sanbao Ceramic Art Museum’s rammed-earth walls, call ahead at private studios, and end with tea where the kaolin was first mined. Most gallery artists here will host a visit if you write first.' },
-          { type: 'paragraph', text: 'Our custom itineraries include hands-on sessions in Sanbao studios — see Custom Travel.' },
+          {
+            type: 'paragraph',
+            text: 'Sanbao is the porcelain heart behind the city: a narrow valley of paddies and workshops where some of the world’s best ceramic artists keep studios among the tea bushes. Wood kilns fire here on weekends; the smoke reads as weather.',
+          },
+          {
+            type: 'paragraph',
+            text: 'Walk the valley road past the Sanbao Ceramic Art Museum’s rammed-earth walls, call ahead at private studios, and end with tea where the kaolin was first mined. Most gallery artists here will host a visit if you write first.',
+          },
+          {
+            type: 'paragraph',
+            text: 'Our custom itineraries include hands-on sessions in Sanbao studios — see Custom Travel.',
+          },
         ],
       },
       zhCN: {
@@ -920,8 +1220,14 @@ export const ACTIVITIES: ActivityRecord[] = [
         slug: 'sanbao-gu',
         summary: '一条布满工作室、柴窑与茶馆的林间山谷——雾与瓷土的来处。',
         content: [
-          { type: 'paragraph', text: '三宝是城市背后的瓷心：一条由稻田与工坊组成的窄谷，世界一流的陶瓷艺术家在茶树间设有工作室。柴窑周末点火，烟即天气。' },
-          { type: 'paragraph', text: '沿谷中道路走过三宝蓬美术馆的夯土墙，预约叩访私人工作室，最后在最初开采高岭土的地方坐下喝茶。提前致函，本画廊多数艺术家都愿意接待来访。' },
+          {
+            type: 'paragraph',
+            text: '三宝是城市背后的瓷心：一条由稻田与工坊组成的窄谷，世界一流的陶瓷艺术家在茶树间设有工作室。柴窑周末点火，烟即天气。',
+          },
+          {
+            type: 'paragraph',
+            text: '沿谷中道路走过三宝蓬美术馆的夯土墙，预约叩访私人工作室，最后在最初开采高岭土的地方坐下喝茶。提前致函，本画廊多数艺术家都愿意接待来访。',
+          },
           { type: 'paragraph', text: '我们的定制行程包含三宝工作室的手作课程——见“定制旅行”。' },
         ],
       },
@@ -937,7 +1243,10 @@ export const ACTIVITIES: ActivityRecord[] = [
       enUS: '1 Zhushan Middle Road, Zhushan District (inside the Imperial Kiln Site)',
       zhCN: '珠山区珠山中路1号（御窑厂遗址内）',
     },
-    opening: { enUS: 'Tue–Sun 9:00–17:00, closed Mondays', zhCN: '周二至周日 9:00–17:00，周一闭馆' },
+    opening: {
+      enUS: 'Tue–Sun 9:00–17:00, closed Mondays',
+      zhCN: '周二至周日 9:00–17:00，周一闭馆',
+    },
     translations: {
       enUS: {
         title: 'Imperial Kiln Museum',
@@ -945,8 +1254,14 @@ export const ACTIVITIES: ActivityRecord[] = [
         summary:
           'Eight brick vaults sunk into the imperial kiln site, holding the shattered evidence of five centuries of court taste.',
         content: [
-          { type: 'paragraph', text: 'Built over the Ming Imperial Porcelain Factory, the museum’s interlocking vaults — half-buried, kiln-shaped — hold the reconstructed fragments of porcelain destroyed for imperfection four centuries before anyone could study them.' },
-          { type: 'paragraph', text: 'The permanent display walks from Yongle blue to Chenghua enamel; the repair studio, behind glass, shows conservators reassembling a Xuande bowl from four hundred shards. The building itself won international awards before it opened.' },
+          {
+            type: 'paragraph',
+            text: 'Built over the Ming Imperial Porcelain Factory, the museum’s interlocking vaults — half-buried, kiln-shaped — hold the reconstructed fragments of porcelain destroyed for imperfection four centuries before anyone could study them.',
+          },
+          {
+            type: 'paragraph',
+            text: 'The permanent display walks from Yongle blue to Chenghua enamel; the repair studio, behind glass, shows conservators reassembling a Xuande bowl from four hundred shards. The building itself won international awards before it opened.',
+          },
         ],
       },
       zhCN: {
@@ -954,8 +1269,14 @@ export const ACTIVITIES: ActivityRecord[] = [
         slug: 'yuyao-bowuguan',
         summary: '八座下沉于御窑遗址的砖拱，收藏着五个世纪宫廷品味的碎瓷证据。',
         content: [
-          { type: 'paragraph', text: '博物馆建于明代御器厂遗址之上，半埋于地下的连环拱体本身就是窑的形状——收藏着四个世纪前因瑕疵被毁、无人得以研究的瓷器重拼之作。' },
-          { type: 'paragraph', text: '常设展自永乐青花走到成化斗彩；玻璃之后的修复室里，文物修复师正用四百片碎瓷拼合一只宣德碗。建筑本身在开馆前便已屡获国际大奖。' },
+          {
+            type: 'paragraph',
+            text: '博物馆建于明代御器厂遗址之上，半埋于地下的连环拱体本身就是窑的形状——收藏着四个世纪前因瑕疵被毁、无人得以研究的瓷器重拼之作。',
+          },
+          {
+            type: 'paragraph',
+            text: '常设展自永乐青花走到成化斗彩；玻璃之后的修复室里，文物修复师正用四百片碎瓷拼合一只宣德碗。建筑本身在开馆前便已屡获国际大奖。',
+          },
         ],
       },
     },
@@ -978,8 +1299,14 @@ export const ACTIVITIES: ActivityRecord[] = [
         summary:
           'Working reconstructions of Ming kilns and the seventy-two trades — porcelain as live performance.',
         content: [
-          { type: 'paragraph', text: 'The park keeps the old trades employable: throwers at Ming-style wheels, a zhen qiqiao kiln fired on festival days, craftsmen demonstrating each of the seventy-two processes with their original tools.' },
-          { type: 'paragraph', text: 'Children press their own bowls; adults argue with the glaze chemist. The twice-daily firing demonstrations are the closest a visitor gets to the heat that made the town.' },
+          {
+            type: 'paragraph',
+            text: 'The park keeps the old trades employable: throwers at Ming-style wheels, a zhen qiqiao kiln fired on festival days, craftsmen demonstrating each of the seventy-two processes with their original tools.',
+          },
+          {
+            type: 'paragraph',
+            text: 'Children press their own bowls; adults argue with the glaze chemist. The twice-daily firing demonstrations are the closest a visitor gets to the heat that made the town.',
+          },
         ],
       },
       zhCN: {
@@ -987,8 +1314,14 @@ export const ACTIVITIES: ActivityRecord[] = [
         slug: 'guyao-minsu',
         summary: '明代窑炉与七十二道工序的活态复原——瓷器作为现场演出。',
         content: [
-          { type: 'paragraph', text: '园区让老行当持续在场：明式辘轳前的拉坯师傅、节庆点火的镇窑匠人，以及以原工具演示七十二道工序的手艺人。' },
-          { type: 'paragraph', text: '孩子们可以压一只自己的碗，大人们会与配釉师傅争论配方。每日两场的复烧演示，是游客离造就这座城的窑火最近的一刻。' },
+          {
+            type: 'paragraph',
+            text: '园区让老行当持续在场：明式辘轳前的拉坯师傅、节庆点火的镇窑匠人，以及以原工具演示七十二道工序的手艺人。',
+          },
+          {
+            type: 'paragraph',
+            text: '孩子们可以压一只自己的碗，大人们会与配釉师傅争论配方。每日两场的复烧演示，是游客离造就这座城的窑火最近的一刻。',
+          },
         ],
       },
     },
@@ -1004,9 +1337,18 @@ export const ACTIVITIES: ActivityRecord[] = [
         summary:
           'Morning market clay, afternoon commissions, night kiln gossip — the rhythm that pulls graduates back to the river town.',
         content: [
-          { type: 'paragraph', text: '6:40, the material market: buckets of slip, bats of leather-hard clay, boxes of cobalt priced by the gram. 9:00, studio: commissions first — the teapot order for a Berlin shop pays this month’s kiln slot. 14:00, painting window, when the light is flat and the brush behaves.' },
-          { type: 'paragraph', text: 'Evening is professional development: someone’s firing tonight, and firing night is open house. Pizza appears, guitars appear, and around the kiln the town’s real economy — gossip, technique, and who got into which fair — is transacted.' },
-          { type: 'paragraph', text: 'Why stay? “In Beijing I was a designer,” one drift veteran says, gesturing at the valley. “Here, I’m a potter. The town decides what you are — and it always says potter.”' },
+          {
+            type: 'paragraph',
+            text: '6:40, the material market: buckets of slip, bats of leather-hard clay, boxes of cobalt priced by the gram. 9:00, studio: commissions first — the teapot order for a Berlin shop pays this month’s kiln slot. 14:00, painting window, when the light is flat and the brush behaves.',
+          },
+          {
+            type: 'paragraph',
+            text: 'Evening is professional development: someone’s firing tonight, and firing night is open house. Pizza appears, guitars appear, and around the kiln the town’s real economy — gossip, technique, and who got into which fair — is transacted.',
+          },
+          {
+            type: 'paragraph',
+            text: 'Why stay? “In Beijing I was a designer,” one drift veteran says, gesturing at the valley. “Here, I’m a potter. The town decides what you are — and it always says potter.”',
+          },
         ],
       },
       zhCN: {
@@ -1014,9 +1356,18 @@ export const ACTIVITIES: ActivityRecord[] = [
         slug: 'jingpiao-de-yitian',
         summary: '早市买泥、午后赶单、夜里窑边长谈——把毕业生一次次拉回这座河城的节奏。',
         content: [
-          { type: 'paragraph', text: '6:40，原料市场：一桶桶泥浆、一板板皮革硬度的坯、论克标价的钴料。9:00，工作室：先赶单——柏林茶具店的那批壶，付得起这个月的窑位。14:00，绘制时段，光线平了，笔才听话。' },
-          { type: 'paragraph', text: '晚上是“专业进修”：今晚有人开窑，开窑即开放日。披萨会有的，吉他也会有的，而窑边进行的，是这座城真正的经济——八卦、技法，以及谁又进了哪个市集。' },
-          { type: 'paragraph', text: '为什么留下？“在北京我是设计师，”一位老景漂指着山谷说，“在这儿，我是陶作者。这座城决定你是谁——它永远回答：陶作者。”' },
+          {
+            type: 'paragraph',
+            text: '6:40，原料市场：一桶桶泥浆、一板板皮革硬度的坯、论克标价的钴料。9:00，工作室：先赶单——柏林茶具店的那批壶，付得起这个月的窑位。14:00，绘制时段，光线平了，笔才听话。',
+          },
+          {
+            type: 'paragraph',
+            text: '晚上是“专业进修”：今晚有人开窑，开窑即开放日。披萨会有的，吉他也会有的，而窑边进行的，是这座城真正的经济——八卦、技法，以及谁又进了哪个市集。',
+          },
+          {
+            type: 'paragraph',
+            text: '为什么留下？“在北京我是设计师，”一位老景漂指着山谷说，“在这儿，我是陶作者。这座城决定你是谁——它永远回答：陶作者。”',
+          },
         ],
       },
     },
@@ -1032,9 +1383,18 @@ export const ACTIVITIES: ActivityRecord[] = [
         summary:
           'Seventy-two hours of fire, three days of cooling, ninety seconds of truth — inside a wood firing with Lin Haiming.',
         content: [
-          { type: 'paragraph', text: 'A wood firing is a wager with weather. The kiln wants thirty-six hours at climbing temperature, stoked every four minutes by rotating crews; rain dampens the wood; wind chooses where the ash lands. Lin Haiming logs everything in a school notebook, in pencil.' },
-          { type: 'paragraph', text: 'Cooling takes longer than firing. On the third morning the bricks come out one course at a time — nobody speaks — and the first wares emerge holding whatever the flame decided: a jade shoulder, a honeyed rim, occasionally a miracle, occasionally a lesson.' },
-          { type: 'paragraph', text: 'Pieces from these firings reach this gallery marked with the date of the opening. That date is the piece’s second birthday; the kiln keeps the first.' },
+          {
+            type: 'paragraph',
+            text: 'A wood firing is a wager with weather. The kiln wants thirty-six hours at climbing temperature, stoked every four minutes by rotating crews; rain dampens the wood; wind chooses where the ash lands. Lin Haiming logs everything in a school notebook, in pencil.',
+          },
+          {
+            type: 'paragraph',
+            text: 'Cooling takes longer than firing. On the third morning the bricks come out one course at a time — nobody speaks — and the first wares emerge holding whatever the flame decided: a jade shoulder, a honeyed rim, occasionally a miracle, occasionally a lesson.',
+          },
+          {
+            type: 'paragraph',
+            text: 'Pieces from these firings reach this gallery marked with the date of the opening. That date is the piece’s second birthday; the kiln keeps the first.',
+          },
         ],
       },
       zhCN: {
@@ -1042,9 +1402,18 @@ export const ACTIVITIES: ActivityRecord[] = [
         slug: 'kaiyao-ji',
         summary: '七十二小时火、三天冷却、九十秒的真相——随林海鸣走进一次柴烧。',
         content: [
-          { type: 'paragraph', text: '柴烧是与天气的对赌。窑要三十六小时的爬温，每四分钟一次投柴，轮班不歇；雨会让柴返潮，风决定灰落在哪里。这一切，林海鸣都用铅笔记在一本练习簿上。' },
-          { type: 'paragraph', text: '冷却比烧成更久。第三天清晨，窑砖一层层拆下——没人说话——最初取出的器物，带着火焰的全部裁决：玉色的肩、蜜色的边，偶有奇迹，偶有教训。' },
-          { type: 'paragraph', text: '这些窑次的作品来到本画廊时，都标注着开窑日期。那是作品的第二个生日；第一个，窑自己收着。' },
+          {
+            type: 'paragraph',
+            text: '柴烧是与天气的对赌。窑要三十六小时的爬温，每四分钟一次投柴，轮班不歇；雨会让柴返潮，风决定灰落在哪里。这一切，林海鸣都用铅笔记在一本练习簿上。',
+          },
+          {
+            type: 'paragraph',
+            text: '冷却比烧成更久。第三天清晨，窑砖一层层拆下——没人说话——最初取出的器物，带着火焰的全部裁决：玉色的肩、蜜色的边，偶有奇迹，偶有教训。',
+          },
+          {
+            type: 'paragraph',
+            text: '这些窑次的作品来到本画廊时，都标注着开窑日期。那是作品的第二个生日；第一个，窑自己收着。',
+          },
         ],
       },
     },
@@ -1259,8 +1628,17 @@ export const SEED_ITINERARIES = [
     interests: ['pottery-workshop', 'kiln-sites', 'artist-studios', 'local-food'],
     budget: { currency: 'USD' as const, min_minor: 150000, max_minor: 300000 },
     pace: 'balanced' as const,
-    services: { guide: 'english' as const, hotel: true, hotel_level: 'comfort' as const, pickup: true, experience: true },
-    contact: { channel: 'email' as const, notes: 'Honeymoon trip — surprise pottery class would be lovely.' },
+    services: {
+      guide: 'english' as const,
+      hotel: true,
+      hotel_level: 'comfort' as const,
+      pickup: true,
+      experience: true,
+    },
+    contact: {
+      channel: 'email' as const,
+      notes: 'Honeymoon trip — surprise pottery class would be lovely.',
+    },
     locale: 'en-US',
     sla_deadline: '2026-08-15T09:00:00Z',
     submitted_at: '2026-08-14T09:00:00Z',
@@ -1277,7 +1655,13 @@ export const SEED_ITINERARIES = [
     interests: ['museums', 'ceramic-shopping', 'photography'],
     budget: { currency: 'USD' as const, min_minor: 100000, max_minor: 200000 },
     pace: 'relaxed' as const,
-    services: { guide: 'none' as const, hotel: true, hotel_level: 'budget' as const, pickup: false, experience: false },
+    services: {
+      guide: 'none' as const,
+      hotel: true,
+      hotel_level: 'budget' as const,
+      pickup: false,
+      experience: false,
+    },
     contact: { channel: 'email' as const, notes: '' },
     locale: 'en-US',
     sla_deadline: '2026-01-20T08:00:00Z',
@@ -1296,7 +1680,12 @@ export const CERTIFICATES = [
     cert_code: 'JDZ-2026-A7F3',
     issued_at: '2026-07-10T08:00:00Z',
     provenance: [
-      { id: 1, kind: 'created' as const, detail: 'Thrown and painted at Yu Studio, Jingdezhen', at: '2026-07-02T08:00:00Z' },
+      {
+        id: 1,
+        kind: 'created' as const,
+        detail: 'Thrown and painted at Yu Studio, Jingdezhen',
+        at: '2026-07-02T08:00:00Z',
+      },
     ],
   },
   {
@@ -1305,8 +1694,18 @@ export const CERTIFICATES = [
     cert_code: 'JDZ-2026-B2C8',
     issued_at: '2026-02-25T08:00:00Z',
     provenance: [
-      { id: 1, kind: 'created' as const, detail: 'Wood-fired at Sanbao valley kiln, 72h firing', at: '2026-02-18T08:00:00Z' },
-      { id: 2, kind: 'sold' as const, detail: 'Sold via Jingdezhen Ceramics Platform · Order #1003', at: '2026-05-30T11:05:00Z' },
+      {
+        id: 1,
+        kind: 'created' as const,
+        detail: 'Wood-fired at Sanbao valley kiln, 72h firing',
+        at: '2026-02-18T08:00:00Z',
+      },
+      {
+        id: 2,
+        kind: 'sold' as const,
+        detail: 'Sold via Jingdezhen Ceramics Platform · Order #1003',
+        at: '2026-05-30T11:05:00Z',
+      },
     ],
   },
   {
@@ -1315,7 +1714,12 @@ export const CERTIFICATES = [
     cert_code: 'JDZ-2026-D9E1',
     issued_at: '2026-07-03T08:00:00Z',
     provenance: [
-      { id: 1, kind: 'created' as const, detail: 'Painted at Taoxichuan studio', at: '2026-06-28T08:00:00Z' },
+      {
+        id: 1,
+        kind: 'created' as const,
+        detail: 'Painted at Taoxichuan studio',
+        at: '2026-06-28T08:00:00Z',
+      },
     ],
   },
   {
@@ -1324,7 +1728,12 @@ export const CERTIFICATES = [
     cert_code: 'JDZ-2025-C4A6',
     issued_at: '2026-05-14T08:00:00Z',
     provenance: [
-      { id: 1, kind: 'created' as const, detail: 'Painted by Chen Yuqing at Xianghu Kiln', at: '2026-05-10T08:00:00Z' },
+      {
+        id: 1,
+        kind: 'created' as const,
+        detail: 'Painted by Chen Yuqing at Xianghu Kiln',
+        at: '2026-05-10T08:00:00Z',
+      },
     ],
   },
 ]
@@ -1334,14 +1743,23 @@ export const CERTIFICATES = [
 /* ------------------------------------------------------------------ */
 
 export const INTEREST_OPTIONS: Array<{ key: string; translations: Translation<string> }> = [
-  { key: 'pottery-workshop', translations: { enUS: 'Pottery-making workshop', zhCN: '制陶体验课' } },
+  {
+    key: 'pottery-workshop',
+    translations: { enUS: 'Pottery-making workshop', zhCN: '制陶体验课' },
+  },
   { key: 'kiln-sites', translations: { enUS: 'Kiln & heritage sites', zhCN: '窑址与遗迹' } },
-  { key: 'artist-studios', translations: { enUS: 'Artist studio visits', zhCN: '艺术家工作室拜访' } },
+  {
+    key: 'artist-studios',
+    translations: { enUS: 'Artist studio visits', zhCN: '艺术家工作室拜访' },
+  },
   { key: 'ceramic-shopping', translations: { enUS: 'Ceramic shopping', zhCN: '瓷器购物' } },
   { key: 'museums', translations: { enUS: 'Museums', zhCN: '博物馆' } },
   { key: 'local-food', translations: { enUS: 'Local food', zhCN: '在地美食' } },
   { key: 'photography', translations: { enUS: 'Photography', zhCN: '摄影' } },
-  { key: 'countryside-sanbao', translations: { enUS: 'Countryside (Sanbao)', zhCN: '乡野（三宝）' } },
+  {
+    key: 'countryside-sanbao',
+    translations: { enUS: 'Countryside (Sanbao)', zhCN: '乡野（三宝）' },
+  },
 ]
 
 /* ------------------------------------------------------------------ */

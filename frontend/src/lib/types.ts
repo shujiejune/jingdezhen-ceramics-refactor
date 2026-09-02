@@ -110,7 +110,12 @@ export interface Artist {
 export type ContentBlock =
   | { type: 'paragraph'; text: string }
   | { type: 'heading'; level: 2 | 3; text: string }
-  | { type: 'image'; figure_seed: number; figure_kind: ProductMediaItem['figure_kind']; caption?: string }
+  | {
+      type: 'image'
+      figure_seed: number
+      figure_kind: ProductMediaItem['figure_kind']
+      caption?: string
+    }
   | { type: 'quote'; text: string }
 
 export interface CeramicStory {
@@ -219,13 +224,7 @@ export interface Cart {
 
 /* ------------------------------ orders ------------------------------ */
 
-export type OrderStatus =
-  | 'created'
-  | 'paid'
-  | 'shipped'
-  | 'completed'
-  | 'cancelled'
-  | 'refunded'
+export type OrderStatus = 'created' | 'paid' | 'shipped' | 'completed' | 'cancelled' | 'refunded'
 
 export interface OrderItem {
   id: number
@@ -286,13 +285,7 @@ export interface WishlistItem {
 /* ------------------------------ itinerary ------------------------------ */
 
 export type ItineraryStatus =
-  | 'pending'
-  | 'processing'
-  | 'quoted'
-  | 'deposit_paid'
-  | 'confirmed'
-  | 'cancelled'
-  | 'closed'
+  'pending' | 'processing' | 'quoted' | 'deposit_paid' | 'confirmed' | 'cancelled' | 'closed'
 
 export interface Budget {
   currency: 'USD' | 'EUR' | 'GBP'

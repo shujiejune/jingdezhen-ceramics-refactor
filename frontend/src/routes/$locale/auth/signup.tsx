@@ -56,7 +56,10 @@ function SignupPage() {
   return (
     <div className="relative overflow-hidden">
       <div className="qinghua-watermark absolute inset-x-0 top-0 h-72 opacity-70" />
-      <PetalScatter seed={55} className="pointer-events-none absolute top-24 left-[12%] opacity-60" />
+      <PetalScatter
+        seed={55}
+        className="pointer-events-none absolute top-24 left-[12%] opacity-60"
+      />
       <div className="relative mx-auto flex max-w-md flex-col px-4 pt-16 pb-20 sm:px-6">
         <div className="flex justify-center">
           <SealMark size={48} />
@@ -76,11 +79,23 @@ function SignupPage() {
               <input className="input-base" value={form.nickname} onChange={set('nickname')} />
             </div>
             <div>
-              <label className="label-base" htmlFor="su-email">{t('auth.email')}</label>
-              <input id="su-email" type="email" required autoComplete="email" className="input-base" value={form.email} onChange={set('email')} />
+              <label className="label-base" htmlFor="su-email">
+                {t('auth.email')}
+              </label>
+              <input
+                id="su-email"
+                type="email"
+                required
+                autoComplete="email"
+                className="input-base"
+                value={form.email}
+                onChange={set('email')}
+              />
             </div>
             <div>
-              <label className="label-base" htmlFor="su-password">{t('auth.password')}</label>
+              <label className="label-base" htmlFor="su-password">
+                {t('auth.password')}
+              </label>
               <input
                 id="su-password"
                 type="password"
@@ -93,7 +108,9 @@ function SignupPage() {
               <FieldError>{fieldErrors.password}</FieldError>
             </div>
             <div>
-              <label className="label-base" htmlFor="su-confirm">{t('auth.confirmPassword')}</label>
+              <label className="label-base" htmlFor="su-confirm">
+                {t('auth.confirmPassword')}
+              </label>
               <input
                 id="su-confirm"
                 type="password"
@@ -107,11 +124,21 @@ function SignupPage() {
             </div>
 
             <label className="flex cursor-pointer items-start gap-2.5 text-[0.82rem] leading-snug text-ink-600">
-              <input type="checkbox" checked={agreeToS} onChange={(e) => setAgreeToS(e.target.checked)} className="mt-0.5 h-4 w-4 accent-[var(--cobalt-600)]" />
+              <input
+                type="checkbox"
+                checked={agreeToS}
+                onChange={(e) => setAgreeToS(e.target.checked)}
+                className="mt-0.5 h-4 w-4 accent-[var(--cobalt-600)]"
+              />
               {t('auth.tosAgree')}
             </label>
             <label className="-mt-2 flex cursor-pointer items-start gap-2.5 text-[0.82rem] leading-snug text-ink-600">
-              <input type="checkbox" checked={agreePrivacy} onChange={(e) => setAgreePrivacy(e.target.checked)} className="mt-0.5 h-4 w-4 accent-[var(--cobalt-600)]" />
+              <input
+                type="checkbox"
+                checked={agreePrivacy}
+                onChange={(e) => setAgreePrivacy(e.target.checked)}
+                className="mt-0.5 h-4 w-4 accent-[var(--cobalt-600)]"
+              />
               {t('auth.privacyAgree')}
             </label>
 

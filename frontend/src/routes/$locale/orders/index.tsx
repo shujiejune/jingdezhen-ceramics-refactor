@@ -26,7 +26,11 @@ export const Route = createFileRoute('/$locale/orders/')({
 
 export function OrderStatusBadge({ status }: { status: OrderStatus }) {
   const { t } = useI18n()
-  return <Badge tone={statusTone[status]}>{t(`orders.status.${status}` as Parameters<typeof t>[0])}</Badge>
+  return (
+    <Badge tone={statusTone[status]}>
+      {t(`orders.status.${status}` as Parameters<typeof t>[0])}
+    </Badge>
+  )
 }
 
 function OrdersPage() {
@@ -37,7 +41,11 @@ function OrdersPage() {
   useEffect(() => {
     if (ready && token && !user) void setOrders(null)
     if (ready && !token) setOrders([])
-    if (ready && token) void api.listOrders(token, locale).then(setOrders).catch(() => setOrders([]))
+    if (ready && token)
+      void api
+        .listOrders(token, locale)
+        .then(setOrders)
+        .catch(() => setOrders([]))
   }, [ready, token, locale, user])
 
   if (!ready || (token && orders === null)) {
@@ -85,10 +93,14 @@ function OrdersPage() {
             <div key={o.id} className="card-surface p-5">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <span className="text-[0.95rem] font-semibold text-ink-900">{t('orders.orderN', { id: o.id })}</span>
+                  <span className="text-[0.95rem] font-semibold text-ink-900">
+                    {t('orders.orderN', { id: o.id })}
+                  </span>
                   <OrderStatusBadge status={o.status} />
                 </div>
-                <span className="text-[0.82rem] text-ink-400">{t('orders.placedOn', { date: formatDate(o.placed_at, locale) })}</span>
+                <span className="text-[0.82rem] text-ink-400">
+                  {t('orders.placedOn', { date: formatDate(o.placed_at, locale) })}
+                </span>
               </div>
 
               <div className="mt-4 flex items-center justify-between gap-4">
@@ -99,7 +111,11 @@ function OrdersPage() {
                       className="h-14 w-14 overflow-hidden rounded-lg border border-cobalt-100 bg-wash"
                       title={i.title_snapshot as string}
                     >
-                      <PorcelainFigure kind={i.figure_kind ?? 'vase'} seed={i.figure_seed ?? 1} className="h-full w-full" />
+                      <PorcelainFigure
+                        kind={i.figure_kind ?? 'vase'}
+                        seed={i.figure_seed ?? 1}
+                        className="h-full w-full"
+                      />
                     </div>
                   ))}
                 </div>
@@ -107,9 +123,16 @@ function OrdersPage() {
                   <p className="text-[0.72rem] text-ink-400">
                     {o.items?.reduce((s, i) => s + i.qty, 0)} {t('orders.items')}
                   </p>
-                  <p className="text-[1.02rem] font-semibold text-ink-900">{price(o.total_minor, o.currency)}</p>
+                  <p className="text-[1.02rem] font-semibold text-ink-900">
+                    {price(o.total_minor, o.currency)}
+                  </p>
                 </div>
-                <ButtonLink to="/$locale/orders/$id" params={{ locale, id: String(o.id) }} variant="secondary" size="sm">
+                <ButtonLink
+                  to="/$locale/orders/$id"
+                  params={{ locale, id: String(o.id) }}
+                  variant="secondary"
+                  size="sm"
+                >
                   {t('orders.view')}
                 </ButtonLink>
               </div>

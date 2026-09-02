@@ -27,7 +27,10 @@ function AccountPage() {
   useEffect(() => {
     if (token) {
       setNickname(user?.nickname ?? '')
-      void api.getAddresses(token).then(setAddresses).catch(() => setAddresses([]))
+      void api
+        .getAddresses(token)
+        .then(setAddresses)
+        .catch(() => setAddresses([]))
     }
   }, [token, user])
 
@@ -58,7 +61,11 @@ function AccountPage() {
   const save = async () => {
     setSaving(true)
     try {
-      await api.updateProfile(token, { nickname, preferred_currency: currency, preferred_locale: locale })
+      await api.updateProfile(token, {
+        nickname,
+        preferred_currency: currency,
+        preferred_locale: locale,
+      })
       push({ title: t('account.saved') })
     } finally {
       setSaving(false)
@@ -67,7 +74,13 @@ function AccountPage() {
 
   const exportData = () => {
     const blob = new Blob(
-      [JSON.stringify({ exported_at: new Date().toISOString(), profile: user, addresses }, null, 2)],
+      [
+        JSON.stringify(
+          { exported_at: new Date().toISOString(), profile: user, addresses },
+          null,
+          2,
+        ),
+      ],
       { type: 'application/json' },
     )
     const url = URL.createObjectURL(blob)
@@ -82,7 +95,9 @@ function AccountPage() {
     <div className="mx-auto max-w-3xl px-4 pt-10 sm:px-6">
       <p className="eyebrow">{t('nav.account')}</p>
       <h1 className="mt-2 text-display-sm text-ink-900">{t('account.title')}</h1>
-      <p className="mt-2 text-[0.84rem] text-ink-400">{t('account.memberSince', { date: formatDate(user.created_at, locale) })}</p>
+      <p className="mt-2 text-[0.84rem] text-ink-400">
+        {t('account.memberSince', { date: formatDate(user.created_at, locale) })}
+      </p>
 
       {/* profile */}
       <section className="card-surface mt-8 p-6">
@@ -90,7 +105,11 @@ function AccountPage() {
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <div>
             <label className="label-base">{t('auth.nickname')}</label>
-            <input className="input-base" value={nickname} onChange={(e) => setNickname(e.target.value)} />
+            <input
+              className="input-base"
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value)}
+            />
           </div>
           <div>
             <label className="label-base">{t('auth.email')}</label>
@@ -104,7 +123,11 @@ function AccountPage() {
         <div className="mt-3 grid gap-4 sm:grid-cols-2">
           <div>
             <label className="label-base">{t('account.currencyPref')}</label>
-            <select className="input-base" value={currency} onChange={(e) => setCurrency(e.target.value as 'USD')}>
+            <select
+              className="input-base"
+              value={currency}
+              onChange={(e) => setCurrency(e.target.value as 'USD')}
+            >
               {SUPPORTED_CURRENCIES.map((c) => (
                 <option key={c} value={c}>
                   {c}
@@ -114,7 +137,11 @@ function AccountPage() {
           </div>
           <div>
             <label className="label-base">{t('account.localePref')}</label>
-            <input className="input-base" value={locale === 'zh-CN' ? '中文（简体）' : 'English (US)'} disabled />
+            <input
+              className="input-base"
+              value={locale === 'zh-CN' ? '中文（简体）' : 'English (US)'}
+              disabled
+            />
           </div>
         </div>
 
@@ -131,7 +158,10 @@ function AccountPage() {
         ) : (
           <ul className="mt-4 flex flex-col gap-3">
             {addresses.map((a) => (
-              <li key={a.id} className="flex items-start justify-between gap-4 rounded-lg border border-cobalt-100 bg-wash/50 p-4">
+              <li
+                key={a.id}
+                className="flex items-start justify-between gap-4 rounded-lg border border-cobalt-100 bg-wash/50 p-4"
+              >
                 <div className="flex items-start gap-3">
                   <MapPin size={17} className="mt-0.5 text-cobalt-500" weight="duotone" />
                   <div>
@@ -174,7 +204,9 @@ function AccountPage() {
             {t('account.deleteAccount')}
           </Button>
         </div>
-        <p className="mt-4 text-[0.78rem] leading-relaxed text-ink-300">{t('account.deleteNote')}</p>
+        <p className="mt-4 text-[0.78rem] leading-relaxed text-ink-300">
+          {t('account.deleteNote')}
+        </p>
       </section>
     </div>
   )

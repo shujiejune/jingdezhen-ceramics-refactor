@@ -101,10 +101,7 @@ const config: Config = {
         ],
       },
       fontSize: {
-        display: [
-          '3.25rem',
-          { lineHeight: '1.06', letterSpacing: '-0.025em', fontWeight: '640' },
-        ],
+        display: ['3.25rem', { lineHeight: '1.06', letterSpacing: '-0.025em', fontWeight: '640' }],
         'display-sm': [
           '2.25rem',
           { lineHeight: '1.12', letterSpacing: '-0.02em', fontWeight: '640' },
@@ -120,8 +117,7 @@ const config: Config = {
         shell: '76rem',
       },
       backgroundImage: {
-        'cobalt-band':
-          'linear-gradient(115deg, #182e6c 0%, #2a4aa6 55%, #6188d2 100%)',
+        'cobalt-band': 'linear-gradient(115deg, #182e6c 0%, #2a4aa6 55%, #6188d2 100%)',
         'porcelain-sheen':
           'radial-gradient(120% 120% at 85% 8%, #e7eef9 0%, rgba(231, 238, 249, 0) 55%)',
       },

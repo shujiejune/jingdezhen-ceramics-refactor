@@ -18,18 +18,22 @@ export const Route = createFileRoute('/$locale/ceramicstory/$slug')({
     }
   },
   head: ({ loaderData }) => ({
-    meta: loaderData ? [{ title: loaderData.title }, { name: 'description', content: loaderData.summary }] : [],
+    meta: loaderData
+      ? [{ title: loaderData.title }, { name: 'description', content: loaderData.summary }]
+      : [],
   }),
-  notFoundComponent: () => {
-    const { t } = useI18n()
-    return (
-      <div className="mx-auto max-w-shell px-6 py-32 text-center">
-        <h1 className="text-display-sm text-ink-900">{t('errors.not_found')}</h1>
-      </div>
-    )
-  },
+  notFoundComponent: StoryNotFound,
   component: StoryPage,
 })
+
+function StoryNotFound() {
+  const { t } = useI18n()
+  return (
+    <div className="mx-auto max-w-shell px-6 py-32 text-center">
+      <h1 className="text-display-sm text-ink-900">{t('errors.not_found')}</h1>
+    </div>
+  )
+}
 
 function StoryPage() {
   const { t, locale } = useI18n()
@@ -37,11 +41,16 @@ function StoryPage() {
 
   return (
     <article className="mx-auto max-w-shell px-4 sm:px-6">
-      <Breadcrumbs items={[{ label: t('story.title'), to: `/${locale}/ceramicstory` }, { label: story.title }]} />
+      <Breadcrumbs
+        items={[{ label: t('story.title'), to: `/${locale}/ceramicstory` }, { label: story.title }]}
+      />
 
       {/* editorial hero */}
       <header className="relative mt-2 overflow-hidden rounded-2xl border border-cobalt-100 bg-gradient-to-b from-porcelain/70 to-wash">
-        <PetalScatter seed={story.figure_seed} className="pointer-events-none absolute top-6 right-10 opacity-50" />
+        <PetalScatter
+          seed={story.figure_seed}
+          className="pointer-events-none absolute top-6 right-10 opacity-50"
+        />
         <div className="relative mx-auto grid max-w-4xl items-center gap-8 px-6 py-12 sm:grid-cols-[1fr_13rem] sm:px-10">
           <div>
             <p className="eyebrow">{String(story.dynasty_start_year)}</p>

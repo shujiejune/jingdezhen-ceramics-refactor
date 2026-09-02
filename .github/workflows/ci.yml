@@ -1,11 +1,12 @@
 # CI pipeline (PRD §2.4.1) — runs on every PR + push to main.
 #
-# Five jobs, all on ubuntu-24.04 (Docker is preinstalled for testcontainers):
+# Six jobs, all on ubuntu-24.04 (Docker is preinstalled for testcontainers):
 #   lint         golangci-lint (stricter than `go vet`)
 #   unit         `go test -race -short` (fast, no Docker) + coverage artifact
 #   integration  `go test -race` (testcontainers-go: real PG + Redis)
 #   build        Docker image build (validates the Dockerfile compiles the binary)
 #   security     govulncheck + osv-scanner on go.sum
+#   frontend     pnpm lint/format/typecheck + vitest + vite build (frontend/)
 #
 # unit + integration + lint + security run in parallel; build waits on
 # unit + integration to avoid wasting compute on a broken tree. A new push
@@ -159,3 +160,32 @@ jobs:
         run: |
           go install github.com/google/osv-scanner/v2/cmd/osv-scanner@v2.4.0
           osv-scanner -r .
+
+  frontend:
+    name: Frontend (lint · typecheck · test · build)
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Lint
+        run: pnpm lint
+      - name: Format check
+        run: pnpm format:check
+      - name: Typecheck
+        run: pnpm typecheck
+      - name: Unit tests (vitest)
+        run: pnpm test
+      - name: Build (SSR)
+        run: pnpm build

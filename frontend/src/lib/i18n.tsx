@@ -36,10 +36,7 @@ export function I18nProvider({ locale, children }: { locale: string; children: R
   // after mount, adopt the stored preference (keeps SSR output stable)
   useEffect(() => {
     const stored = document.cookie.match(/(?:^|;\s*)jdz-currency=(USD|EUR|GBP)/)?.[1] as
-      | 'USD'
-      | 'EUR'
-      | 'GBP'
-      | undefined
+      'USD' | 'EUR' | 'GBP' | undefined
     if (stored && stored !== 'USD') {
       setCurrencyState(stored)
       void router.invalidate()

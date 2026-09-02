@@ -19,7 +19,11 @@ function EngagePage() {
 
   return (
     <div className="mx-auto max-w-shell px-4 pt-10 sm:px-6">
-      <SectionHeading eyebrow={t('landing.visitEyebrow')} title={t('nav.visit')} sub={t('engage.subtitle')} />
+      <SectionHeading
+        eyebrow={t('landing.visitEyebrow')}
+        title={t('nav.visit')}
+        sub={t('engage.subtitle')}
+      />
 
       <h2 className="eyebrow mb-5">{t('engage.destinations')}</h2>
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">

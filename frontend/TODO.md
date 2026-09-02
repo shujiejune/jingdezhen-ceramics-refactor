@@ -9,19 +9,19 @@
 - [x] Heritage index → horizontal magazine chapters (spine chrome) — reuse `useLoopScroller` + `Spine`
 - [x] Gallery → museum-window / record-crate browsing (freakmag-style flip panels)
 - [ ] Apply post-review UI tweaks (panel pacing, parallax intensity, spine density, family-color saturation)
-- [ ] Guard `src/styles/tokens.css` ↔ `tailwind.config.ts` hex/radius twins stay in sync (single source of truth note in both files)
+- [x] Guard `src/styles/tokens.css` ↔ `tailwind.config.ts` hex/radius twins stay in sync — `src/styles/__tests__/tokens-sync.test.ts` (already caught + fixed real drift: family `50` shades, gold alias)
 
 ## M-F0 — Foundations & tooling (no backend dependency)
 
-- [ ] ESLint (typescript-eslint, react-hooks, react-refresh) + Prettier configs; `lint` / `format` scripts in `package.json`
-- [ ] Vitest + React Testing Library setup (`vitest.config.ts`, jsdom, `test` script)
-- [ ] Unit tests: money formatting (minor units, locales, `.50`/whole display), i18n catalog key-parity (en-US ↔ zh-CN compile-time + runtime test), `useLoopScroller` wrap/shortest-path math, ApiError adapter, `seededRandom` determinism
-- [ ] ErrorBoundary + 500 route; root 404 polish; loading/error component-state audit across routes
-- [ ] Responsive + a11y baseline: focus-visible rings, keyboard nav for spine dots & loop scroller, aria labels, reduced-motion media query for parallax/reveal
-- [ ] Frontend CI job in `.github/workflows/ci.yml` (pnpm install → lint → typecheck → vitest → build; Playwright added in M-F5)
-- [ ] `frontend/README.md` quickstart (dev commands, mock vs live modes, demo accounts, screenshots dir)
+- [x] ESLint (typescript-eslint, react-hooks, react-refresh) + Prettier configs; `lint` / `format` scripts — flat config; react-hooks v6 `set-state-in-effect`/`refs` flow rules off with rationale (fetch-in-effect is deliberate until TanStack Query in M-F1) in `package.json`
+- [x] Vitest + React Testing Library setup (`vitest.config.ts`, jsdom, explicit cleanup, `test` scripts)
+- [x] Unit tests (39): money formatting, i18n catalog key-parity, loop-scroller wrap/nearest-panel math (extracted as pure helpers), ApiError + errorKey mapping, `seededRandom` determinism, RTL Button smoke
+- [x] Root `errorComponent` (branded 500 + dev error detail + reset) and pending spinner on root + router defaults across routes
+- [x] A11y baseline: `prefers-reduced-motion` (CSS kill-switch + loop-scroller skips parallax/reveal and snaps instantly), keyboard arrows for loop, spine dots are focusable buttons with aria labels
+- [x] Frontend CI job in `.github/workflows/ci.yml`: pnpm 11.19 + Node 22 (cached) → lint → format:check → typecheck → vitest → build
+- [x] `frontend/README.md` quickstart (dev commands, mock vs live, demo accounts, scripts table, layout map)
 
-**Acceptance:** CI green on the frontend job; `pnpm lint && pnpm typecheck && pnpm test && pnpm build` clean locally.
+**Acceptance: MET** — lint/format/typecheck/39 tests/build all green locally; CI job wired (first GitHub run pending push).
 
 ## M-F1 — Live API integration (storefront)
 

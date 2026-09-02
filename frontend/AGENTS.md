@@ -10,7 +10,7 @@ Platform, tracked as a regular subdirectory (`frontend/`) of the root
 monorepo and backed by the Go + Fiber API in the sibling `backend/` directory.
 
 > **Stack pivot (recorded in PRD §2.2 / TDD §6 / TDD §12):** the original
-> inherited frontend was SolidStart + TanStack *Solid* libraries. It was
+> inherited frontend was SolidStart + TanStack _Solid_ libraries. It was
 > **deleted wholesale** (commit `2168a18`) and is being rebuilt from scratch on
 > React 19 + TanStack Start. The backend (Go + Fiber) is unchanged — only the
 > frontend stack changed. See TDD §12 for the decision rationale (ecosystem
@@ -27,8 +27,8 @@ SSR and backed by the Go + Fiber API in the sibling `backend/` directory.
 toward the PRD (`../docs/PRD.md`, v0.17) and TDD (`../docs/TDD.md`, §6 is the
 frontend design).
 
-- **Source of truth for *what/why*:** `../docs/PRD.md`
-- **Source of truth for *frontend design*:** `../docs/TDD.md` §6 (and §7 money,
+- **Source of truth for _what/why_:** `../docs/PRD.md`
+- **Source of truth for _frontend design_:** `../docs/TDD.md` §6 (and §7 money,
   §8 state machines, §9 auth, §4.4 SEO)
 - **Backend API contract:** the live, Swagger-annotated Go handlers in
   `../backend/internal/api/router.go` + the generated spec at
@@ -46,7 +46,7 @@ frontend design).
   for why TanStack Start was chosen over Next.js (keep type-safe TanStack
   Router + avoid Vercel-lock-in on a single self-hosted HK VPS).
 - **Routing:** **TanStack Router** (file-based, type-safe, code-generated route
-  tree via the TanStack Router Vite plugin). This is the *React* TanStack
+  tree via the TanStack Router Vite plugin). This is the _React_ TanStack
   Router — the same family the Solid version used, now on its primary
   (React-first) platform. Type-safe search params via `validateSearch` + zod.
 - **Server state:** TanStack Query (client cache / mutations / background
@@ -174,12 +174,12 @@ public/
 
 - **Routing:** TanStack Router file-based routes. Each route file:
   ```tsx
-  export const Route = createFileRoute("/path")({
-    beforeLoad,     // auth guard (throw redirect to /auth/login)
+  export const Route = createFileRoute('/path')({
+    beforeLoad, // auth guard (throw redirect to /auth/login)
     validateSearch, // zod schema for type-safe search params (filters, wizard step)
-    loader,         // server-to-server API call, prepopulates Query cache
+    loader, // server-to-server API call, prepopulates Query cache
     component,
-  });
+  })
   ```
   Consume loader data with `Route.useLoaderData()`. Use `<Link to params search>`.
   **Do not edit `routeTree.gen.ts`** — it regenerates on dev/build.
@@ -192,7 +192,7 @@ public/
   yet** (deferred to a post-frontend milestone per TDD §5.1). So the frontend
   must store the token client-side (`localStorage`) and attach it as a Bearer
   header on every API call. **Do NOT** build assuming an httpOnly refresh
-  cookie / rotate-on-401 flow exists — that's the *target*, not the current
+  cookie / rotate-on-401 flow exists — that's the _target_, not the current
   state. Build the auth context + API interceptor so refresh-rotation slots in
   without redesign later. Login may require a **2FA verify step** (TOTP) for
   users with 2FA enabled (mandatory for `super_admin`); the flow is
@@ -217,7 +217,7 @@ public/
 - **Money (TDD §7):** all money is **minor units** (`BIGINT` fen/cents/pence)
   as **integers** in the API. Never use JS `number` for money (float) — use
   `bigint` or a money helper. FX + rounding (`<100 → ceil 0.50; ≥100 → ceil
-  1.00`, PRD §3.2.3) is done **server-side**; the frontend only **formats for
+1.00`, PRD §3.2.3) is done **server-side**; the frontend only **formats for
   display** via `Intl.NumberFormat(locale, { style: 'currency', currency })`
   on the presentment values the API returns. Do not re-derive prices, cart
   totals, or order totals client-side. Presentment in USD/EUR/GBP, base CNY.

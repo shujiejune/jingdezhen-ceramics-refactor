@@ -51,19 +51,29 @@ export function Footer() {
             <div className="flex items-center gap-2.5">
               <SealMark size={34} />
               <span className="flex flex-col leading-none">
-                <span className="text-[0.95rem] font-semibold text-ink-900">{t('common.brand')}</span>
+                <span className="text-[0.95rem] font-semibold text-ink-900">
+                  {t('common.brand')}
+                </span>
                 <span className="mt-1 text-[0.62rem] font-medium tracking-[0.16em] text-cobalt-600 uppercase">
                   {t('common.brandSub')}
                 </span>
               </span>
             </div>
-            <p className="mt-4 max-w-xs text-sm leading-relaxed text-ink-500">{t('footer.tagline')}</p>
+            <p className="mt-4 max-w-xs text-sm leading-relaxed text-ink-500">
+              {t('footer.tagline')}
+            </p>
             <div className="mt-5 flex flex-col gap-1.5 text-sm text-ink-500">
-              <a href={`mailto:${CONTACT.email}`} className="flex items-center gap-2 hover:text-cobalt-600">
+              <a
+                href={`mailto:${CONTACT.email}`}
+                className="flex items-center gap-2 hover:text-cobalt-600"
+              >
                 <Envelope size={15} className="text-cobalt-400" />
                 {CONTACT.email}
               </a>
-              <a href={`tel:${CONTACT.phone.replace(/\s/g, '')}`} className="flex items-center gap-2 hover:text-cobalt-600">
+              <a
+                href={`tel:${CONTACT.phone.replace(/\s/g, '')}`}
+                className="flex items-center gap-2 hover:text-cobalt-600"
+              >
                 <Phone size={15} className="text-cobalt-400" />
                 {CONTACT.phone}
               </a>
@@ -71,11 +81,16 @@ export function Footer() {
           </div>
           {cols.map((col) => (
             <nav key={col.title} aria-label={col.title}>
-              <h3 className="text-[0.72rem] font-semibold tracking-[0.18em] text-ink-400 uppercase">{col.title}</h3>
+              <h3 className="text-[0.72rem] font-semibold tracking-[0.18em] text-ink-400 uppercase">
+                {col.title}
+              </h3>
               <ul className="mt-4 flex flex-col gap-2.5">
                 {col.links.map((l) => (
                   <li key={l.label}>
-                    <Link to={l.to as never} className="text-sm text-ink-600 transition hover:text-cobalt-700">
+                    <Link
+                      to={l.to as never}
+                      className="text-sm text-ink-600 transition hover:text-cobalt-700"
+                    >
                       {l.label}
                     </Link>
                   </li>
