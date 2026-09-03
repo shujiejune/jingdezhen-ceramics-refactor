@@ -35,8 +35,8 @@ export function Footer() {
     {
       title: t('footer.legal'),
       links: [
-        { label: t('footer.privacy'), to: `${base}/account` },
-        { label: t('footer.terms'), to: `${base}/account` },
+        { label: t('footer.privacy'), to: `${base}/privacy` },
+        { label: t('footer.terms'), to: `${base}/terms` },
       ],
     },
   ]

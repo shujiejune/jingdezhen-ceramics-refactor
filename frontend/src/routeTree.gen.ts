@@ -15,10 +15,13 @@ import { Route as LocaleIndexRouteImport } from './routes/$locale/index'
 import { Route as LocaleAccountRouteImport } from './routes/$locale/account'
 import { Route as LocaleCartRouteImport } from './routes/$locale/cart'
 import { Route as LocaleCheckoutRouteImport } from './routes/$locale/checkout'
+import { Route as LocaleCookiesRouteImport } from './routes/$locale/cookies'
 import { Route as LocaleItinerariesRouteImport } from './routes/$locale/itineraries'
 import { Route as LocaleItineraryRouteImport } from './routes/$locale/itinerary'
 import { Route as LocaleNotificationsRouteImport } from './routes/$locale/notifications'
+import { Route as LocalePrivacyRouteImport } from './routes/$locale/privacy'
 import { Route as LocaleSitemapRouteImport } from './routes/$locale/sitemap'
+import { Route as LocaleTermsRouteImport } from './routes/$locale/terms'
 import { Route as LocaleWishlistRouteImport } from './routes/$locale/wishlist'
 import { Route as Login2faRouteImport } from './routes/login/2fa'
 import { Route as LoginErrorRouteImport } from './routes/login/error'
@@ -73,6 +76,11 @@ const LocaleCheckoutRoute = LocaleCheckoutRouteImport.update({
   path: '/checkout',
   getParentRoute: () => LocaleRoute,
 } as any)
+const LocaleCookiesRoute = LocaleCookiesRouteImport.update({
+  id: '/cookies',
+  path: '/cookies',
+  getParentRoute: () => LocaleRoute,
+} as any)
 const LocaleItinerariesRoute = LocaleItinerariesRouteImport.update({
   id: '/itineraries',
   path: '/itineraries',
@@ -88,9 +96,19 @@ const LocaleNotificationsRoute = LocaleNotificationsRouteImport.update({
   path: '/notifications',
   getParentRoute: () => LocaleRoute,
 } as any)
+const LocalePrivacyRoute = LocalePrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => LocaleRoute,
+} as any)
 const LocaleSitemapRoute = LocaleSitemapRouteImport.update({
   id: '/sitemap',
   path: '/sitemap',
+  getParentRoute: () => LocaleRoute,
+} as any)
+const LocaleTermsRoute = LocaleTermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
   getParentRoute: () => LocaleRoute,
 } as any)
 const LocaleWishlistRoute = LocaleWishlistRouteImport.update({
@@ -215,10 +233,13 @@ export interface FileRoutesByFullPath {
   '/$locale/account': typeof LocaleAccountRoute
   '/$locale/cart': typeof LocaleCartRoute
   '/$locale/checkout': typeof LocaleCheckoutRoute
+  '/$locale/cookies': typeof LocaleCookiesRoute
   '/$locale/itineraries': typeof LocaleItinerariesRouteWithChildren
   '/$locale/itinerary': typeof LocaleItineraryRoute
   '/$locale/notifications': typeof LocaleNotificationsRoute
+  '/$locale/privacy': typeof LocalePrivacyRoute
   '/$locale/sitemap': typeof LocaleSitemapRoute
+  '/$locale/terms': typeof LocaleTermsRoute
   '/$locale/wishlist': typeof LocaleWishlistRoute
   '/login/2fa': typeof Login2faRouteWithChildren
   '/login/error': typeof LoginErrorRoute
@@ -249,10 +270,13 @@ export interface FileRoutesByTo {
   '/$locale/account': typeof LocaleAccountRoute
   '/$locale/cart': typeof LocaleCartRoute
   '/$locale/checkout': typeof LocaleCheckoutRoute
+  '/$locale/cookies': typeof LocaleCookiesRoute
   '/$locale/itineraries': typeof LocaleItinerariesRouteWithChildren
   '/$locale/itinerary': typeof LocaleItineraryRoute
   '/$locale/notifications': typeof LocaleNotificationsRoute
+  '/$locale/privacy': typeof LocalePrivacyRoute
   '/$locale/sitemap': typeof LocaleSitemapRoute
+  '/$locale/terms': typeof LocaleTermsRoute
   '/$locale/wishlist': typeof LocaleWishlistRoute
   '/login/2fa': typeof Login2faRouteWithChildren
   '/login/error': typeof LoginErrorRoute
@@ -285,10 +309,13 @@ export interface FileRoutesById {
   '/$locale/account': typeof LocaleAccountRoute
   '/$locale/cart': typeof LocaleCartRoute
   '/$locale/checkout': typeof LocaleCheckoutRoute
+  '/$locale/cookies': typeof LocaleCookiesRoute
   '/$locale/itineraries': typeof LocaleItinerariesRouteWithChildren
   '/$locale/itinerary': typeof LocaleItineraryRoute
   '/$locale/notifications': typeof LocaleNotificationsRoute
+  '/$locale/privacy': typeof LocalePrivacyRoute
   '/$locale/sitemap': typeof LocaleSitemapRoute
+  '/$locale/terms': typeof LocaleTermsRoute
   '/$locale/wishlist': typeof LocaleWishlistRoute
   '/login/2fa': typeof Login2faRouteWithChildren
   '/login/error': typeof LoginErrorRoute
@@ -322,10 +349,13 @@ export interface FileRouteTypes {
     | '/$locale/account'
     | '/$locale/cart'
     | '/$locale/checkout'
+    | '/$locale/cookies'
     | '/$locale/itineraries'
     | '/$locale/itinerary'
     | '/$locale/notifications'
+    | '/$locale/privacy'
     | '/$locale/sitemap'
+    | '/$locale/terms'
     | '/$locale/wishlist'
     | '/login/2fa'
     | '/login/error'
@@ -356,10 +386,13 @@ export interface FileRouteTypes {
     | '/$locale/account'
     | '/$locale/cart'
     | '/$locale/checkout'
+    | '/$locale/cookies'
     | '/$locale/itineraries'
     | '/$locale/itinerary'
     | '/$locale/notifications'
+    | '/$locale/privacy'
     | '/$locale/sitemap'
+    | '/$locale/terms'
     | '/$locale/wishlist'
     | '/login/2fa'
     | '/login/error'
@@ -391,10 +424,13 @@ export interface FileRouteTypes {
     | '/$locale/account'
     | '/$locale/cart'
     | '/$locale/checkout'
+    | '/$locale/cookies'
     | '/$locale/itineraries'
     | '/$locale/itinerary'
     | '/$locale/notifications'
+    | '/$locale/privacy'
     | '/$locale/sitemap'
+    | '/$locale/terms'
     | '/$locale/wishlist'
     | '/login/2fa'
     | '/login/error'
@@ -473,6 +509,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LocaleCheckoutRouteImport
       parentRoute: typeof LocaleRoute
     }
+    '/$locale/cookies': {
+      id: '/$locale/cookies'
+      path: '/cookies'
+      fullPath: '/$locale/cookies'
+      preLoaderRoute: typeof LocaleCookiesRouteImport
+      parentRoute: typeof LocaleRoute
+    }
     '/$locale/itineraries': {
       id: '/$locale/itineraries'
       path: '/itineraries'
@@ -494,11 +537,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LocaleNotificationsRouteImport
       parentRoute: typeof LocaleRoute
     }
+    '/$locale/privacy': {
+      id: '/$locale/privacy'
+      path: '/privacy'
+      fullPath: '/$locale/privacy'
+      preLoaderRoute: typeof LocalePrivacyRouteImport
+      parentRoute: typeof LocaleRoute
+    }
     '/$locale/sitemap': {
       id: '/$locale/sitemap'
       path: '/sitemap'
       fullPath: '/$locale/sitemap'
       preLoaderRoute: typeof LocaleSitemapRouteImport
+      parentRoute: typeof LocaleRoute
+    }
+    '/$locale/terms': {
+      id: '/$locale/terms'
+      path: '/terms'
+      fullPath: '/$locale/terms'
+      preLoaderRoute: typeof LocaleTermsRouteImport
       parentRoute: typeof LocaleRoute
     }
     '/$locale/wishlist': {
@@ -680,10 +737,13 @@ interface LocaleRouteChildren {
   LocaleAccountRoute: typeof LocaleAccountRoute
   LocaleCartRoute: typeof LocaleCartRoute
   LocaleCheckoutRoute: typeof LocaleCheckoutRoute
+  LocaleCookiesRoute: typeof LocaleCookiesRoute
   LocaleItinerariesRoute: typeof LocaleItinerariesRouteWithChildren
   LocaleItineraryRoute: typeof LocaleItineraryRoute
   LocaleNotificationsRoute: typeof LocaleNotificationsRoute
+  LocalePrivacyRoute: typeof LocalePrivacyRoute
   LocaleSitemapRoute: typeof LocaleSitemapRoute
+  LocaleTermsRoute: typeof LocaleTermsRoute
   LocaleWishlistRoute: typeof LocaleWishlistRoute
   LocaleIndexRoute: typeof LocaleIndexRoute
   LocaleArtistsSlugRoute: typeof LocaleArtistsSlugRoute
@@ -709,10 +769,13 @@ const LocaleRouteChildren: LocaleRouteChildren = {
   LocaleAccountRoute: LocaleAccountRoute,
   LocaleCartRoute: LocaleCartRoute,
   LocaleCheckoutRoute: LocaleCheckoutRoute,
+  LocaleCookiesRoute: LocaleCookiesRoute,
   LocaleItinerariesRoute: LocaleItinerariesRouteWithChildren,
   LocaleItineraryRoute: LocaleItineraryRoute,
   LocaleNotificationsRoute: LocaleNotificationsRoute,
+  LocalePrivacyRoute: LocalePrivacyRoute,
   LocaleSitemapRoute: LocaleSitemapRoute,
+  LocaleTermsRoute: LocaleTermsRoute,
   LocaleWishlistRoute: LocaleWishlistRoute,
   LocaleIndexRoute: LocaleIndexRoute,
   LocaleArtistsSlugRoute: LocaleArtistsSlugRoute,
