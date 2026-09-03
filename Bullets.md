@@ -56,7 +56,7 @@ Full-Stack Software Engineer role. Google XYZ formula (Accomplished X as measure
 
 ## Performance & Disaster Recovery
 
-- **Created** k6 load test scenarios with codified thresholds (p95 < 300ms, error rate < 0.1%), targeting 50 RPS baseline, 500 concurrent WebSocket sessions, and 10× spike bursts.
+- **Created** k6 load test scenarios with codified thresholds (p95 < 300ms, error rate < 0.1%), sustaining 50 RPS browse baseline at p95=1.7ms and 500 RPS spike bursts at p95=1.8ms with zero errors.
 
 - **Wrote** nightly pg_dump scripts uploading compressed database backups to Alibaba Cloud OSS with 14-day retention, plus a parallel restore procedure targeting a 4-hour recovery objective.
 
