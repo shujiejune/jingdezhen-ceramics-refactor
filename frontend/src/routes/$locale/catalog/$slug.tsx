@@ -179,6 +179,8 @@ function ProductDetail() {
                 sizes="(max-width: 1024px) 100vw, 50vw"
                 alt={product.title}
                 loading="eager"
+                width={800}
+                height={800}
                 className="aspect-square w-full object-contain"
               />
             ) : (
@@ -212,6 +214,8 @@ function ProductDetail() {
                         src={url}
                         alt={m.caption ?? `${product.title} ${i + 1}`}
                         loading="lazy"
+                        width={80}
+                        height={80}
                         className="h-full w-full object-contain"
                       />
                     ) : (

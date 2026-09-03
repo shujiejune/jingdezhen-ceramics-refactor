@@ -109,6 +109,8 @@ function MediaLibraryPage() {
                 <img
                   src={asset.public_url}
                   alt={asset.caption ?? ''}
+                  width={256}
+                  height={128}
                   className="max-h-full max-w-full object-contain"
                   onError={(e) => {
                     ;(e.target as HTMLImageElement).style.display = 'none'

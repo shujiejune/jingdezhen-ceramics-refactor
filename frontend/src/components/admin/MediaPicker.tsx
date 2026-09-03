@@ -65,6 +65,8 @@ export function MediaPicker({ onPick, attachedIds = [] }: MediaPickerProps) {
                 <img
                   src={asset.public_url}
                   alt={asset.caption ?? ''}
+                  width={64}
+                  height={64}
                   className="max-h-full max-w-full object-contain"
                   onError={(e) => {
                     ;(e.target as HTMLImageElement).style.display = 'none'
