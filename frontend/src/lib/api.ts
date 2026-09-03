@@ -174,10 +174,16 @@ function statusCodeFallback(status: number): string {
 const SSR_API_BASE =
   (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:1323'
 
-/** Browser calls go same-origin through /api (dev proxy strips it; the
- *  prod reverse proxy does the same). SSR loaders call Fiber directly. */
+/** SSR loaders call Fiber directly (server-to-server, no CORS). In the
+ *  browser: dev calls the API origin directly (CORS via CLIENT_ORIGIN —
+ *  the vite /api proxy is shadowed by the Start dev middleware for
+ *  extension-less paths); prod goes same-origin /api behind the reverse
+ *  proxy. VITE_API_BROWSER_BASE overrides both. */
 function liveBase(): string {
-  return typeof window !== 'undefined' ? '/api' : SSR_API_BASE
+  if (typeof window === 'undefined') return SSR_API_BASE
+  const explicit = import.meta.env.VITE_API_BROWSER_BASE as string | undefined
+  if (explicit) return explicit
+  return import.meta.env.PROD ? '/api' : SSR_API_BASE
 }
 
 export class ApiNetworkError extends ApiError {
@@ -267,16 +273,24 @@ export const api = {
         params: { locale },
       }),
     ),
+  /** live /artists is PaginatedResponse-wrapped; mock matches */
   getArtists: (locale: string) =>
-    t().then((x) => x.call<Artist[]>('GET', '/artists', { params: { locale } })),
+    t()
+      .then((x) => x.call<Paginated<Artist> | Artist[]>('GET', '/artists', { params: { locale } }))
+      .then((r) => (Array.isArray(r) ? r : r.data)),
   getArtist: (slug: string, locale: string) =>
     t().then((x) => x.call<Artist>('GET', `/artists/${slug}`, { params: { locale } })),
   getStories: (locale: string) =>
     t().then((x) => x.call<CeramicStory[]>('GET', '/ceramicstory', { params: { locale } })),
   getStory: (slug: string, locale: string) =>
     t().then((x) => x.call<CeramicStory>('GET', `/ceramicstory/${slug}`, { params: { locale } })),
+  /** live /engage is PaginatedResponse-wrapped; mock matches */
   getActivities: (locale: string, type?: string) =>
-    t().then((x) => x.call<Activity[]>('GET', '/engage', { params: { locale, type } })),
+    t()
+      .then((x) =>
+        x.call<Paginated<Activity> | Activity[]>('GET', '/engage', { params: { locale, type } }),
+      )
+      .then((r) => (Array.isArray(r) ? r : r.data)),
   getActivity: (slug: string, locale: string) =>
     t().then((x) => x.call<Activity>('GET', `/engage/${slug}`, { params: { locale } })),
   getCertificate: (code: string, locale: string) =>
@@ -389,4 +403,23 @@ export const api = {
 /** Pick a SKU's presentment price helper (server-provided only). */
 export function skuPrice(sku: SKU): number {
   return sku.price ?? sku.price_cny
+}
+
+/* ------------------------------------------------------------------ */
+/* Media URLs                                                          */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Resolve a media public_url from the API for use in <img>/links.
+ * Local-dev storage returns RELATIVE "/media/…" keys — in the browser
+ * the dev proxy forwards them; during SSR they must be prefixed with
+ * the API origin. Absolute URLs (OSS/CDN mode) pass through untouched.
+ */
+export function resolveMediaUrl(url: string | undefined | null): string | undefined {
+  if (!url) return undefined
+  if (/^https?:\/\//.test(url)) return url
+  if (typeof window === 'undefined' && url.startsWith('/')) {
+    return SSR_API_BASE + url
+  }
+  return url
 }

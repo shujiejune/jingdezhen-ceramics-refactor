@@ -529,7 +529,11 @@ async function handle(route: string, ctx: Ctx): Promise<unknown> {
     }).filter((t) => t.product_count > 0)
   }
 
-  if (route === 'GET /artists') return ARTISTS.map((a) => toArtist(a, locale))
+  if (route === 'GET /artists') {
+    // real contract: PaginatedResponse-wrapped
+    const list = ARTISTS.map((a) => toArtist(a, locale))
+    return { data: list, page: 1, limit: 20, total: list.length, total_pages: 1 }
+  }
   if (ctx.method === 'GET' && pathRegex('/artists/:slug', ctx.path)) {
     const slug = ctx.path.split('/').pop()!
     const rec = ARTISTS.find(
@@ -553,9 +557,10 @@ async function handle(route: string, ctx: Ctx): Promise<unknown> {
   }
 
   if (route === 'GET /engage') {
+    // real contract: PaginatedResponse-wrapped
     let list = ACTIVITIES.map((a) => toActivity(a, locale))
     if (opts.params?.type) list = list.filter((a) => a.type === opts.params!.type)
-    return list
+    return { data: list, page: 1, limit: 20, total: list.length, total_pages: 1 }
   }
   if (ctx.method === 'GET' && pathRegex('/engage/:slug', ctx.path)) {
     const slug = ctx.path.split('/').pop()!
