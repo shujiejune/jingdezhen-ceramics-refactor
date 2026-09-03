@@ -18,10 +18,12 @@ import { useEffect, useState } from 'react'
 
 import { SealMark } from '~/components/ornaments'
 import { Button, ButtonLink } from '~/components/common/ui'
+import { useToast } from '~/components/common/Toaster'
 import { api } from '~/lib/api'
 import { useAuth } from '~/lib/auth'
 import { useCart } from '~/lib/cart'
 import { useI18n } from '~/lib/i18n'
+import { useRealtime } from '~/lib/realtime'
 import { useWishlist } from '~/lib/wishlist'
 import { cn, SUPPORTED_CURRENCIES, type Locale } from '~/lib/utils'
 
@@ -32,6 +34,8 @@ export function Header() {
   const { user, logout, ready, token } = useAuth()
   const { count: cartCount } = useCart()
   const { ids: wishlistIds } = useWishlist()
+  const { status: wsStatus, subscribe: onPush } = useRealtime()
+  const { push } = useToast()
   const navigate = useNavigate()
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -39,6 +43,9 @@ export function Header() {
 
   useEffect(() => setMobileOpen(false), [pathname])
 
+  // Poll fallback (M-F5): poll unread count every 30s unless the /ws push
+  // socket is open (pushes then keep the badge fresh via the subscription below).
+  const wsOpen = wsStatus === 'open'
   useEffect(() => {
     if (!ready || !token) return
     let active = true
@@ -49,12 +56,22 @@ export function Header() {
         .catch(() => {})
     }
     poll()
+    if (wsOpen) return
     const id = setInterval(poll, 30_000)
     return () => {
       active = false
       clearInterval(id)
     }
-  }, [ready, token])
+  }, [ready, token, wsOpen])
+
+  // WS push → badge + toast
+  useEffect(() => {
+    if (!wsOpen) return
+    return onPush((n) => {
+      setUnreadCount((c) => c + 1)
+      push({ title: n.message, kind: 'info' })
+    })
+  }, [wsOpen, onPush, push])
 
   const base = `/${locale}`
   const otherLocale: Locale = locale === 'en-US' ? 'zh-CN' : 'en-US'

@@ -22,6 +22,9 @@ const config = defineConfig({
       },
       // local-dev storage mode serves media from the API's /media mount
       '/media': { target: API_TARGET, changeOrigin: true },
+      // WebSocket push (/ws — notification hub; needs query-token auth on the
+      // backend before live mode can connect, see frontend/TODO.md)
+      '/ws': { target: API_TARGET.replace(/^http/, 'ws'), ws: true },
     },
   },
 })

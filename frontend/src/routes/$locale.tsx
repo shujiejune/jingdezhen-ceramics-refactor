@@ -14,6 +14,7 @@ import { ChatProvider } from '~/lib/chat'
 import { ConsentProvider } from '~/lib/consent'
 import { trackPageview } from '~/lib/analytics'
 import { I18nProvider, useI18n } from '~/lib/i18n'
+import { RealtimeProvider } from '~/lib/realtime'
 import { isLocale, type Locale } from '~/lib/utils'
 import { WishlistProvider } from '~/lib/wishlist'
 
@@ -56,9 +57,11 @@ function LocaleLayout() {
     <QueryClientProvider client={queryClient}>
       <I18nProvider locale={valid}>
         <AuthProvider>
-          <ToastProvider>
-            <LocaleShell locale={valid} />
-          </ToastProvider>
+          <RealtimeProvider>
+            <ToastProvider>
+              <LocaleShell locale={valid} />
+            </ToastProvider>
+          </RealtimeProvider>
         </AuthProvider>
       </I18nProvider>
     </QueryClientProvider>
