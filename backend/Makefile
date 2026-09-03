@@ -11,7 +11,8 @@ endif
 
 .PHONY: help build up up-db down down-v stop logs logs-api logs-worker \
 	migrate-up migrate-down migrate-force db-shell db-reset db-seed \
-	test test-unit test-integration swag swag-fmt swag-check
+	test test-unit test-integration swag swag-fmt swag-check \
+	k6-smoke k6-browse k6-checkout k6-spike k6-soak backup restore
 
 help:
 	@echo "Usage: make [target]"
@@ -39,6 +40,17 @@ help:
 	@echo "  test           - Run all tests (unit + integration via testcontainers)"
 	@echo "  test-unit      - Run only unit tests (-short, no Docker needed)"
 	@echo "  test-integration - Run only integration tests (needs Docker for testcontainers)"
+	@echo ""
+	@echo "k6 load tests (PRD §2.4.3):"
+	@echo "  k6-smoke       - Post-deploy smoke gate (< 2 min)"
+	@echo "  k6-browse      - Browse-heavy baseline (50 RPS, 200 VUs)"
+	@echo "  k6-checkout    - Checkout funnel (10 orders/min)"
+	@echo "  k6-spike       - 10× traffic spike"
+	@echo "  k6-soak        - 2h soak (leak detection)"
+	@echo ""
+	@echo "Backup/restore (PRD §4.5):"
+	@echo "  backup         - Nightly pg_dump → OSS"
+	@echo "  restore        - Download + pg_restore from OSS"
 
 build:
 	@echo "Building Docker images..."
@@ -131,3 +143,28 @@ swag-fmt:
 ## catch wrong annotations (those fail at `swag init` time with a parse error).
 swag-check: swag
 	@git diff --exit-code internal/docs
+
+## k6 load tests (PRD §2.4.3). Requires k6 installed (go install go.k6.io/k6@latest).
+## Set BASE_URL to target staging (default: http://localhost:1323 dev).
+k6-smoke:
+	k6 run k6/smoke.js
+
+k6-browse:
+	k6 run k6/browse-baseline.js
+
+k6-checkout:
+	k6 run k6/checkout-funnel.js
+
+k6-spike:
+	k6 run k6/spike.js
+
+k6-soak:
+	k6 run k6/soak.js
+
+## backup: nightly pg_dump → OSS (PRD §4.5). Needs DATABASE_URL + OSS_* env vars.
+backup:
+	@bash scripts/backup/backup.sh
+
+## restore: download + pg_restore from OSS (PRD §4.5 RTO 4h).
+restore:
+	@bash scripts/backup/restore.sh
