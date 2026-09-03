@@ -271,6 +271,11 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 		}))
 	}
 
+	// Prometheus metrics middleware — records per-request latency, status,
+	// and in-flight gauge. The /metrics scrape endpoint is registered after
+	// route setup (below) so it's not subject to JWT/RBAC gating.
+	app.Use(middleware.PrometheusMiddleware())
+
 	// --- Database connection ---
 	dbConfig, err := pgxpool.ParseConfig(cfg.DatabaseURL)
 	if err != nil {
@@ -607,6 +612,12 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 		app.Static(cfg.StoragePublicBaseURL, cfg.StorageLocalDir)
 		log.Printf("media: local store at %s -> %s", cfg.StorageLocalDir, cfg.StoragePublicBaseURL)
 	}
+
+	// Prometheus /metrics scrape endpoint — registered BEFORE SetupRoutes so
+	// it's not caught by the empty-prefix JWTMAuth checkout group that leaks to
+	// the radix root. Scraped by the Prometheus sidecar over the Docker network
+	// (never exposed to the public internet).
+	app.Get("/metrics", middleware.PrometheusHandler())
 
 	api.SetupRoutes(app, cfg.JWTSecret,
 		wsHandler, userHandler, notifHandler,

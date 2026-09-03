@@ -12,7 +12,8 @@ endif
 .PHONY: help build up up-db down down-v stop logs logs-api logs-worker \
 	migrate-up migrate-down migrate-force db-shell db-reset db-seed \
 	test test-unit test-integration swag swag-fmt swag-check \
-	k6-smoke k6-browse k6-checkout k6-spike k6-soak backup restore
+	k6-smoke k6-browse k6-checkout k6-spike k6-soak backup restore \
+	prod-build prod-up prod-down prod-logs prod-restart
 
 help:
 	@echo "Usage: make [target]"
@@ -51,6 +52,14 @@ help:
 	@echo "Backup/restore (PRD §4.5):"
 	@echo "  backup         - Nightly pg_dump → OSS"
 	@echo "  restore        - Download + pg_restore from OSS"
+	@echo ""
+	@echo "Production (docker-compose.prod.yml + .env.prod):"
+	@echo "  prod-build     - Build all production images"
+	@echo "  prod-up        - Start full production stack (api, worker, db, redis,"
+	@echo "                   frontend, caddy, prometheus, grafana)"
+	@echo "  prod-down      - Stop production stack (keeps data volumes)"
+	@echo "  prod-logs      - Tail all production service logs"
+	@echo "  prod-restart   - Restart a service (NAME=api, worker, caddy, ...)"
 
 build:
 	@echo "Building Docker images..."
@@ -168,3 +177,24 @@ backup:
 ## restore: download + pg_restore from OSS (PRD §4.5 RTO 4h).
 restore:
 	@bash scripts/backup/restore.sh
+
+## --- Production (docker-compose.prod.yml + .env.prod) ---
+## prod-build: build all production images (api, worker, frontend, caddy).
+prod-build:
+	docker compose -f docker-compose.prod.yml --env-file .env.prod build
+
+## prod-up: start the full production stack (api, worker, db, redis, frontend, caddy, prometheus, grafana).
+prod-up:
+	docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
+
+## prod-down: stop the production stack (keeps data volumes).
+prod-down:
+	docker compose -f docker-compose.prod.yml --env-file .env.prod down
+
+## prod-logs: tail all production service logs.
+prod-logs:
+	docker compose -f docker-compose.prod.yml --env-file .env.prod logs -f
+
+## prod-restart: restart a specific production service (NAME=api, worker, caddy, etc.).
+prod-restart:
+	docker compose -f docker-compose.prod.yml --env-file .env.prod restart $(NAME)

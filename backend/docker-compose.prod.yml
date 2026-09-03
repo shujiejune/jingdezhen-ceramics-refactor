@@ -1,0 +1,225 @@
+# Production compose for the Jingdezhen Ceramics Platform.
+# Designed for a single AWS EC2 instance (or equivalent VPS) running Docker Compose.
+#
+# Usage:
+#   docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
+#   docker compose -f docker-compose.prod.yml logs -f
+#   docker compose -f docker-compose.prod.yml down
+#
+# Services: api, worker, db, redis, caddy, frontend (ssr), prometheus, grafana
+# External services (Airwallex, PayPal, Brevo, OSS) are reached over the internet;
+# they are NOT in this compose file — they're configured via env vars.
+
+services:
+  # --- Go API (serve mode: Fiber HTTP + WebSocket) ---
+  api:
+    container_name: jdz-api-prod
+    build:
+      context: .
+      target: production
+    ports:
+      - "127.0.0.1:1323:1323"
+    environment:
+      - SERVER_PORT=1323
+      - JWT_SECRET=${JWT_SECRET}
+      - CLIENT_ORIGIN=${CLIENT_ORIGIN}
+      - SITE_BASE_URL=${SITE_BASE_URL}
+      - ADMIN_EMAIL=${ADMIN_EMAIL}
+      - DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}?sslmode=disable
+      - REDIS_URL=redis://redis:6379/0
+      - CONSENT_HMAC_KEY=${CONSENT_HMAC_KEY}
+      - TWO_FA_ENCRYPTION_KEY=${TWO_FA_ENCRYPTION_KEY}
+      - GOOGLE_OAUTH_CLIENT_ID=${GOOGLE_OAUTH_CLIENT_ID:-}
+      - GOOGLE_OAUTH_CLIENT_SECRET=${GOOGLE_OAUTH_CLIENT_SECRET:-}
+      - GOOGLE_OAUTH_REDIRECT_URL=${GOOGLE_OAUTH_REDIRECT_URL:-}
+      - BREVO_API_KEY=${BREVO_API_KEY:-}
+      - BREVO_SENDER_EMAIL=${BREVO_SENDER_EMAIL:-}
+      - BREVO_SENDER_NAME=${BREVO_SENDER_NAME:-}
+      - AIRWALLEX_CLIENT_ID=${AIRWALLEX_CLIENT_ID:-}
+      - AIRWALLEX_API_KEY=${AIRWALLEX_API_KEY:-}
+      - AIRWALLEX_ENV=${AIRWALLEX_ENV:-sandbox}
+      - AIRWALLEX_WEBHOOK_SECRET=${AIRWALLEX_WEBHOOK_SECRET:-}
+      - PAYPAL_CLIENT_ID=${PAYPAL_CLIENT_ID:-}
+      - PAYPAL_CLIENT_SECRET=${PAYPAL_CLIENT_SECRET:-}
+      - PAYPAL_ENV=${PAYPAL_ENV:-sandbox}
+      - PAYPAL_WEBHOOK_ID=${PAYPAL_WEBHOOK_ID:-}
+      - QWEN_API_KEY=${QWEN_API_KEY:-}
+      - QWEN_BASE_URL=${QWEN_BASE_URL:-}
+      - QWEN_MODEL=${QWEN_MODEL:-qwen-plus}
+      - OSSEndpoint=${OSS_ENDPOINT:-}
+      - OSS_ACCESS_KEY_ID=${OSS_ACCESS_KEY_ID:-}
+      - OSS_ACCESS_KEY_SECRET=${OSS_ACCESS_KEY_SECRET:-}
+      - OSS_BUCKET=${OSS_BUCKET:-}
+      - OSS_REGION=${OSS_REGION:-cn-hongkong}
+      - STORAGE_MODE=${STORAGE_MODE:-local}
+      - STORAGE_LOCAL_DIR=${STORAGE_LOCAL_DIR:-./_media}
+      - STORAGE_PUBLIC_BASE_URL=${STORAGE_PUBLIC_BASE_URL:-/media}
+      - OSS_PUBLIC_BASE_URL=${OSS_PUBLIC_BASE_URL:-}
+      - PDF_MODE=${PDF_MODE:-local}
+      - CHROMEDP_URL=${CHROMEDP_URL:-}
+      - PDF_BASE_URL=${PDF_BASE_URL:-http://api:1323}
+      - ECB_API_URL=${ECB_API_URL:-}
+      - FX_MARKUP_BPS=${FX_MARKUP_BPS:-200}
+      - PAYMENTS_MODE=${PAYMENTS_MODE:-mock}
+      - ANALYTICS_HMAC_KEY=${ANALYTICS_HMAC_KEY:-}
+      - GEOIP_MODE=${GEOIP_MODE:-noop}
+      - GEOLITE2_DB_PATH=${GEOLITE2_DB_PATH:-}
+      - RATE_LIMIT_MAX=${RATE_LIMIT_MAX:-100}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # --- Go Worker (Asynq background jobs + cron scheduler) ---
+  worker:
+    container_name: jdz-worker-prod
+    build:
+      context: .
+      target: production
+    command: worker
+    environment:
+      - SERVER_PORT=1323
+      - DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}?sslmode=disable
+      - REDIS_URL=redis://redis:6379/0
+      - BREVO_API_KEY=${BREVO_API_KEY:-}
+      - BREVO_SENDER_EMAIL=${BREVO_SENDER_EMAIL:-}
+      - BREVO_SENDER_NAME=${BREVO_SENDER_NAME:-}
+      - AIRWALLEX_CLIENT_ID=${AIRWALLEX_CLIENT_ID:-}
+      - AIRWALLEX_API_KEY=${AIRWALLEX_API_KEY:-}
+      - AIRWALLEX_ENV=${AIRWALLEX_ENV:-sandbox}
+      - PAYPAL_CLIENT_ID=${PAYPAL_CLIENT_ID:-}
+      - PAYPAL_CLIENT_SECRET=${PAYPAL_CLIENT_SECRET:-}
+      - PAYPAL_ENV=${PAYPAL_ENV:-sandbox}
+      - QWEN_API_KEY=${QWEN_API_KEY:-}
+      - QWEN_BASE_URL=${QWEN_BASE_URL:-}
+      - QWEN_MODEL=${QWEN_MODEL:-qwen-plus}
+      - OSSEndpoint=${OSS_ENDPOINT:-}
+      - OSS_ACCESS_KEY_ID=${OSS_ACCESS_KEY_ID:-}
+      - OSS_ACCESS_KEY_SECRET=${OSS_ACCESS_KEY_SECRET:-}
+      - OSS_BUCKET=${OSS_BUCKET:-}
+      - OSS_REGION=${OSS_REGION:-cn-hongkong}
+      - STORAGE_MODE=${STORAGE_MODE:-local}
+      - STORAGE_LOCAL_DIR=${STORAGE_LOCAL_DIR:-./_media}
+      - STORAGE_PUBLIC_BASE_URL=${STORAGE_PUBLIC_BASE_URL:-/media}
+      - PDF_MODE=${PDF_MODE:-local}
+      - CHROMEDP_URL=${CHROMEDP_URL:-}
+      - PDF_BASE_URL=${PDF_BASE_URL:-http://api:1323}
+      - CONSENT_HMAC_KEY=${CONSENT_HMAC_KEY}
+      - TWO_FA_ENCRYPTION_KEY=${TWO_FA_ENCRYPTION_KEY}
+      - RATE_LIMIT_MAX=${RATE_LIMIT_MAX:-100}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # --- PostgreSQL ---
+  db:
+    image: postgis/postgis:16-3.5-alpine
+    container_name: jdz-db-prod
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # --- Redis ---
+  redis:
+    image: redis:7-alpine
+    container_name: jdz-redis-prod
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # --- Frontend SSR (TanStack Start / Node) ---
+  frontend:
+    container_name: jdz-frontend-prod
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    environment:
+      - NODE_ENV=production
+      - VITE_API_MODE=live
+      - VITE_API_BASE_URL=http://api:1323
+      - VITE_API_BROWSER_BASE=http://api:1323
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  # --- Caddy reverse proxy (TLS + routing) ---
+  caddy:
+    image: caddy:2-alpine
+    container_name: jdz-caddy-prod
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ../frontend/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      - SITE_DOMAIN=${SITE_DOMAIN:-localhost}
+      - API_UPSTREAM=api:1323
+      - SSR_UPSTREAM=frontend:3000
+    depends_on:
+      - api
+      - frontend
+    restart: unless-stopped
+
+  # --- Prometheus (metrics scraping) ---
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: jdz-prometheus
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=15d"
+      - "--web.enable-lifecycle"
+    ports:
+      - "127.0.0.1:9090:9090"    # only localhost — not exposed to the public
+    restart: unless-stopped
+
+  # --- Grafana (dashboards + alerting) ---
+  grafana:
+    image: grafana/grafana:latest
+    container_name: jdz-grafana
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_HTTP_PORT=3001
+    ports:
+      - "127.0.0.1:3001:3001"   # only localhost — reverse-proxied by Caddy or SSH-tunneled
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  caddy_data:
+  caddy_config:
+  prometheus_data:
+  grafana_data:

@@ -38,8 +38,8 @@ COPY ./internal/migrations ./internal/migrations
 # (Optional) If you use a .env file for configuration in production, copy it.
 # COPY .env .
 
-# Expose the port that the application will run on.
-EXPOSE 8080
+# Expose the port that the application will run on (set by SERVER_PORT env, default 1323).
+EXPOSE 1323
 
 # The command to run when the container starts.
 CMD ["/app/server"]
