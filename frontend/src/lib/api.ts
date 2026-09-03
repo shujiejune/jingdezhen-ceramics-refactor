@@ -366,7 +366,9 @@ export const api = {
     patch: Partial<Pick<User, 'nickname' | 'preferred_locale' | 'preferred_currency'>>,
   ) => t().then((x) => x.call<User>('PUT', '/profile', { token, body: patch })),
   getAddresses: (token: string) =>
-    t().then((x) => x.call<Address[]>('GET', '/profile/addresses', { token })),
+    t()
+      .then((x) => x.call<{ data: Address[] }>('GET', '/profile/addresses', { token }))
+      .then((res) => res.data),
   createAddress: (
     token: string,
     body: Omit<Address, 'id' | 'is_default'> & { is_default?: boolean },
@@ -495,7 +497,9 @@ export const api = {
     token?: string,
   ) => t().then((x) => x.call<ConsentRecord>('POST', '/consent', { body, token })),
   getConsentHistory: (token: string) =>
-    t().then((x) => x.call<ConsentRecord[]>('GET', '/profile/consent', { token })),
+    t()
+      .then((x) => x.call<{ data: ConsentRecord[] }>('GET', '/profile/consent', { token }))
+      .then((res) => res.data),
   getConsentState: (token: string, kind: ConsentKind) =>
     t().then((x) => x.call<ConsentState>('GET', `/profile/consent/${kind}`, { token })),
 

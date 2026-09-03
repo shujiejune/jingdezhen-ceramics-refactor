@@ -888,7 +888,7 @@ async function handle(route: string, ctx: Ctx): Promise<unknown> {
 
   if (route === 'GET /profile/addresses') {
     const user = authUser(opts)
-    return addresses.filter((a) => a.user_id === user.id)
+    return { data: addresses.filter((a) => a.user_id === user.id) }
   }
 
   if (route === 'POST /profile/addresses') {
