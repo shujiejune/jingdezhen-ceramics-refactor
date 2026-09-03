@@ -11,6 +11,7 @@ import type { Address, Order, ShippingQuote } from '~/lib/types'
 import { SHIPPABLE_COUNTRIES } from '~/mocks/data'
 import { useToast } from '~/components/common/Toaster'
 import { Badge, Button, ButtonLink, FieldError, Spinner } from '~/components/common/ui'
+import { noindexHead } from '~/lib/seo'
 
 /**
  * Checkout (signed-in only, PRD §3.2.3): address → reactive shipping
@@ -18,6 +19,7 @@ import { Badge, Button, ButtonLink, FieldError, Spinner } from '~/components/com
  * the API (ErrConsentRequired) as well as inline.
  */
 export const Route = createFileRoute('/$locale/checkout')({
+  head: () => noindexHead('Checkout — Jingdezhen Ceramics'),
   component: CheckoutPage,
 })
 

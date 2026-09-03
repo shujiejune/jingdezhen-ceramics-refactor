@@ -5,6 +5,7 @@ import { SectionHeading } from '~/components/common/ui'
 import { WaveDivider } from '~/components/cards'
 import { api } from '~/lib/api'
 import { useI18n } from '~/lib/i18n'
+import { buildSeoHead } from '~/lib/seo'
 import { loaderCurrency } from '~/lib/utils'
 
 export const Route = createFileRoute('/$locale/artists/')({
@@ -22,6 +23,22 @@ export const Route = createFileRoute('/$locale/artists/')({
       }),
     ])
     return { artists, worksByArtist: catalog.data }
+  },
+  head: ({ params }) => {
+    const title = 'Artists — Jingdezhen Ceramics'
+    const description =
+      'The makers behind the porcelain — master ceramic artists of Jingdezhen, their studios, techniques, and works.'
+    const { meta, links } = buildSeoHead({
+      locale: params.locale,
+      path: '/artists',
+      title,
+      description,
+      ogType: 'website',
+    })
+    return {
+      meta: [{ title }, { name: 'description', content: description }, ...meta],
+      links,
+    }
   },
   component: ArtistsPage,
 })

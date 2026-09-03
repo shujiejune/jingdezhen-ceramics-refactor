@@ -7,6 +7,7 @@ import { SealMark, CloudScroll } from '~/components/ornaments'
 import { Button, FieldError } from '~/components/common/ui'
 import { errorKey, useAuth } from '~/lib/auth'
 import { useI18n } from '~/lib/i18n'
+import { noindexHead } from '~/lib/seo'
 import { PetalScatter } from '~/components/ornaments'
 
 /**
@@ -23,6 +24,7 @@ const searchSchema = z.object({
 
 export const Route = createFileRoute('/$locale/auth/login')({
   validateSearch: searchSchema,
+  head: () => noindexHead('Sign in — Jingdezhen Ceramics'),
   component: LoginPage,
 })
 

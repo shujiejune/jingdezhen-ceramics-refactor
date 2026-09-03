@@ -4,6 +4,7 @@ import { ActivityCard } from '~/components/cards'
 import { SectionHeading } from '~/components/common/ui'
 import { api } from '~/lib/api'
 import { useI18n } from '~/lib/i18n'
+import { buildSeoHead } from '~/lib/seo'
 
 /** Destinations & Local Lifestyle index (SSR). */
 export const Route = createFileRoute('/$locale/engage/')({
@@ -12,6 +13,22 @@ export const Route = createFileRoute('/$locale/engage/')({
       queryKey: ['activities', params.locale, 'all'],
       queryFn: () => api.getActivities(params.locale),
     }),
+  head: ({ params }) => {
+    const title = 'Destinations & Lifestyle — Jingdezhen Ceramics'
+    const description =
+      'Where to go and who to meet in the kiln city — destinations, studios, and local culture around Jingdezhen.'
+    const { meta, links } = buildSeoHead({
+      locale: params.locale,
+      path: '/engage',
+      title,
+      description,
+      ogType: 'website',
+    })
+    return {
+      meta: [{ title }, { name: 'description', content: description }, ...meta],
+      links,
+    }
+  },
   component: EngagePage,
 })
 

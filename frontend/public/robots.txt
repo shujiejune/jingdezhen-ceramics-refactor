@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /cart
+Disallow: /checkout
+Disallow: /orders
+Disallow: /wishlist
+Disallow: /account
+Disallow: /notifications
+Disallow: /itinerary
+Disallow: /auth
+
+Sitemap: https://jingdezhen-ceramics.com/sitemap.xml

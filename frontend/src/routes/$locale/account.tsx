@@ -7,11 +7,13 @@ import { useToast } from '~/components/common/Toaster'
 import { api } from '~/lib/api'
 import { errorKey, useAuth } from '~/lib/auth'
 import { useI18n } from '~/lib/i18n'
+import { noindexHead } from '~/lib/seo'
 import { SUPPORTED_CURRENCIES, formatDate } from '~/lib/utils'
 import type { Address, ConsentRecord } from '~/lib/types'
 
 /** Account — profile, preferences, address book, consent history, GDPR (PRD §3.5). */
 export const Route = createFileRoute('/$locale/account')({
+  head: () => noindexHead('Account — Jingdezhen Ceramics'),
   component: AccountPage,
 })
 

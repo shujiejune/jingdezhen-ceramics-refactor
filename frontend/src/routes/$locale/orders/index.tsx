@@ -7,6 +7,7 @@ import { Badge, ButtonLink, EmptyState, Spinner } from '~/components/common/ui'
 import { api } from '~/lib/api'
 import { useAuth } from '~/lib/auth'
 import { useI18n } from '~/lib/i18n'
+import { noindexHead } from '~/lib/seo'
 import { formatDate } from '~/lib/utils'
 import type { Order, OrderStatus } from '~/lib/types'
 
@@ -21,6 +22,7 @@ const statusTone: Record<OrderStatus, 'cobalt' | 'success' | 'warning' | 'danger
 
 /** Order history (client-rendered — personalized, no SSR need). */
 export const Route = createFileRoute('/$locale/orders/')({
+  head: () => noindexHead('Orders — Jingdezhen Ceramics'),
   component: OrdersPage,
 })
 

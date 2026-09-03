@@ -7,6 +7,7 @@ import { Button } from '~/components/common/ui'
 import { api } from '~/lib/api'
 import { errorKey, persistSession } from '~/lib/auth'
 import { useI18n } from '~/lib/i18n'
+import { noindexHead } from '~/lib/seo'
 import { AuthShell } from './signup'
 
 /**
@@ -17,6 +18,7 @@ const searchSchema = z.object({ token: z.string().optional() })
 
 export const Route = createFileRoute('/$locale/auth/activate')({
   validateSearch: searchSchema,
+  head: () => noindexHead('Activate — Jingdezhen Ceramics'),
   component: ActivatePage,
 })
 

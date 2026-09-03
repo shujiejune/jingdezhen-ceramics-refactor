@@ -16,6 +16,7 @@ import { errorKey, useAuth } from '~/lib/auth'
 import { trackItineraryFormView } from '~/lib/analytics'
 import { useI18n } from '~/lib/i18n'
 import { formatMinor } from '~/lib/money'
+import { noindexHead } from '~/lib/seo'
 import { INTEREST_OPTIONS } from '~/mocks/data'
 import { SUPPORTED_CURRENCIES, cn, formatDate } from '~/lib/utils'
 import type { ItineraryRequest } from '~/lib/types'
@@ -30,6 +31,7 @@ const searchSchema = z.object({ step: z.number().int().min(1).max(5).optional() 
 
 export const Route = createFileRoute('/$locale/itinerary')({
   validateSearch: searchSchema,
+  head: () => noindexHead('Custom Itinerary — Jingdezhen Ceramics'),
   component: ItineraryWizard,
 })
 

@@ -57,7 +57,7 @@ Contract realities from the backend inventory (absorb **all** of these):
 - [x] Analytics events: `pageview` on route change + `itinerary_form_view` on wizard mount (dashboard funnel contract); 204 = silently dropped, never retried
 - [x] SEO: `hreflang` from the API `alternates` maps, canonical + OG/Twitter meta per entity, JSON-LD completion (Product / Article / BreadcrumbList everywhere), sitemap cross-link in footer
 - [x] Policy placeholder pages (privacy / terms / cookies) with consent-version framing
-- [ ] PRD §4.4 audit checklist run in both locales
+- [x] PRD §4.4 audit checklist run in both locales — `robots.txt` added; `noindex,nofollow` on all private routes (auth, account, cart, checkout, orders, wishlist, itinerary, notifications, admin); `head()` + `buildSeoHead` on catalog/artists/engage index routes (canonical, OG, Twitter, hreflang); JSON-LD on all detail routes (Product, Article, Person, Certificate); sitemap HTML cross-link page
 
 **Acceptance:** SEO audit passes per locale; consented events appear in the admin dashboard.
 

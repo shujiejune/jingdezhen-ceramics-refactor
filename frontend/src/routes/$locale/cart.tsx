@@ -10,6 +10,7 @@ import { api } from '~/lib/api'
 import { useCart } from '~/lib/cart'
 import { useI18n } from '~/lib/i18n'
 import { formatWeight } from '~/lib/money'
+import { noindexHead } from '~/lib/seo'
 import { CONTACT, SHIPPABLE_COUNTRIES } from '~/mocks/data'
 import type { ShippingQuote } from '~/lib/types'
 import { cn } from '~/lib/utils'
@@ -20,6 +21,7 @@ import { cn } from '~/lib/utils'
  * the quote endpoint does the tier math.
  */
 export const Route = createFileRoute('/$locale/cart')({
+  head: () => noindexHead('Cart — Jingdezhen Ceramics'),
   component: CartPage,
 })
 

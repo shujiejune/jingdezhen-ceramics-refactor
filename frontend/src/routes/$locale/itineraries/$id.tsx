@@ -8,6 +8,7 @@ import { api } from '~/lib/api'
 import { errorKey, useAuth } from '~/lib/auth'
 import { useI18n } from '~/lib/i18n'
 import { formatMinor } from '~/lib/money'
+import { noindexHead } from '~/lib/seo'
 import { cn, formatDate } from '~/lib/utils'
 import type { ItineraryRequest, ItineraryStatus } from '~/lib/types'
 import type { CatalogKey } from '~/i18n/en-US'
@@ -25,6 +26,7 @@ const statusTone: Record<ItineraryStatus, 'cobalt' | 'success' | 'warning' | 'ne
 
 /** Itinerary detail — request summary + quote breakdown + pay-deposit flow (PRD §3.3.2). */
 export const Route = createFileRoute('/$locale/itineraries/$id')({
+  head: () => noindexHead('Journey detail — Jingdezhen Ceramics'),
   component: ItineraryDetailPage,
 })
 

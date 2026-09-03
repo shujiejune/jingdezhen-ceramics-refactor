@@ -40,9 +40,11 @@ export interface SeoMetaInput {
 
 /** TanStack Router meta entry (minimal shape we use). */
 interface MetaEntry {
+  charSet?: string
+  title?: string
   name?: string
   property?: string
-  content: string
+  content?: string
 }
 
 /** TanStack Router links entry. */
@@ -121,4 +123,16 @@ export function buildSeoHead(input: SeoMetaInput): SeoHead {
   }
 
   return { meta, links }
+}
+
+/**
+ * Head for non-public routes (auth, account, cart, checkout, orders,
+ * wishlist, itinerary, notifications, admin). Emits `noindex, nofollow`
+ * so these pages never appear in search results (PRD §4.4).
+ */
+export function noindexHead(title: string): { meta: MetaEntry[]; links: LinkEntry[] } {
+  return {
+    meta: [{ name: 'robots', content: 'noindex, nofollow' }, { title }],
+    links: [],
+  }
 }

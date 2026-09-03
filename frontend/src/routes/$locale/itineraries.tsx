@@ -6,6 +6,7 @@ import { Badge, ButtonLink, EmptyState, Spinner } from '~/components/common/ui'
 import { api } from '~/lib/api'
 import { useAuth } from '~/lib/auth'
 import { useI18n } from '~/lib/i18n'
+import { noindexHead } from '~/lib/seo'
 import { formatDate } from '~/lib/utils'
 import type { ItineraryRequest, ItineraryStatus } from '~/lib/types'
 
@@ -22,6 +23,7 @@ const statusTone: Record<ItineraryStatus, 'cobalt' | 'success' | 'warning' | 'ne
 
 /** My journeys — submitted itinerary requests + statuses (PRD §3.3.2). */
 export const Route = createFileRoute('/$locale/itineraries')({
+  head: () => noindexHead('My Journeys — Jingdezhen Ceramics'),
   component: ItinerariesPage,
 })
 

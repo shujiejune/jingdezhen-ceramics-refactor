@@ -8,6 +8,7 @@ import { Button, FieldError } from '~/components/common/ui'
 import { api } from '~/lib/api'
 import { errorKey, persistSession } from '~/lib/auth'
 import { useI18n } from '~/lib/i18n'
+import { noindexHead } from '~/lib/seo'
 import { AuthShell } from './signup'
 
 /**
@@ -20,6 +21,7 @@ const searchSchema = z.object({ pending: z.string().optional() })
 
 export const Route = createFileRoute('/$locale/auth/2fa-enroll')({
   validateSearch: searchSchema,
+  head: () => noindexHead('2FA Enrollment — Jingdezhen Ceramics'),
   component: EnrollPage,
 })
 

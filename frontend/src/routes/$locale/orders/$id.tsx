@@ -10,6 +10,7 @@ import { api } from '~/lib/api'
 import { useAuth } from '~/lib/auth'
 import { useToast } from '~/components/common/Toaster'
 import { useI18n } from '~/lib/i18n'
+import { noindexHead } from '~/lib/seo'
 import { formatDateTime } from '~/lib/utils'
 import type { Order, OrderStatus } from '~/lib/types'
 import type { CatalogKey } from '~/i18n/en-US'
@@ -19,6 +20,7 @@ const searchSchema = z.object({ placed: z.number().optional() })
 /** Order detail — status timeline, tracking, cancel-unpaid, refund note. */
 export const Route = createFileRoute('/$locale/orders/$id')({
   validateSearch: searchSchema,
+  head: () => noindexHead('Order detail — Jingdezhen Ceramics'),
   component: OrderDetailPage,
 })
 

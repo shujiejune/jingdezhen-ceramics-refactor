@@ -5,10 +5,12 @@ import { Button, FieldError } from '~/components/common/ui'
 import { api } from '~/lib/api'
 import { errorKey, useAuth } from '~/lib/auth'
 import { useI18n } from '~/lib/i18n'
+import { noindexHead } from '~/lib/seo'
 import { AuthShell } from './signup'
 
 /** Forgot password — anti-enumeration: the API always answers 200. */
 export const Route = createFileRoute('/$locale/auth/forgot')({
+  head: () => noindexHead('Forgot password — Jingdezhen Ceramics'),
   component: ForgotPage,
 })
 

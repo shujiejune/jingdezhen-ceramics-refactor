@@ -6,6 +6,7 @@ import { ProductCard } from '~/components/cards'
 import { Button, ButtonLink, EmptyState } from '~/components/common/ui'
 import { api } from '~/lib/api'
 import { useI18n } from '~/lib/i18n'
+import { buildSeoHead } from '~/lib/seo'
 import { cn, loaderCurrency } from '~/lib/utils'
 
 /**
@@ -75,6 +76,22 @@ export const Route = createFileRoute('/$locale/catalog/')({
       }),
     ])
     return { products, tags, artists }
+  },
+  head: ({ params }) => {
+    const title = 'The Gallery — Jingdezhen Ceramics'
+    const description =
+      'Original porcelain works from Jingdezhen studios — browse by family, artist, or edition. Certified and shipped worldwide.'
+    const { meta, links } = buildSeoHead({
+      locale: params.locale,
+      path: '/catalog',
+      title,
+      description,
+      ogType: 'website',
+    })
+    return {
+      meta: [{ title }, { name: 'description', content: description }, ...meta],
+      links,
+    }
   },
   component: CatalogPage,
 })

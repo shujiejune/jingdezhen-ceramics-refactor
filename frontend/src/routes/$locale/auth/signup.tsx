@@ -6,6 +6,7 @@ import { SealMark, PetalScatter } from '~/components/ornaments'
 import { Button, FieldError } from '~/components/common/ui'
 import { errorKey, useAuth } from '~/lib/auth'
 import { useI18n } from '~/lib/i18n'
+import { noindexHead } from '~/lib/seo'
 
 /**
  * Sign-up — real contract: 201 with an EMPTY access_token, the account
@@ -13,6 +14,7 @@ import { useI18n } from '~/lib/i18n'
  * page). Mock mode surfaces the activation token as a dev shortcut.
  */
 export const Route = createFileRoute('/$locale/auth/signup')({
+  head: () => noindexHead('Create account — Jingdezhen Ceramics'),
   component: SignupPage,
 })
 

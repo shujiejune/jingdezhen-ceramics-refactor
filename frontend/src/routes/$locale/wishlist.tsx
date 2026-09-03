@@ -7,10 +7,12 @@ import { useToast } from '~/components/common/Toaster'
 import { useAuth } from '~/lib/auth'
 import { useCart } from '~/lib/cart'
 import { useI18n } from '~/lib/i18n'
+import { noindexHead } from '~/lib/seo'
 import { useWishlist } from '~/lib/wishlist'
 
 /** Wishlist — protected (router.go gates /wishlist behind JWT). */
 export const Route = createFileRoute('/$locale/wishlist')({
+  head: () => noindexHead('Wishlist — Jingdezhen Ceramics'),
   component: WishlistPage,
 })
 

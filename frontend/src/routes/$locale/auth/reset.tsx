@@ -7,6 +7,7 @@ import { Button, FieldError } from '~/components/common/ui'
 import { api } from '~/lib/api'
 import { errorKey, persistSession } from '~/lib/auth'
 import { useI18n } from '~/lib/i18n'
+import { noindexHead } from '~/lib/seo'
 import { AuthShell } from './signup'
 
 /** Reset password — email link lands with ?token=. */
@@ -14,6 +15,7 @@ const searchSchema = z.object({ token: z.string().optional() })
 
 export const Route = createFileRoute('/$locale/auth/reset')({
   validateSearch: searchSchema,
+  head: () => noindexHead('Reset password — Jingdezhen Ceramics'),
   component: ResetPage,
 })
 

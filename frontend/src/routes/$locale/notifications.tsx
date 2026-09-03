@@ -7,11 +7,13 @@ import { useToast } from '~/components/common/Toaster'
 import { api } from '~/lib/api'
 import { useAuth } from '~/lib/auth'
 import { useI18n } from '~/lib/i18n'
+import { noindexHead } from '~/lib/seo'
 import { formatDate } from '~/lib/utils'
 import type { Notification } from '~/lib/types'
 
 /** Notifications inbox — unread badge + mark-read (PRD §3.1.2). */
 export const Route = createFileRoute('/$locale/notifications')({
+  head: () => noindexHead('Notifications — Jingdezhen Ceramics'),
   component: NotificationsPage,
 })
 
