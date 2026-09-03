@@ -4,10 +4,12 @@ import { Envelope, Phone } from '@phosphor-icons/react'
 
 import { PetalScatter, SealMark, WaveBand } from '~/components/ornaments'
 import { CONTACT } from '~/mocks/data'
+import { useConsent } from '~/lib/consent'
 import { useI18n } from '~/lib/i18n'
 
 export function Footer() {
   const { t, locale } = useI18n()
+  const { reopen } = useConsent()
   const base = `/${locale}`
 
   const cols = [
@@ -35,7 +37,6 @@ export function Footer() {
       links: [
         { label: t('footer.privacy'), to: `${base}/account` },
         { label: t('footer.terms'), to: `${base}/account` },
-        { label: t('footer.cookies'), to: `${base}/account` },
       ],
     },
   ]
@@ -98,6 +99,22 @@ export function Footer() {
               </ul>
             </nav>
           ))}
+          <nav aria-label={t('footer.legal')}>
+            <h3 className="text-[0.72rem] font-semibold tracking-[0.18em] text-ink-400 uppercase">
+              {t('footer.legal')}
+            </h3>
+            <ul className="mt-4 flex flex-col gap-2.5">
+              <li>
+                <button
+                  type="button"
+                  onClick={reopen}
+                  className="text-left text-sm text-ink-600 transition hover:text-cobalt-700"
+                >
+                  {t('footer.cookies')}
+                </button>
+              </li>
+            </ul>
+          </nav>
         </div>
 
         <div className="mt-14 flex flex-col items-center gap-4">

@@ -483,6 +483,22 @@ export const enUS = {
   'consent.marketing': 'Marketing cookies',
   'consent.granted': 'Granted',
   'consent.denied': 'Denied',
+  'consent.bannerBody':
+    'We use essential cookies for account access and optional analytics cookies to understand how you use the site. See our cookie policy for details.',
+  'consent.acceptAll': 'Accept all',
+  'consent.essentialOnly': 'Essential only',
+  'consent.policyTitle': 'Cookie policy',
+  'consent.policyBody':
+    'This site uses cookies to provide essential functionality (account login, cart, checkout) and optional analytics cookies to understand visitor behavior. Analytics cookies are only set after you grant consent. You can change your choice at any time from the footer.',
+  'privacyPolicy.title': 'Privacy policy',
+  'privacyPolicy.body':
+    'We respect your privacy. Your personal data (email, address, order history) is used solely for fulfilling orders and providing account services. We do not sell or share your data with third parties. You can export or delete your data at any time from your account page.',
+  'termsPolicy.title': 'Terms of service',
+  'termsPolicy.body':
+    'By using this platform you agree to purchase ceramic works in good faith. All sales are subject to the seller’s refund and shipping policies. Custom travel itineraries are quotations and may be adjusted by the planner. Prices are in CNY unless a presentment currency is selected.',
+  'cookiesPolicy.title': 'Cookie policy',
+  'cookiesPolicy.body':
+    'Essential cookies (required): session authentication, cart contents, locale and currency preferences. Analytics cookies (optional): anonymous pageview and event tracking to improve the site. You can grant or deny analytics cookies at any time.',
 
   /* certificate */
   'cert.downloadPdf': 'Download PDF certificate',

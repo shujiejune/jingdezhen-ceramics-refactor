@@ -1456,6 +1456,13 @@ async function handle(route: string, ctx: Ctx): Promise<unknown> {
     return { qr_url: `/media/cert-${code}-qr.png` }
   }
 
+  /* ---------------- analytics ---------------- */
+
+  if (route === 'POST /analytics/events') {
+    // 201 {id} on success; 204 if consent not granted (silently dropped)
+    return { id: idSeq.notif++ }
+  }
+
   throw new ApiError('not_found', `no mock route for ${route}`, 404)
 }
 

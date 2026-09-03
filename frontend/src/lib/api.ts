@@ -515,6 +515,15 @@ export const api = {
     t().then((x) =>
       x.call<void>('POST', '/privacy/delete-account', { token, body: { confirm: 'DELETE' } }),
     ),
+
+  /* ---- analytics ---- */
+  trackAnalytics: (body: {
+    kind: 'pageview' | 'event'
+    path: string
+    name?: string
+    locale?: string
+    props?: Record<string, unknown>
+  }) => t().then((x) => x.call<{ id: number } | void>('POST', '/analytics/events', { body })),
 }
 
 /** Pick a SKU's presentment price helper (server-provided only). */

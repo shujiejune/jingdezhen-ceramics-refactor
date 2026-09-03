@@ -467,6 +467,22 @@ export const zhCN: Catalog = {
   'consent.marketing': '营销 Cookie',
   'consent.granted': '已同意',
   'consent.denied': '已拒绝',
+  'consent.bannerBody':
+    '本站使用 Cookie 提供必要功能（登录、购物车、结账）及可选的分析 Cookie 以了解访客行为。分析 Cookie 仅在您同意后才会启用。您可以随时在页脚更改选择。',
+  'consent.acceptAll': '全部接受',
+  'consent.essentialOnly': '仅接受必要',
+  'consent.policyTitle': 'Cookie 政策',
+  'consent.policyBody':
+    '本站使用 Cookie 提供必要功能（登录、购物车、结账）及可选的分析 Cookie 以了解访客行为。分析 Cookie 仅在您同意后启用，您可以随时在页脚更改选择。',
+  'privacyPolicy.title': '隐私政策',
+  'privacyPolicy.body':
+    '我们尊重您的隐私。您的个人数据（邮箱、地址、订单记录）仅用于履约及账户服务，不向第三方出售或共享。您可以随时在账户页面导出或删除您的数据。',
+  'termsPolicy.title': '服务条款',
+  'termsPolicy.body':
+    '使用本平台即表示您同意善意购买陶瓷作品。所有交易均适用卖方的退款与运输政策。定制行程为报价单，可由规划师调整。除非选择展示货币，所有价格以人民币（CNY）计价。',
+  'cookiesPolicy.title': 'Cookie 政策',
+  'cookiesPolicy.body':
+    '必要 Cookie（必须）：会话登录、购物车内容、语言与货币偏好。分析 Cookie（可选）：匿名页面浏览与事件统计以改进网站。您可以随时授予或撤回分析 Cookie。',
 
   /* certificate */
   'cert.downloadPdf': '下载 PDF 证书',
