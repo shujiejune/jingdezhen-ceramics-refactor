@@ -88,7 +88,16 @@ const notifications: Notification[] = []
 const consentRecords: ConsentRecord[] = []
 const itineraryDrafts = new Map<string, Record<string, unknown>>()
 const itineraryQuotes = new Map<number, ItineraryQuote>()
-let idSeq = { order: 2000, item: 9100, address: 10, itinerary: 6000, token: 100, notif: 100, consent: 100, quote: 7000 }
+let idSeq = {
+  order: 2000,
+  item: 9100,
+  address: 10,
+  itinerary: 6000,
+  token: 100,
+  notif: 100,
+  consent: 100,
+  quote: 7000,
+}
 
 /* seed orders/itineraries with resolved addresses. Order titles are
    stored bilingual (title_snapshot) and resolved to the request locale
@@ -1277,7 +1286,10 @@ async function handle(route: string, ctx: Ctx): Promise<unknown> {
     req.status = 'deposit_paid' as ItineraryStatus
     quote.status = 'deposit_paid'
     quote.paid_at = new Date().toISOString()
-    return { quote_id: quote.id, hosted_url: 'mock://sandbox-deposit' } satisfies DepositPaidResponse
+    return {
+      quote_id: quote.id,
+      hosted_url: 'mock://sandbox-deposit',
+    } satisfies DepositPaidResponse
   }
 
   if (ctx.method === 'POST' && pathRegex('/itineraries/:id/cancel', ctx.path)) {
@@ -1357,8 +1369,7 @@ async function handle(route: string, ctx: Ctx): Promise<unknown> {
 
   if (route === 'POST /notifications/mark-all-read') {
     const user = authUser(opts)
-    for (const n of notifications)
-      if (n.recipient_user_id === user.id) n.is_read = true
+    for (const n of notifications) if (n.recipient_user_id === user.id) n.is_read = true
     return
   }
 

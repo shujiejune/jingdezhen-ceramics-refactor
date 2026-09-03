@@ -15,7 +15,7 @@ import {
 } from '~/components/common/ui'
 import { useToast } from '~/components/common/Toaster'
 import { JsonLd } from '~/components/seo/JsonLd'
-import { api, ApiError } from '~/lib/api'
+import { api, ApiError, mediaImageUrl, mediaSrcSet } from '~/lib/api'
 import { useAuth } from '~/lib/auth'
 import { useCart } from '~/lib/cart'
 import { useI18n } from '~/lib/i18n'
@@ -167,35 +167,58 @@ function ProductDetail() {
         <div>
           <div className="relative overflow-hidden rounded-2xl border border-cobalt-100 bg-gradient-to-b from-wash to-porcelain shadow-card">
             <CornerFrame inset={16} />
-            <PorcelainFigure
-              kind={product.figure_kind}
-              seed={gallery[activeMedia]?.figure_seed ?? product.figure_seed}
-              className="aspect-square w-full"
-              label={product.title}
-            />
+            {mediaImageUrl(gallery[activeMedia]?.public_url) ? (
+              <img
+                src={mediaImageUrl(gallery[activeMedia]?.public_url)}
+                srcSet={mediaSrcSet(gallery[activeMedia]?.public_url)}
+                sizes="(max-width: 1024px) 100vw, 50vw"
+                alt={product.title}
+                loading="eager"
+                className="aspect-square w-full object-contain"
+              />
+            ) : (
+              <PorcelainFigure
+                kind={product.figure_kind}
+                seed={gallery[activeMedia]?.figure_seed ?? product.figure_seed}
+                className="aspect-square w-full"
+                label={product.title}
+              />
+            )}
           </div>
           {gallery.length > 1 && (
             <div className="mt-4 flex gap-3">
-              {gallery.map((m, i) => (
-                <button
-                  key={m.media_id}
-                  type="button"
-                  onClick={() => setActiveMedia(i)}
-                  aria-label={`${product.title} ${i + 1}`}
-                  className={cn(
-                    'h-20 w-20 overflow-hidden rounded-lg border bg-wash transition',
-                    i === activeMedia
-                      ? 'border-cobalt-500 ring-2 ring-cobalt-200'
-                      : 'border-cobalt-100 hover:border-cobalt-300',
-                  )}
-                >
-                  <PorcelainFigure
-                    kind={m.figure_kind}
-                    seed={m.figure_seed}
-                    className="h-full w-full"
-                  />
-                </button>
-              ))}
+              {gallery.map((m, i) => {
+                const url = mediaImageUrl(m.public_url)
+                return (
+                  <button
+                    key={m.media_id}
+                    type="button"
+                    onClick={() => setActiveMedia(i)}
+                    aria-label={`${product.title} ${i + 1}`}
+                    className={cn(
+                      'h-20 w-20 overflow-hidden rounded-lg border bg-wash transition',
+                      i === activeMedia
+                        ? 'border-cobalt-500 ring-2 ring-cobalt-200'
+                        : 'border-cobalt-100 hover:border-cobalt-300',
+                    )}
+                  >
+                    {url ? (
+                      <img
+                        src={url}
+                        alt={m.caption ?? `${product.title} ${i + 1}`}
+                        loading="lazy"
+                        className="h-full w-full object-contain"
+                      />
+                    ) : (
+                      <PorcelainFigure
+                        kind={m.figure_kind}
+                        seed={m.figure_seed}
+                        className="h-full w-full"
+                      />
+                    )}
+                  </button>
+                )
+              })}
             </div>
           )}
         </div>

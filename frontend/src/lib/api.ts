@@ -490,8 +490,10 @@ export const api = {
     t().then((x) => x.call<void>('POST', '/notifications/mark-all-read', { token })),
 
   /* ---- consent ---- */
-  recordConsent: (body: { kind: ConsentKind; doc_version: string; granted: boolean }, token?: string) =>
-    t().then((x) => x.call<ConsentRecord>('POST', '/consent', { body, token })),
+  recordConsent: (
+    body: { kind: ConsentKind; doc_version: string; granted: boolean },
+    token?: string,
+  ) => t().then((x) => x.call<ConsentRecord>('POST', '/consent', { body, token })),
   getConsentHistory: (token: string) =>
     t().then((x) => x.call<ConsentRecord[]>('GET', '/profile/consent', { token })),
   getConsentState: (token: string, kind: ConsentKind) =>
@@ -506,7 +508,9 @@ export const api = {
       }),
     ),
   deleteAccount: (token: string) =>
-    t().then((x) => x.call<void>('POST', '/privacy/delete-account', { token, body: { confirm: 'DELETE' } })),
+    t().then((x) =>
+      x.call<void>('POST', '/privacy/delete-account', { token, body: { confirm: 'DELETE' } }),
+    ),
 }
 
 /** Pick a SKU's presentment price helper (server-provided only). */
@@ -531,4 +535,30 @@ export function resolveMediaUrl(url: string | undefined | null): string | undefi
     return SSR_API_BASE + url
   }
   return url
+}
+
+/**
+ * Return a usable <img src> for a media URL, or undefined when the URL
+ * is a mock-mode placeholder (e.g. `mock://media/…`) that can't be
+ * loaded as a real image. Callers fall back to PorcelainFigure.
+ */
+export function mediaImageUrl(url: string | undefined | null): string | undefined {
+  if (!url) return undefined
+  if (url.startsWith('mock://')) return undefined
+  return resolveMediaUrl(url)
+}
+
+/**
+ * Build a srcSet for responsive image loading. For OSS/CDN URLs this
+ * requests multiple widths; for local /media/ paths it returns the
+ * single resolved URL (the dev proxy doesn't support image processing).
+ */
+export function mediaSrcSet(url: string | undefined | null): string | undefined {
+  const resolved = mediaImageUrl(url)
+  if (!resolved) return undefined
+  if (/^https?:\/\//.test(resolved)) {
+    // OSS image processing params (if available); otherwise just 1x
+    return `${resolved} 1x`
+  }
+  return undefined
 }
