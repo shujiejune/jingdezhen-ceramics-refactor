@@ -47,6 +47,49 @@ func JWTMAuth(jwtSecretKey string, bl tokenblocklist.Blocklist) fiber.Handler {
 	})
 }
 
+// WsAuth authenticates a WebSocket upgrade request via a `?token=<jwt>` query
+// parameter. Browser WebSocket cannot set the Authorization header, so the
+// /ws route group uses this middleware instead of JWTMAuth (TDD §5.1). The
+// token is parsed and validated the same way (HS256 + expiry + blocklist);
+// on success it sets the same c.Locals("userID") that WsUpgradeMiddleware
+// and the ws handler rely on.
+func WsAuth(jwtSecretKey string, bl tokenblocklist.Blocklist) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		tokenStr := c.Query("token")
+		if tokenStr == "" {
+			return c.Status(fiber.StatusUnauthorized).JSON(models.ErrorResponse{Message: "Missing or malformed JWT"})
+		}
+
+		claims := jwt.MapClaims{}
+		token, err := jwt.ParseWithClaims(tokenStr, claims, func(t *jwt.Token) (any, error) {
+			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, jwt.ErrSignatureInvalid
+			}
+			return []byte(jwtSecretKey), nil
+		})
+		if err != nil || !token.Valid {
+			return c.Status(fiber.StatusUnauthorized).JSON(models.ErrorResponse{Message: "Invalid or expired JWT"})
+		}
+
+		uid, _ := claims["user_id"].(string)
+		if uid == "" {
+			return c.Status(fiber.StatusUnauthorized).JSON(models.ErrorResponse{Message: "Invalid or expired JWT"})
+		}
+
+		// Deleted-user token invalidation (same stopgap as JWTMAuth).
+		if bl != nil {
+			if revoked, _ := bl.IsRevoked(c.UserContext(), uid); revoked {
+				return c.Status(fiber.StatusUnauthorized).JSON(models.ErrorResponse{Message: "Token revoked"})
+			}
+		}
+
+		c.Locals("userID", uid)
+		c.Locals("userEmail", claims["email"])
+		c.Locals("userRoles", rolesFromClaims(claims["roles"]))
+		return c.Next()
+	}
+}
+
 // rolesFromClaims normalises the roles claim (which decodes as []interface{}
 // from MapClaims) into []string.
 func rolesFromClaims(v any) []string {

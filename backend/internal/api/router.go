@@ -87,9 +87,11 @@ func SetupRoutes(
 	swaggerGroup.Get("/*", swagger.WrapHandler) // index.html + spec assets
 
 	// --- WebSocket Route ---
-	// This route group ensures the JWT middleware runs first to authenticate the user.
+	// Browser WebSocket cannot set the Authorization header, so /ws accepts
+	// a ?token=<jwt> query param via WsAuth instead of JWTMAuth (TDD §5.1).
+	// The token is validated the same way (HS256 + expiry + blocklist).
 	wsGroup := app.Group("/ws")
-	wsGroup.Use(middleware.JWTMAuth(jwtSecretKey, blocklist))
+	wsGroup.Use(middleware.WsAuth(jwtSecretKey, blocklist))
 	wsGroup.Use(ws.WsUpgradeMiddleware()) // This middleware checks if it's a valid WebSocket request
 	// Pass the handler's method, not the handler struct itself.
 	// The websocket.New() middleware expects a function argument with signature func(*websocket.Conn)
