@@ -6,6 +6,7 @@
  */
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 
+import { enUS } from '~/i18n/en-US'
 import { api, ApiError } from '~/lib/api'
 import type { User } from '~/lib/types'
 
@@ -20,8 +21,15 @@ export interface AuthValue {
   ready: boolean
   user: User | null
   token: string | null
-  /** returns { pending2FA } when a TOTP code is required */
-  login: (email: string, password: string) => Promise<{ pending2FA?: string; user?: User }>
+  /**
+   * OK → { user }. A 2FA-enabled account returns
+   * { pending2FA, enrollment? } — the backend answers 401 with
+   * {"error":{code:"2fa_required"|"2fa_enrollment_required", pending_token}}.
+   */
+  login: (
+    email: string,
+    password: string,
+  ) => Promise<{ pending2FA?: string; enrollment?: boolean; user?: User }>
   verify2FA: (pendingToken: string, code: string) => Promise<User>
   signup: (email: string, password: string, nickname: string) => Promise<User>
   logout: () => void
@@ -57,12 +65,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = useCallback<AuthValue['login']>(
     async (email, password) => {
-      const res = await api.login(email, password)
-      if ('pending_2fa_token' in res) {
-        return { pending2FA: res.pending_2fa_token }
+      try {
+        const res = await api.login(email, password)
+        persist({ token: res.access_token, user: res.user })
+        return { user: res.user }
+      } catch (e) {
+        if (
+          e instanceof ApiError &&
+          e.is('2fa_required', '2fa_enrollment_required') &&
+          e.pendingToken
+        ) {
+          return { pending2FA: e.pendingToken, enrollment: e.code === '2fa_enrollment_required' }
+        }
+        throw e
       }
-      persist({ token: res.access_token, user: res.user })
-      return { user: res.user }
     },
     [persist],
   )
@@ -109,7 +125,8 @@ export function useAuth(): AuthValue {
   return ctx
 }
 
-/** Turn an ApiError into a catalog error key ('errors.*'). */
+/** Turn an ApiError into a catalog error key ('errors.*'), falling back
+ *  to errors.generic for codes without a translated string. */
 export function errorKey(e: unknown): string {
   if (e instanceof ApiError) {
     if (e.code === 'validation_failed' && e.details) {
@@ -117,7 +134,7 @@ export function errorKey(e: unknown): string {
       if (first?.startsWith('errors.')) return first
     }
     const mapped = `errors.${e.code}`
-    return mapped
+    return mapped in enUS ? mapped : 'errors.generic'
   }
   return 'errors.network'
 }

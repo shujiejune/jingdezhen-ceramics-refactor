@@ -173,12 +173,6 @@ export interface AuthResponse {
   user: User
 }
 
-/** Login response when 2FA is enabled: no token yet, pending proof. */
-export interface Pending2FAResponse {
-  pending_2fa_token: string
-  expires_in_seconds: number
-}
-
 export interface Address {
   id: number
   recipient: string

@@ -25,7 +25,8 @@ describe('errorKey — domain code → catalog key', () => {
       'errors.invalid_credentials',
     )
     expect(errorKey(new ApiError('overweight', 'x', 422))).toBe('errors.overweight')
-    expect(errorKey(new ApiError('2fa_required', 'x', 401))).toBe('errors.2fa_required')
+    // 2FA challenges are intercepted by code before errorKey; no catalog key exists
+    expect(errorKey(new ApiError('2fa_required', 'x', 401))).toBe('errors.generic')
   })
 
   it('surfaces validation field errors when present', () => {

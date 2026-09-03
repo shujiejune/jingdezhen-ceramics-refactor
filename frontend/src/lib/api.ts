@@ -1,14 +1,25 @@
 /**
- * API client (TDD §4.3 / frontend AGENTS "Errors").
+ * API client (TDD §4.3 / §5.1 + frontend AGENTS "Errors").
  *
- * A thin typed surface over a Transport. In PROTOTYPE mode the transport
- * is the in-process mock (src/mocks/transport.ts) which mirrors the Go
- * API's routes and error envelope. With VITE_API_MODE=live the fetch
- * transport talks to the sibling Fiber backend (routes live at the root,
- * e.g. /catalog/products — the reverse proxy maps /api/* → backend /*).
+ * A thin typed surface over a Transport. VITE_API_MODE=mock (default)
+ * uses the in-process mock (src/mocks/transport.ts); `live` talks to the
+ * sibling Fiber backend. The REAL wire contract (inventoried from the
+ * backend):
+ *   - success bodies are FLAT (no {data} wrapper) except
+ *     PaginatedResponse {data,page,limit,total,total_pages} and the
+ *     ad-hoc {data:[…]} wrappers (consent history, media assets);
+ *   - errors are {"message": "..."} (+ optional "details" string) —
+ *     there is NO code field today; Fiber's default 404/405/panics are
+ *     plain text;
+ *   - the ONE structured error is the login 2FA challenge: 401
+ *     {"error":{code:"2fa_required"|"2fa_enrollment_required",
+ *     message, pending_token}};
+ *   - 204 means success-with-no-body (analytics consent drop,
+ *     mark-read) — never an error.
  *
- * Errors are keyed by stable domain codes (snake_cased from
- * ../backend/internal/models/errors.go), never by HTTP status.
+ * classifyApiError() turns that reality into stable domain codes
+ * (snake_cased from models/errors.go) so UI code never switches on
+ * HTTP status.
  */
 import type {
   Activity,
@@ -21,7 +32,6 @@ import type {
   ItineraryRequest,
   Order,
   Paginated,
-  Pending2FAResponse,
   Product,
   ShippingQuote,
   SKU,
@@ -34,13 +44,22 @@ export class ApiError extends Error {
   code: string
   status: number
   details?: Record<string, string>
+  /** the 2FA login challenge carries the pending token */
+  pendingToken?: string
 
-  constructor(code: string, message: string, status = 400, details?: Record<string, string>) {
+  constructor(
+    code: string,
+    message: string,
+    status = 400,
+    details?: Record<string, string>,
+    pendingToken?: string,
+  ) {
     super(message)
     this.name = 'ApiError'
     this.code = code
     this.status = status
     this.details = details
+    this.pendingToken = pendingToken
   }
 
   is(...codes: string[]): boolean {
@@ -64,39 +83,141 @@ export interface Transport {
 }
 
 /* ------------------------------------------------------------------ */
-/* Live transport (fetch → Fiber API; unused until backend wiring)     */
+/* Error classification (pure — unit-tested against real fixtures)     */
 /* ------------------------------------------------------------------ */
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? ''
+const MESSAGE_CODE_RULES: Array<[RegExp, string]> = [
+  [/invalid email or password|credential/i, 'invalid_credentials'],
+  [/invalid or expired jwt|missing or malformed jwt|token revoked/i, 'unauthorized'],
+  [/cart is empty/i, 'cart_empty'],
+  [/not shippable/i, 'unshippable'],
+  [/maximum shipping weight|exceeds the maximum weight|overweight/i, 'overweight'],
+  [/consent/i, 'consent_required'],
+  [/too many|rate limit/i, 'too_many_attempts'],
+  [/stock/i, 'conflict'],
+]
+
+/**
+ * Turn a raw HTTP failure into an ApiError using everything the backend
+ * actually sends today: the 2FA challenge envelope, {message} JSON
+ * bodies, or Fiber's plain-text defaults.
+ */
+export function classifyApiError(status: number, bodyText: string): ApiError {
+  let body: unknown
+  try {
+    body = bodyText ? JSON.parse(bodyText) : null
+  } catch {
+    body = null
+  }
+
+  if (body && typeof body === 'object') {
+    const b = body as {
+      message?: string
+      details?: string
+      error?: { code?: string; message?: string; pending_token?: string }
+      pending_token?: string
+    }
+    // structured envelope — only the 2FA login challenge today
+    if (b.error?.code) {
+      return new ApiError(
+        b.error.code,
+        b.error.message ?? b.error.code,
+        status,
+        undefined,
+        b.error.pending_token ?? b.pending_token,
+      )
+    }
+    if (typeof b.message === 'string') {
+      for (const [re, code] of MESSAGE_CODE_RULES) {
+        if (re.test(b.message)) return new ApiError(code, b.message, status, detailsOf(b.details))
+      }
+      return new ApiError(statusCodeFallback(status), b.message, status, detailsOf(b.details))
+    }
+  }
+
+  // Fiber default bodies are plain text ("Cannot GET /x", 405 message…)
+  const text = bodyText.trim().split('\n')[0]?.slice(0, 160) || `HTTP ${status}`
+  return new ApiError(statusCodeFallback(status), text, status)
+}
+
+function detailsOf(details: string | undefined): Record<string, string> | undefined {
+  // the backend's "details" is a free string (go-playground validator
+  // output today) — surface it raw on the generic field key
+  return details ? { form: details } : undefined
+}
+
+function statusCodeFallback(status: number): string {
+  switch (status) {
+    case 400:
+      return 'bad_request'
+    case 401:
+      return 'unauthorized'
+    case 403:
+      return 'forbidden'
+    case 404:
+      return 'not_found'
+    case 409:
+      return 'conflict'
+    case 422:
+      return 'validation_failed'
+    case 429:
+      return 'too_many_attempts'
+    default:
+      return status >= 500 ? 'internal' : 'bad_request'
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Live transport (fetch → Fiber API)                                  */
+/* ------------------------------------------------------------------ */
+
+const SSR_API_BASE =
+  (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:1323'
+
+/** Browser calls go same-origin through /api (dev proxy strips it; the
+ *  prod reverse proxy does the same). SSR loaders call Fiber directly. */
+function liveBase(): string {
+  return typeof window !== 'undefined' ? '/api' : SSR_API_BASE
+}
+
+export class ApiNetworkError extends ApiError {
+  constructor() {
+    super('network', 'Cannot reach the server', 0)
+  }
+}
 
 class LiveTransport implements Transport {
   async call<T>(method: string, path: string, opts: CallOptions = {}): Promise<T> {
-    const url = new URL(API_BASE + path, window.location.origin)
+    const url = new URL(
+      liveBase() + path,
+      typeof window !== 'undefined' ? window.location.origin : 'http://localhost',
+    )
     for (const [k, v] of Object.entries(opts.params ?? {})) {
       if (v !== undefined && v !== '') url.searchParams.set(k, String(v))
     }
-    const res = await fetch(url, {
-      method,
-      headers: {
-        'Content-Type': 'application/json',
-        ...(opts.token ? { Authorization: `Bearer ${opts.token}` } : {}),
-        ...(opts.guestId ? { 'X-Guest-Id': opts.guestId } : {}),
-      },
-      body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
-    })
-    const json = await res.json().catch(() => null)
-    if (!res.ok) {
-      const env = json as {
-        error?: { code?: string; message?: string; details?: Record<string, string> }
-      } | null
-      throw new ApiError(
-        env?.error?.code ?? 'unknown',
-        env?.error?.message ?? res.statusText,
-        res.status,
-        env?.error?.details,
-      )
+    let res: Response
+    try {
+      res = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(opts.token ? { Authorization: `Bearer ${opts.token}` } : {}),
+          ...(opts.guestId ? { 'X-Guest-Id': opts.guestId } : {}),
+        },
+        body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
+      })
+    } catch {
+      throw new ApiNetworkError()
     }
-    return json as T
+    const text = await res.text()
+    if (!res.ok) throw classifyApiError(res.status, text)
+    // 204 (and empty bodies) are successes with no payload
+    if (res.status === 204 || text === '') return undefined as T
+    try {
+      return JSON.parse(text) as T
+    } catch {
+      return text as unknown as T
+    }
   }
 }
 
@@ -108,6 +229,7 @@ async function transport(): Promise<Transport> {
   if (import.meta.env.VITE_API_MODE === 'live') {
     return new LiveTransport()
   }
+
   const { mockTransport } = await import('~/mocks/transport')
   return mockTransport
 }
@@ -167,12 +289,10 @@ export const api = {
     ),
 
   /* ---- auth ---- */
+  /** OK → AuthResponse. A 2FA-enabled account throws
+   *  ApiError('2fa_required'|'2fa_enrollment_required') with pendingToken. */
   login: (email: string, password: string) =>
-    t().then((x) =>
-      x.call<AuthResponse | Pending2FAResponse>('POST', '/auth/login', {
-        body: { email, password },
-      }),
-    ),
+    t().then((x) => x.call<AuthResponse>('POST', '/auth/login', { body: { email, password } })),
   verify2FA: (pendingToken: string, code: string) =>
     t().then((x) =>
       x.call<AuthResponse>('POST', '/auth/2fa/verify', {

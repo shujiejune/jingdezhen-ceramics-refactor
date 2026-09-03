@@ -614,9 +614,16 @@ async function handle(route: string, ctx: Ctx): Promise<unknown> {
       throw new ApiError('invalid_credentials', 'invalid credentials', 401)
     }
     if (found.twoFA) {
+      // real contract: 401 {"error":{code:"2fa_required", message, pending_token}}
       const pending = `pending_${found.id}_${idSeq.token++}`
       pending2FA.set(pending, { userId: found.id, fails: 0 })
-      return { pending_2fa_token: pending, expires_in_seconds: 900 }
+      throw new ApiError(
+        '2fa_required',
+        'two-factor authentication code required',
+        401,
+        undefined,
+        pending,
+      )
     }
     const token = `tok_${found.id}_${idSeq.token++}`
     sessions.set(token, found.id)
