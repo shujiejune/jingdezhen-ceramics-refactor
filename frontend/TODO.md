@@ -89,10 +89,10 @@ Contract realities from the backend inventory (absorb **all** of these):
 
 ## Backend dependencies (external — track in `docs/REFACTOR-TODO.md`, not here)
 
-- `/ws` browser auth (query-token or subprotocol) — browser `WebSocket` cannot set the `Authorization` header the middleware requires; blocks WS push + chat
-- Chat sessions / frames + agent console endpoints (TDD §5.3 aspiration — none exist today)
+- [x] ~~`/ws` browser auth~~ — **done**: `/ws` now accepts `?token=<jwt>` query param via `WsAuth` middleware (B1)
+- Chat sessions / frames + agent console endpoints (TDD §5.3 aspiration — none exist today; chatbot/Qwen3.5 deferred per user instruction)
 - Central error-mapper with stable `code`s (TDD §4.3) — until it lands, M-F1 ships the message-mapping adapter
-- CORS `CLIENT_ORIGIN` entries for the frontend origin(s) in dev compose
+- [x] ~~CORS `CLIENT_ORIGIN`~~ — **done**: defaults to `http://localhost:3000` in config.go + docker-compose.dev.yml (B4)
 
 ## May-trail (PRD §7 MLS — do not block launch)
 
