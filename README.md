@@ -10,7 +10,7 @@ The platform showcases ceramic history and heritage, sells original artworks wit
 
 ```
                          ┌──────────────────────────────────────────────────┐
-                         │              Hong Kong VPS (Docker)              │
+                         │              Cloud VPS / AWS EC2 (Docker)         │
                          │                                                  │
     ┌──────────┐         │  ┌──────────┐    ┌───────────┐    ┌───────────┐  │
     │  CDN     │─────────│─▶│  Caddy   │───▶│ TanStack  │───▶│  Fiber    │  │
@@ -38,6 +38,12 @@ The platform showcases ceramic history and heritage, sells original artworks wit
                          │                              │ (Asynq +  │   ││
                          │                              │  cron)    │   ││
                          │                              └───────────┘   ││
+                         │                                      │        ││
+                         │  ┌──────────────┐  ┌──────────────┐  │        ││
+                         │  │ Prometheus   │──│  Grafana     │  │        ││
+                         │  │ (scrape      │  │  (dashboards │  │        ││
+                         │  │  /metrics)   │  │   + alerting)│  │        ││
+                         │  └──────────────┘  └──────────────┘  │        ││
                          └──────────────────────────────────────────────┘┘
 
     External Services (behind adapter interfaces; sandbox/mock in dev):
@@ -47,7 +53,7 @@ The platform showcases ceramic history and heritage, sells original artworks wit
     └────────────┘  └──────────┘  └────────┘  └─────────┘  └───────────┘
 ```
 
-**Request flow:** Browser → CDN → Caddy (TLS, reverse proxy) → TanStack Start SSR (public pages, server-side fetched from Fiber) or Fiber API directly. The Fiber API reads from PostgreSQL (pgx pool) and Redis (sessions, cache, pub/sub). Background jobs (Asynq) run in a separate worker process on the same binary. Media uploads go browser → presigned OSS upload (never through the VPS). PDF generation uses a chromedp headless-shell sidecar.
+**Request flow:** Browser → CDN → Caddy (TLS, reverse proxy) → TanStack Start SSR (public pages, server-side fetched from Fiber) or Fiber API directly. The Fiber API reads from PostgreSQL (pgx pool) and Redis (sessions, cache, pub/sub). Background jobs (Asynq) run in a separate worker process on the same binary. Prometheus scrapes the API's `/metrics` endpoint every 15 seconds; Grafana visualizes the data in dashboards. Media uploads go browser → presigned OSS upload (never through the VPS). PDF generation uses a chromedp headless-shell sidecar.
 
 ---
 
@@ -66,6 +72,7 @@ The platform showcases ceramic history and heritage, sells original artworks wit
 | **AI Chat** | Qwen (DashScope) — deferred post-MVP |
 | **PDF** | chromedp headless-shell sidecar (HTML → PDF) |
 | **Testing** | testify, testcontainers-go, k6, Vitest, Playwright |
+| **Monitoring** | Prometheus (metrics scraping), Grafana (dashboards + alerting) |
 | **CI/CD** | GitHub Actions (lint → unit → integration → build → security) |
 
 ---
@@ -80,7 +87,7 @@ The platform showcases ceramic history and heritage, sells original artworks wit
 ├── backend/               Go + Fiber API (module: jingdezhen-ceramics-backend)
 │   ├── cmd/api/           Single binary, two modes: serve, worker
 │   ├── internal/
-│   │   ├── api/           Router + middleware (auth, RBAC, error mapper)
+│   │   ├── api/           Router + middleware (auth, RBAC, error mapper, metrics)
 │   │   ├── config/        Env-based config (Viper)
 │   │   ├── migrations/    golang-migrate SQL (28 up/down pairs)
 │   │   ├── models/        Domain structs + DTOs + RBAC + error sentinels
@@ -94,8 +101,10 @@ The platform showcases ceramic history and heritage, sells original artworks wit
 │   │   └── utils/        Crypto, token, context helpers
 │   ├── k6/               Load test scripts (smoke, browse, checkout, spike, soak)
 │   ├── scripts/          Seed SQL + backup/restore (pg_dump → OSS)
-│   ├── docker-compose.dev.yml   Dev stack (api, worker, db, redis, chromedp)
-│   └── Makefile          build, test, migrate, k6, backup, seed targets
+│   ├── monitoring/       Prometheus config + Grafana provisioning (datasource + dashboards)
+│   ├── docker-compose.dev.yml    Dev stack (api, worker, db, redis, chromedp)
+│   ├── docker-compose.prod.yml   Production stack (api, worker, db, redis, frontend, caddy, prometheus, grafana)
+│   └── Makefile          build, test, migrate, k6, backup, prod-* targets
 ├── frontend/             React + TanStack Start (storefront + admin CMS)
 │   ├── src/
 │   │   ├── routes/       File-based routes (locale-segmented, admin CMS)
@@ -105,12 +114,14 @@ The platform showcases ceramic history and heritage, sells original artworks wit
 │   │   ├── mocks/        Offline mock backend (MockTransport)
 │   │   └── styles/       Design tokens (CSS variables)
 │   ├── e2e/              Playwright E2E (6 specs)
-│   ├── Caddyfile         Production reverse proxy config
+│   ├── Caddyfile         Production reverse proxy config (TLS, routing)
+│   ├── Dockerfile        Production SSR build (node:22-alpine, pnpm)
 │   └── package.json      pnpm 11.19, scripts: dev, build, test, e2e
 └── docs/
     ├── PRD.md            Product requirements (v0.17)
     ├── TDD.md            Technical design (v0.1)
-    └── REFACTOR-TODO.md  Milestone task tracker (M0–M4)
+    ├── REFACTOR-TODO.md  Milestone task tracker (M0–M4)
+    └── deploy-aws-ec2.md Step-by-step AWS EC2 deployment guide
 ```
 
 ### Backend modules (`internal/modules/`)
@@ -187,6 +198,11 @@ pnpm dev
 | `make backup` | pg_dump → Alibaba Cloud OSS (nightly) |
 | `make restore` | pg_restore from OSS |
 | `make swag` | Regenerate Swagger spec from handler annotations |
+| `make prod-build` | Build all production Docker images |
+| `make prod-up` | Start full production stack (api, worker, db, redis, frontend, caddy, prometheus, grafana) |
+| `make prod-down` | Stop production stack (keeps data volumes) |
+| `make prod-logs` | Tail all production service logs |
+| `make prod-restart` | Restart a production service (`NAME=api`) |
 
 ---
 
@@ -234,6 +250,7 @@ The Fiber API exposes ~200+ endpoints across these route groups:
 | Admin | JWT + RBAC | `/admin/*` (CMS, orders, media, CRM, dashboard, settings, users, audit) |
 | Webhooks | signature | `/webhooks/airwallex`, `/webhooks/paypal` |
 | Analytics | — | `/analytics/events` (consent-gated) |
+| Metrics | — | `/metrics` (Prometheus exposition, internal-only) |
 | SEO | — | `/sitemap.xml`, `/robots.txt` |
 
 Swagger UI available at `/admin/swagger/*` (JWT-gated).
@@ -294,17 +311,44 @@ Dependabot enabled for dependency updates.
 
 ## Deployment
 
-**Target:** Single Hong Kong VPS (Alibaba Cloud or Tencent Cloud), Docker Compose.
+**Target:** Single VPS (AWS EC2, Alibaba Cloud, or Tencent Cloud), Docker Compose.
 
 | Component | Config |
 |-----------|--------|
-| VPS | 2–4 vCPUs, 4–8 GB RAM, Docker Compose |
+| VPS / EC2 | `t3.large` recommended (2 vCPU, 8 GB RAM, ~$63/mo); `t3.medium` minimum |
 | Object storage | Alibaba Cloud OSS (HK region), S3-compatible |
 | CDN | Alibaba Cloud CDN (non-mainland edges, ICP-free) |
 | Reverse proxy | Caddy (auto-TLS via ACME/Let's Encrypt) |
 | Backups | Nightly pg_dump → OSS, 14-day retention, RPO 24h, RTO 4h |
 
+**Production stack** (`docker-compose.prod.yml`): 8 services — api, worker, PostgreSQL, Redis, frontend SSR, Caddy, Prometheus, Grafana. See `docs/deploy-aws-ec2.md` for the complete step-by-step AWS EC2 deployment guide.
+
 **MVP go-live:** May 2027. Payments in sandbox until merchant onboarding completes post-MVP.
+
+---
+
+## Monitoring
+
+The Go API exposes a `/metrics` endpoint (Prometheus exposition format) with custom HTTP metrics:
+
+| Metric | Type | Labels |
+|--------|------|--------|
+| `http_requests_total` | counter | status, method, route |
+| `http_request_duration_seconds` | histogram | route |
+| `http_requests_in_flight` | gauge | — |
+| `fiber_errors_total` | counter | type |
+
+**Prometheus** scrapes `api:1323/metrics` every 15 seconds (config in `backend/monitoring/prometheus.yml`).
+
+**Grafana** auto-provisions the Prometheus datasource and an "API Overview" dashboard (7 panels: request rate, p95 latency, error rate, in-flight requests, latency by route, rate by status, rate by method). Dashboards are in `backend/monitoring/grafana/`.
+
+Both Prometheus (port 9090) and Grafana (port 3001) are bound to `127.0.0.1` — they are not exposed to the public internet. Access them via SSH tunnel:
+
+```bash
+ssh -L 3001:localhost:3001 -L 9090:localhost:9090 user@your-domain.com
+```
+
+Then open `http://localhost:3001` (Grafana) or `http://localhost:9090` (Prometheus) in your browser.
 
 ---
 
@@ -327,6 +371,7 @@ Dependabot enabled for dependency updates.
 | `docs/PRD.md` | Product requirements (v0.17) — what and why |
 | `docs/TDD.md` | Technical design (v0.1) — architecture decisions by section |
 | `docs/REFACTOR-TODO.md` | Milestone task tracker (M0–M4, all complete) |
+| `docs/deploy-aws-ec2.md` | Step-by-step AWS EC2 deployment guide (instance setup, Docker, TLS, monitoring, backups) |
 | `AGENTS.md` | Contributing guide (read before touching code) |
 | `frontend/AGENTS.md` | Frontend-specific guide (stack, conventions, do-not-do rules) |
 | `backend/k6/README.md` | Load test usage + thresholds |
