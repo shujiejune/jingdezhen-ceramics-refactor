@@ -1,0 +1,48 @@
+# Caddy reverse proxy for the Jingdezhen Ceramics Platform.
+#
+# Routes:
+#   /            → TanStack Start SSR (Node, :3000)
+#   /api/*       → Fiber API (Go, :1323) — prefix stripped
+#   /media/*     → Fiber API static media (:1323) — for local-dev storage mode
+#   /ws          → Fiber API WebSocket (:1323) — upgrade
+#   /webhooks/*  → Fiber API (:1323)
+#
+# Caddy auto-provisions TLS (ACME / Let's Encrypt) for the real domain.
+# For local testing without a domain, use `:80` or `localhost` instead of a
+# domain name and Caddy will serve plain HTTP.
+#
+# Replace {$SITE_DOMAIN} with the actual domain (e.g. jdz-atelier.example).
+# See frontend/.env.example for the env matrix (VITE_API_MODE, SITE_BASE_URL,
+# CLIENT_ORIGIN).
+
+{$SITE_DOMAIN:localhost} {
+	# WebSocket — must be before /api/* strip
+	@api_ws {
+		path /ws
+	}
+	handle @api_ws {
+		reverse_proxy {$API_UPSTREAM:localhost:1323}
+	}
+
+	# Webhooks — no prefix strip (Fiber serves these at /webhooks/*)
+	@api_webhooks {
+		path /webhooks/*
+	}
+	handle @api_webhooks {
+		reverse_proxy {$API_UPSTREAM:localhost:1323}
+	}
+
+	# API — strip /api prefix before forwarding to Fiber
+	handle /api/* {
+		strip_prefix /api
+		reverse_proxy {$API_UPSTREAM:localhost:1323}
+	}
+
+	# Media — forward to Fiber static mount (local-dev storage mode)
+	handle /media/* {
+		reverse_proxy {$API_UPSTREAM:localhost:1323}
+	}
+
+	# Everything else → TanStack Start SSR (Node)
+	reverse_proxy {$SSR_UPSTREAM:localhost:3000}
+}

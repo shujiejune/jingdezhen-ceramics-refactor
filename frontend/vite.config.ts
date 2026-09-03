@@ -9,7 +9,14 @@ const API_TARGET = process.env.VITE_API_BASE_URL ?? 'http://localhost:1323'
 
 const config = defineConfig({
   resolve: { tsconfigPaths: true },
-  plugins: [nitro({ rollupConfig: { external: [] } }), tanstackStart(), viteReact()],
+  plugins: [
+    nitro({
+      preset: 'node-server',
+      rollupConfig: { external: [] },
+    }),
+    tanstackStart(),
+    viteReact(),
+  ],
   server: {
     proxy: {
       // browser same-origin calls hit /api/* → Fiber (prefix stripped;
