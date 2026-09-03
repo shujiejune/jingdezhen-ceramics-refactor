@@ -37,6 +37,7 @@ import (
 	"time"
 
 	"jingdezhen-ceramics-backend/internal/api"
+	"jingdezhen-ceramics-backend/internal/api/middleware"
 	"jingdezhen-ceramics-backend/internal/config"
 	"jingdezhen-ceramics-backend/internal/models"
 	"jingdezhen-ceramics-backend/internal/modules/address"
@@ -216,7 +217,13 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 	ctx, hubCancel := context.WithCancel(rootCtx)
 	defer hubCancel()
 
-	app := fiber.New()
+	app := fiber.New(fiber.Config{
+		// Central error-mapper (TDD §4.3): handlers can `return err` and the
+		// mapper converts service-layer sentinels (models.Err*) into the
+		// {error:{code,message,details?}} envelope with stable codes.
+		ErrorHandler:           middleware.ErrorHandler,
+		DisableStartupMessage:  false,
+	})
 	app.Use(recover.New())
 	app.Use(logger.New())
 	// CORS: CLIENT_ORIGIN (the frontend origin) + localhost:3000 for dev.

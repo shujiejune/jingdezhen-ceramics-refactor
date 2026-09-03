@@ -58,7 +58,12 @@ func WsUpgradeMiddleware() fiber.Handler {
 		if websocket.IsWebSocketUpgrade(c) {
 			userID, ok := c.Locals("userID").(string)
 			if !ok || userID == "" {
-				return c.Status(fiber.StatusUnauthorized).JSON(models.ErrorResponse{Message: "Unauthorized for WebSocket"})
+				return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+					"error": fiber.Map{
+						"code":    "unauthorized",
+						"message": "Unauthorized for WebSocket",
+					},
+				})
 			}
 			// Store the userID in the connection's locals for the handler to access.
 			c.Locals("userID", userID)

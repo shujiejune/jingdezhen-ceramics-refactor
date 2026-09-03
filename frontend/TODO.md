@@ -92,7 +92,7 @@ Contract realities from the backend inventory (absorb **all** of these):
 - [x] ~~`/ws` browser auth~~ — **done**: `/ws` now accepts `?token=<jwt>` query param via `WsAuth` middleware (B1)
 - [x] ~~WS hub Redis pub/sub fan-out~~ — **done**: `ws.Hub` publishes to per-user Redis channels for cross-instance delivery; worker publishes too (B2)
 - Chat sessions / frames + agent console endpoints (TDD §5.3 aspiration — none exist today; chatbot/Qwen3.5 deferred per user instruction)
-- Central error-mapper with stable `code`s (TDD §4.3) — until it lands, M-F1 ships the message-mapping adapter
+- [x] ~~Central error-mapper with stable `code`s~~ — **done** (B3): backend now emits `{error:{code,message,details?}}` for all errors via a central Fiber `ErrorHandler`. Auth middleware + WS upgrade emit the same envelope. Frontend's `classifyApiError` `body.error.code` fast-path already wins over the regex fallback; the `MESSAGE_CODE_RULES` regex path is now dead code for live mode (kept for mock transport).
 - [x] ~~CORS `CLIENT_ORIGIN`~~ — **done**: defaults to `http://localhost:3000` in config.go + docker-compose.dev.yml (B4)
 
 ## May-trail (PRD §7 MLS — do not block launch)

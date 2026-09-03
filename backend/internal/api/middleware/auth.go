@@ -9,6 +9,19 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+// writeAuthError emits the structured error envelope for auth middleware
+// responses (TDD §4.3). Auth middleware runs BEFORE the central ErrorHandler
+// (it's a SuccessHandler/ErrorHandler inside the JWT middleware, not a
+// returned error), so it must write the envelope itself.
+func writeAuthError(c *fiber.Ctx, status int, code, message string) error {
+	return c.Status(status).JSON(fiber.Map{
+		"error": fiber.Map{
+			"code":    code,
+			"message": message,
+		},
+	})
+}
+
 // JWTMAuth configures and returns Fiber's JWT middleware.
 // It uses the jwtSecretKey from the config file (.env). The blocklist is
 // consulted after signature+expiry pass: a revoked user_id → 401 even with a
@@ -31,7 +44,7 @@ func JWTMAuth(jwtSecretKey string, bl tokenblocklist.Blocklist) fiber.Handler {
 			if bl != nil {
 				if uid, ok := claims["user_id"].(string); ok && uid != "" {
 					if revoked, _ := bl.IsRevoked(c.UserContext(), uid); revoked {
-						return c.Status(fiber.StatusUnauthorized).JSON(models.ErrorResponse{Message: "Token revoked"})
+						return writeAuthError(c, fiber.StatusUnauthorized, "unauthorized", "Token revoked")
 					}
 				}
 			}
@@ -40,9 +53,9 @@ func JWTMAuth(jwtSecretKey string, bl tokenblocklist.Blocklist) fiber.Handler {
 		},
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
 			if err.Error() == "Missing or malformed JWT" {
-				return c.Status(fiber.StatusUnauthorized).JSON(models.ErrorResponse{Message: "Missing or malformed JWT"})
+				return writeAuthError(c, fiber.StatusUnauthorized, "unauthorized", "Missing or malformed JWT")
 			}
-			return c.Status(fiber.StatusUnauthorized).JSON(models.ErrorResponse{Message: "Invalid or expired JWT"})
+			return writeAuthError(c, fiber.StatusUnauthorized, "unauthorized", "Invalid or expired JWT")
 		},
 	})
 }
@@ -57,7 +70,7 @@ func WsAuth(jwtSecretKey string, bl tokenblocklist.Blocklist) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		tokenStr := c.Query("token")
 		if tokenStr == "" {
-			return c.Status(fiber.StatusUnauthorized).JSON(models.ErrorResponse{Message: "Missing or malformed JWT"})
+			return writeAuthError(c, fiber.StatusUnauthorized, "unauthorized", "Missing or malformed JWT")
 		}
 
 		claims := jwt.MapClaims{}
@@ -68,18 +81,18 @@ func WsAuth(jwtSecretKey string, bl tokenblocklist.Blocklist) fiber.Handler {
 			return []byte(jwtSecretKey), nil
 		})
 		if err != nil || !token.Valid {
-			return c.Status(fiber.StatusUnauthorized).JSON(models.ErrorResponse{Message: "Invalid or expired JWT"})
+			return writeAuthError(c, fiber.StatusUnauthorized, "unauthorized", "Invalid or expired JWT")
 		}
 
 		uid, _ := claims["user_id"].(string)
 		if uid == "" {
-			return c.Status(fiber.StatusUnauthorized).JSON(models.ErrorResponse{Message: "Invalid or expired JWT"})
+			return writeAuthError(c, fiber.StatusUnauthorized, "unauthorized", "Invalid or expired JWT")
 		}
 
 		// Deleted-user token invalidation (same stopgap as JWTMAuth).
 		if bl != nil {
 			if revoked, _ := bl.IsRevoked(c.UserContext(), uid); revoked {
-				return c.Status(fiber.StatusUnauthorized).JSON(models.ErrorResponse{Message: "Token revoked"})
+				return writeAuthError(c, fiber.StatusUnauthorized, "unauthorized", "Token revoked")
 			}
 		}
 
@@ -140,7 +153,7 @@ func RequirePermission(perm string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		roles := UserRoles(c)
 		if len(roles) == 0 {
-			return c.Status(fiber.StatusForbidden).JSON(models.ErrorResponse{Message: "Permission denied: staff access required"})
+			return writeAuthError(c, fiber.StatusForbidden, "forbidden", "Permission denied: staff access required")
 		}
 		for _, r := range roles {
 			if r == models.RoleSuperAdmin {
@@ -152,7 +165,7 @@ func RequirePermission(perm string) fiber.Handler {
 				}
 			}
 		}
-		return c.Status(fiber.StatusForbidden).JSON(models.ErrorResponse{Message: "Permission denied: " + perm})
+		return writeAuthError(c, fiber.StatusForbidden, "forbidden", "Permission denied: "+perm)
 	}
 }
 
@@ -162,7 +175,7 @@ func RequireRole(role string) fiber.Handler {
 		if HasRole(c, role) || HasRole(c, models.RoleSuperAdmin) {
 			return c.Next()
 		}
-		return c.Status(fiber.StatusForbidden).JSON(models.ErrorResponse{Message: "Permission denied: " + role + " role required"})
+		return writeAuthError(c, fiber.StatusForbidden, "forbidden", "Permission denied: "+role+" role required")
 	}
 }
 
