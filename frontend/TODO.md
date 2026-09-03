@@ -63,15 +63,15 @@ Contract realities from the backend inventory (absorb **all** of these):
 
 ## M-F4 — Admin CMS (client-rendered, RBAC)
 
-- [ ] Admin shell: route group under `$locale/admin` (client-rendered), staff guard + permission-keyed nav (`content.write`, `product.write`, `order.read`, `itinerary.read`, `dashboard.view`, `settings.manage`, …), 2FA-enforced login path
-- [ ] Adopt TanStack Table (all lists) + TanStack Form + zod (CMS/wizard forms)
-- [ ] Content CMS ×4 (ceramicstory / engage / artist / product translations): bilingual list/detail/edit, tag assignment (key-based), workflow submit; super-admin approve / reject / unpublish
-- [ ] Media library: presign/upload (or local upload), asset registry list, per-entity galleries (attach / detach / reorder)
-- [ ] Products & SKUs: CRUD, attributes JSONB editor, nested SKU create + flat SKU update, bulk CSV import UX with per-row `BulkImportSummary` report
-- [ ] Orders: list/detail, ship (carrier_name + tracking_number), complete, full-only refund
-- [ ] Itinerary CRM: inbox (status / assignee / SLA filters), assign, notes, quote builder send (`line_items`, `pay_full`), confirm, refund-deposit, CSV export
-- [ ] Settings: shipping fee tiers CRUD, itinerary option rates CRUD, FX refresh trigger
-- [ ] Dashboard: traffic / sales / funnel reports (+ range presets day…year + from/to), CSV downloads; users & roles; audit log viewer (+CSV); certificates admin (list/regenerate)
+- [x] Admin shell: route group under `$locale/admin` (client-rendered), staff guard + permission-keyed nav (`content.write`, `product.write`, `order.read`, `itinerary.read`, `dashboard.view`, `settings.manage`, …), 2FA-enforced login path
+- [x] Plain React `AdminTable` (all lists) + zod-validated forms — TanStack Table v9 API was incompatible with our needs; replaced with a lightweight generic table component
+- [x] Content CMS ×4 (ceramicstory / engage / artist / product translations): bilingual list/detail/edit, tag assignment (key-based), workflow submit; super-admin approve / reject / unpublish
+- [x] Media library: presign/upload (or local upload), asset registry list, per-entity galleries (attach / detach / reorder)
+- [x] Products & SKUs: CRUD, attributes JSONB editor, nested SKU create + flat SKU update, bulk CSV import UX with per-row `BulkImportSummary` report
+- [x] Orders: list/detail, ship (carrier_name + tracking_number), complete, full-only refund
+- [x] Itinerary CRM: inbox (status / assignee / SLA filters), assign, notes, quote builder send (`line_items`, `pay_full`), confirm, refund-deposit, CSV export
+- [x] Settings: shipping fee tiers CRUD, itinerary option rates CRUD, FX refresh trigger
+- [x] Dashboard: traffic / sales / funnel reports (+ range presets day…year + from/to), CSV downloads; users & roles; audit log viewer (+CSV); certificates admin (list/regenerate)
 
 **Acceptance:** each staff role sees exactly its modules; editor → submit → super-admin publish round-trip works live.
 
