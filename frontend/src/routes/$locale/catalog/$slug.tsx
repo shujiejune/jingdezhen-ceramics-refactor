@@ -20,6 +20,7 @@ import { useAuth } from '~/lib/auth'
 import { useCart } from '~/lib/cart'
 import { useI18n } from '~/lib/i18n'
 import { useWishlist } from '~/lib/wishlist'
+import { buildSeoHead } from '~/lib/seo'
 import { cn, loaderCurrency } from '~/lib/utils'
 
 /**
@@ -52,23 +53,27 @@ export const Route = createFileRoute('/$locale/catalog/$slug')({
       throw e
     }
   },
-  head: ({ loaderData }) => ({
-    meta: loaderData
-      ? [
-          { title: loaderData.product.meta_title ?? loaderData.product.title },
-          {
-            name: 'description',
-            content:
-              loaderData.product.meta_description ?? loaderData.product.description?.slice(0, 155),
-          },
-          {
-            property: 'og:title',
-            content: loaderData.product.meta_title ?? loaderData.product.title,
-          },
-          { property: 'og:type', content: 'product' },
-        ]
-      : [],
-  }),
+  head: ({ loaderData, params }) => {
+    if (!loaderData) return { meta: [], links: [] }
+    const { product } = loaderData
+    const title = product.meta_title ?? product.title
+    const description = product.meta_description ?? product.description?.slice(0, 155) ?? ''
+    const image = product.gallery?.[0] ? mediaImageUrl(product.gallery[0].public_url) : undefined
+    const { meta, links } = buildSeoHead({
+      locale: params.locale,
+      path: `/catalog/${params.slug}`,
+      title,
+      description,
+      ogType: 'product',
+      image,
+      alternates: product.alternates,
+      alternateRoute: 'catalog',
+    })
+    return {
+      meta: [{ title }, { name: 'description', content: description }, ...meta],
+      links,
+    }
+  },
   notFoundComponent: () => <ProductNotFound />,
   component: ProductDetail,
 })

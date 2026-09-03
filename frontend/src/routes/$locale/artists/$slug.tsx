@@ -7,6 +7,7 @@ import { Breadcrumbs, EmptyState, SectionHeading } from '~/components/common/ui'
 import { JsonLd } from '~/components/seo/JsonLd'
 import { api, ApiError } from '~/lib/api'
 import { useI18n } from '~/lib/i18n'
+import { buildSeoHead } from '~/lib/seo'
 
 export const Route = createFileRoute('/$locale/artists/$slug')({
   loader: async ({ context, params }) => {
@@ -28,14 +29,25 @@ export const Route = createFileRoute('/$locale/artists/$slug')({
       throw e
     }
   },
-  head: ({ loaderData }) => ({
-    meta: loaderData
-      ? [
-          { title: loaderData.artist.name },
-          { name: 'description', content: loaderData.artist.bio?.slice(0, 155) },
-        ]
-      : [],
-  }),
+  head: ({ loaderData, params }) => {
+    if (!loaderData) return { meta: [], links: [] }
+    const { artist } = loaderData
+    const title = artist.meta_title ?? artist.name
+    const description = artist.meta_description ?? artist.bio?.slice(0, 155) ?? ''
+    const { meta, links } = buildSeoHead({
+      locale: params.locale,
+      path: `/artists/${params.slug}`,
+      title,
+      description,
+      ogType: 'profile',
+      alternates: artist.alternates,
+      alternateRoute: 'artists',
+    })
+    return {
+      meta: [{ title }, { name: 'description', content: description }, ...meta],
+      links,
+    }
+  },
   notFoundComponent: ArtistNotFound,
   component: ArtistDetailPage,
 })

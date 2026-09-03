@@ -18,6 +18,7 @@ import { Route as LocaleCheckoutRouteImport } from './routes/$locale/checkout'
 import { Route as LocaleItinerariesRouteImport } from './routes/$locale/itineraries'
 import { Route as LocaleItineraryRouteImport } from './routes/$locale/itinerary'
 import { Route as LocaleNotificationsRouteImport } from './routes/$locale/notifications'
+import { Route as LocaleSitemapRouteImport } from './routes/$locale/sitemap'
 import { Route as LocaleWishlistRouteImport } from './routes/$locale/wishlist'
 import { Route as Login2faRouteImport } from './routes/login/2fa'
 import { Route as LoginErrorRouteImport } from './routes/login/error'
@@ -85,6 +86,11 @@ const LocaleItineraryRoute = LocaleItineraryRouteImport.update({
 const LocaleNotificationsRoute = LocaleNotificationsRouteImport.update({
   id: '/notifications',
   path: '/notifications',
+  getParentRoute: () => LocaleRoute,
+} as any)
+const LocaleSitemapRoute = LocaleSitemapRouteImport.update({
+  id: '/sitemap',
+  path: '/sitemap',
   getParentRoute: () => LocaleRoute,
 } as any)
 const LocaleWishlistRoute = LocaleWishlistRouteImport.update({
@@ -212,6 +218,7 @@ export interface FileRoutesByFullPath {
   '/$locale/itineraries': typeof LocaleItinerariesRouteWithChildren
   '/$locale/itinerary': typeof LocaleItineraryRoute
   '/$locale/notifications': typeof LocaleNotificationsRoute
+  '/$locale/sitemap': typeof LocaleSitemapRoute
   '/$locale/wishlist': typeof LocaleWishlistRoute
   '/login/2fa': typeof Login2faRouteWithChildren
   '/login/error': typeof LoginErrorRoute
@@ -245,6 +252,7 @@ export interface FileRoutesByTo {
   '/$locale/itineraries': typeof LocaleItinerariesRouteWithChildren
   '/$locale/itinerary': typeof LocaleItineraryRoute
   '/$locale/notifications': typeof LocaleNotificationsRoute
+  '/$locale/sitemap': typeof LocaleSitemapRoute
   '/$locale/wishlist': typeof LocaleWishlistRoute
   '/login/2fa': typeof Login2faRouteWithChildren
   '/login/error': typeof LoginErrorRoute
@@ -280,6 +288,7 @@ export interface FileRoutesById {
   '/$locale/itineraries': typeof LocaleItinerariesRouteWithChildren
   '/$locale/itinerary': typeof LocaleItineraryRoute
   '/$locale/notifications': typeof LocaleNotificationsRoute
+  '/$locale/sitemap': typeof LocaleSitemapRoute
   '/$locale/wishlist': typeof LocaleWishlistRoute
   '/login/2fa': typeof Login2faRouteWithChildren
   '/login/error': typeof LoginErrorRoute
@@ -316,6 +325,7 @@ export interface FileRouteTypes {
     | '/$locale/itineraries'
     | '/$locale/itinerary'
     | '/$locale/notifications'
+    | '/$locale/sitemap'
     | '/$locale/wishlist'
     | '/login/2fa'
     | '/login/error'
@@ -349,6 +359,7 @@ export interface FileRouteTypes {
     | '/$locale/itineraries'
     | '/$locale/itinerary'
     | '/$locale/notifications'
+    | '/$locale/sitemap'
     | '/$locale/wishlist'
     | '/login/2fa'
     | '/login/error'
@@ -383,6 +394,7 @@ export interface FileRouteTypes {
     | '/$locale/itineraries'
     | '/$locale/itinerary'
     | '/$locale/notifications'
+    | '/$locale/sitemap'
     | '/$locale/wishlist'
     | '/login/2fa'
     | '/login/error'
@@ -480,6 +492,13 @@ declare module '@tanstack/react-router' {
       path: '/notifications'
       fullPath: '/$locale/notifications'
       preLoaderRoute: typeof LocaleNotificationsRouteImport
+      parentRoute: typeof LocaleRoute
+    }
+    '/$locale/sitemap': {
+      id: '/$locale/sitemap'
+      path: '/sitemap'
+      fullPath: '/$locale/sitemap'
+      preLoaderRoute: typeof LocaleSitemapRouteImport
       parentRoute: typeof LocaleRoute
     }
     '/$locale/wishlist': {
@@ -664,6 +683,7 @@ interface LocaleRouteChildren {
   LocaleItinerariesRoute: typeof LocaleItinerariesRouteWithChildren
   LocaleItineraryRoute: typeof LocaleItineraryRoute
   LocaleNotificationsRoute: typeof LocaleNotificationsRoute
+  LocaleSitemapRoute: typeof LocaleSitemapRoute
   LocaleWishlistRoute: typeof LocaleWishlistRoute
   LocaleIndexRoute: typeof LocaleIndexRoute
   LocaleArtistsSlugRoute: typeof LocaleArtistsSlugRoute
@@ -692,6 +712,7 @@ const LocaleRouteChildren: LocaleRouteChildren = {
   LocaleItinerariesRoute: LocaleItinerariesRouteWithChildren,
   LocaleItineraryRoute: LocaleItineraryRoute,
   LocaleNotificationsRoute: LocaleNotificationsRoute,
+  LocaleSitemapRoute: LocaleSitemapRoute,
   LocaleWishlistRoute: LocaleWishlistRoute,
   LocaleIndexRoute: LocaleIndexRoute,
   LocaleArtistsSlugRoute: LocaleArtistsSlugRoute,

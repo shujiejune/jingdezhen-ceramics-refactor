@@ -55,6 +55,7 @@ export const enUS = {
   'footer.privacy': 'Privacy policy',
   'footer.terms': 'Terms of service',
   'footer.cookies': 'Cookie preferences',
+  'footer.sitemap': 'Sitemap',
   'footer.rights': '© 2026 Jingdezhen Ceramics Platform. All rights reserved.',
   'footer.tagline': 'A thousand years of fire and cobalt, delivered worldwide.',
 

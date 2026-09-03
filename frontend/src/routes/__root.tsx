@@ -9,6 +9,7 @@ import {
 
 import appCss from '~/styles/tokens.css?url'
 import type { RouterContext } from '~/router'
+import { SITE_NAME } from '~/lib/seo'
 
 export const Route = createRootRouteWithContext<RouterContext>()({
   head: () => ({
@@ -23,6 +24,8 @@ export const Route = createRootRouteWithContext<RouterContext>()({
         name: 'description',
         content: 'Centuries of porcelain craft from Jingdezhen — discover, collect, and visit.',
       },
+      { property: 'og:site_name', content: SITE_NAME },
+      { name: 'twitter:card', content: 'summary' },
     ],
     links: [
       { rel: 'stylesheet', href: appCss },

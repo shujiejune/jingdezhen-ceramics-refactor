@@ -120,7 +120,13 @@ export function Footer() {
         <div className="mt-14 flex flex-col items-center gap-4">
           <WaveBand width={220} />
           <p className="text-[0.78rem] text-ink-400">{t('common.prototypeNote')}</p>
-          <p className="text-[0.78rem] text-ink-400">{t('footer.rights')}</p>
+          <div className="flex items-center gap-3 text-[0.78rem] text-ink-400">
+            <span>{t('footer.rights')}</span>
+            <span aria-hidden="true">·</span>
+            <Link to={`/${locale}/sitemap` as never} className="transition hover:text-cobalt-700">
+              {t('footer.sitemap')}
+            </Link>
+          </div>
         </div>
       </div>
     </footer>

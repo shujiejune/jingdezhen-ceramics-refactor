@@ -8,6 +8,7 @@ import { Breadcrumbs } from '~/components/common/ui'
 import { JsonLd } from '~/components/seo/JsonLd'
 import { api, ApiError } from '~/lib/api'
 import { useI18n } from '~/lib/i18n'
+import { buildSeoHead } from '~/lib/seo'
 
 export const Route = createFileRoute('/$locale/engage/$slug')({
   loader: async ({ context, params }) => {
@@ -21,11 +22,24 @@ export const Route = createFileRoute('/$locale/engage/$slug')({
       throw e
     }
   },
-  head: ({ loaderData }) => ({
-    meta: loaderData
-      ? [{ title: loaderData.title }, { name: 'description', content: loaderData.summary }]
-      : [],
-  }),
+  head: ({ loaderData, params }) => {
+    if (!loaderData) return { meta: [], links: [] }
+    const title = loaderData.meta_title ?? loaderData.title
+    const description = loaderData.meta_description ?? loaderData.summary ?? ''
+    const { meta, links } = buildSeoHead({
+      locale: params.locale,
+      path: `/engage/${params.slug}`,
+      title,
+      description,
+      ogType: 'article',
+      alternates: loaderData.alternates,
+      alternateRoute: 'engage',
+    })
+    return {
+      meta: [{ title: loaderData.title }, { name: 'description', content: description }, ...meta],
+      links,
+    }
+  },
   notFoundComponent: ActivityNotFound,
   component: ActivityPage,
 })

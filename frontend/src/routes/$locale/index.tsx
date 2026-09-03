@@ -27,6 +27,7 @@ import { Spine } from '~/components/layout/Spine'
 import { api } from '~/lib/api'
 import { useI18n } from '~/lib/i18n'
 import { useLoopScroller } from '~/lib/loop-scroller'
+import { buildSeoHead } from '~/lib/seo'
 import { loaderCurrency } from '~/lib/utils'
 import { CONTACT } from '~/mocks/data'
 import { cn } from '~/lib/utils'
@@ -69,16 +70,23 @@ export const Route = createFileRoute('/$locale/')({
       catalog: catalog.data,
     }
   },
-  head: () => ({
-    meta: [
-      { title: 'Jingdezhen Ceramics — The Kiln City Journal' },
-      {
-        name: 'description',
-        content:
-          'Centuries of porcelain craft from Jingdezhen — qinghua, fencai, linglong and colored glazes. Discover, collect, and visit.',
-      },
-    ],
-  }),
+  head: ({ params }) => {
+    const locale = params.locale
+    const title = 'Jingdezhen Ceramics — The Kiln City Journal'
+    const description =
+      'Centuries of porcelain craft from Jingdezhen — qinghua, fencai, linglong and colored glazes. Discover, collect, and visit.'
+    const { meta, links } = buildSeoHead({
+      locale,
+      path: '/',
+      title,
+      description,
+      ogType: 'website',
+    })
+    return {
+      meta: [{ title }, { name: 'description', content: description }, ...meta],
+      links,
+    }
+  },
   component: LandingMagazine,
 })
 

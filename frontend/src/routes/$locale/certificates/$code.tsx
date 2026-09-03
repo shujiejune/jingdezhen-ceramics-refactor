@@ -5,8 +5,10 @@ import QRCode from 'qrcode'
 import { PorcelainFigure } from '~/components/artwork/PorcelainFigure'
 import { SealMark, WaveBand, PetalScatter } from '~/components/ornaments'
 import { Badge, Button } from '~/components/common/ui'
+import { JsonLd } from '~/components/seo/JsonLd'
 import { api, ApiError } from '~/lib/api'
 import { useI18n } from '~/lib/i18n'
+import { buildSeoHead } from '~/lib/seo'
 import { formatDate, seededRandom } from '~/lib/utils'
 import type { Certificate } from '~/lib/types'
 
@@ -23,9 +25,22 @@ export const Route = createFileRoute('/$locale/certificates/$code')({
       throw e
     }
   },
-  head: ({ loaderData }) => ({
-    meta: loaderData ? [{ title: `${loaderData.cert_code} — Certificate` }] : [],
-  }),
+  head: ({ loaderData, params }) => {
+    if (!loaderData) return { meta: [], links: [] }
+    const title = `${loaderData.cert_code} — Certificate`
+    const description = `Authenticity certificate ${loaderData.cert_code} for ${loaderData.product_title} by ${loaderData.artist_name}.`
+    const { meta, links } = buildSeoHead({
+      locale: params.locale,
+      path: `/certificates/${params.code}`,
+      title,
+      description,
+      ogType: 'article',
+    })
+    return {
+      meta: [{ title }, { name: 'description', content: description }, ...meta],
+      links,
+    }
+  },
   notFoundComponent: CertNotFound,
   component: CertificatePage,
 })
@@ -184,6 +199,21 @@ function CertificatePage() {
 
   return (
     <div className="relative mx-auto max-w-3xl px-4 pt-12 pb-16 sm:px-6">
+      <JsonLd
+        data={{
+          '@context': 'https://schema.org',
+          '@type': 'Certificate',
+          name: cert.cert_code,
+          description: `Authenticity certificate for ${cert.product_title}`,
+          issuanceDate: cert.issued_at,
+          certifiedBy: { '@type': 'Organization', name: 'Jingdezhen Ceramics Platform' },
+          about: {
+            '@type': 'Product',
+            name: cert.product_title,
+            brand: { '@type': 'Brand', name: cert.artist_name },
+          },
+        }}
+      />
       <PetalScatter
         seed={cert.figure_seed}
         className="pointer-events-none absolute top-8 right-6 opacity-40"

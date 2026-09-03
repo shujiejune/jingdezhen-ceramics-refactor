@@ -9,6 +9,7 @@ import { Spine } from '~/components/layout/Spine'
 import { api } from '~/lib/api'
 import { useI18n } from '~/lib/i18n'
 import { useLoopScroller } from '~/lib/loop-scroller'
+import { buildSeoHead } from '~/lib/seo'
 import { CONTACT } from '~/mocks/data'
 import { cn } from '~/lib/utils'
 import type { CatalogKey } from '~/i18n/en-US'
@@ -26,16 +27,22 @@ export const Route = createFileRoute('/$locale/ceramicstory/')({
       queryKey: ['stories', params.locale],
       queryFn: () => api.getStories(params.locale),
     }),
-  head: () => ({
-    meta: [
-      { title: 'Heritage — Jingdezhen Ceramics' },
-      {
-        name: 'description',
-        content:
-          'A thousand years of porcelain, dynasty by dynasty — the history of the kiln city.',
-      },
-    ],
-  }),
+  head: ({ params }) => {
+    const title = 'Heritage — Jingdezhen Ceramics'
+    const description =
+      'A thousand years of porcelain, dynasty by dynasty — the history of the kiln city.'
+    const { meta, links } = buildSeoHead({
+      locale: params.locale,
+      path: '/ceramicstory',
+      title,
+      description,
+      ogType: 'website',
+    })
+    return {
+      meta: [{ title }, { name: 'description', content: description }, ...meta],
+      links,
+    }
+  },
   component: HeritageMagazine,
 })
 

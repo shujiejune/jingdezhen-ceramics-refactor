@@ -55,6 +55,7 @@ export const zhCN: Catalog = {
   'footer.privacy': '隐私政策',
   'footer.terms': '服务条款',
   'footer.cookies': 'Cookie 偏好',
+  'footer.sitemap': '网站地图',
   'footer.rights': '© 2026 景德镇陶瓷平台 保留所有权利。',
   'footer.tagline': '千年窑火与青花，为您送达世界各地。',
 
