@@ -583,6 +583,51 @@ export interface AdminAssignInput {
   assignee_id: string
 }
 
+/* ------------------------------ chat (TDD §5.3) ------------------------------ */
+/*
+ * Frame protocol over the /ws WebSocket (backend M3 — chat endpoints not yet
+ * implemented; the frontend runs against MockChatTransport until they land).
+ *
+ *   client→server: {"type":"chat.message","session_id":?,"body":"…"}
+ *                  {"type":"chat.request_agent","session_id":…}
+ *   server→client: {"type":"chat.token","body":"…"}   (LLM stream chunk)
+ *                  {"type":"chat.message","sender":"bot|agent",…}
+ *                  {"type":"chat.status","status":"waiting_agent|with_agent|closed"}
+ *
+ * Session lifecycle: bot →(escalate)→ waiting_agent →(agent claims)→ with_agent
+ * → closed; waiting_agent → closed (offline fallback → email follow-up).
+ */
+
+export type ChatSessionStatus = 'bot' | 'waiting_agent' | 'with_agent' | 'closed'
+export type ChatSender = 'user' | 'bot' | 'agent'
+
+export interface ChatMessage {
+  id: number
+  session_id: number
+  sender: ChatSender
+  body: string
+  created_at: string
+}
+
+export interface ChatSession {
+  id: number
+  user_id?: string
+  user_email?: string
+  locale: string
+  status: ChatSessionStatus
+  messages: ChatMessage[]
+  updated_at: string
+}
+
+export type ChatClientFrame =
+  | { type: 'chat.message'; session_id?: number; body: string }
+  | { type: 'chat.request_agent'; session_id: number }
+
+export type ChatServerFrame =
+  | { type: 'chat.token'; body: string }
+  | { type: 'chat.message'; sender: ChatSender; message: ChatMessage }
+  | { type: 'chat.status'; session_id: number; status: ChatSessionStatus }
+
 /* ------------------------------ envelope ------------------------------ */
 
 export interface Paginated<T> {

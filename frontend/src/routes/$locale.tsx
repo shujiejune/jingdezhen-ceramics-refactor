@@ -5,10 +5,12 @@ import { useEffect } from 'react'
 import { ConsentBanner } from '~/components/common/ConsentBanner'
 import { ToastProvider } from '~/components/common/Toaster'
 import { ButtonLink } from '~/components/common/ui'
+import { ChatWidget } from '~/components/chat/ChatWidget'
 import { Footer } from '~/components/layout/Footer'
 import { Header } from '~/components/layout/Header'
 import { AuthProvider } from '~/lib/auth'
 import { CartProvider } from '~/lib/cart'
+import { ChatProvider } from '~/lib/chat'
 import { ConsentProvider } from '~/lib/consent'
 import { trackPageview } from '~/lib/analytics'
 import { I18nProvider, useI18n } from '~/lib/i18n'
@@ -81,20 +83,24 @@ function LocaleShell({ locale }: { locale: Locale }) {
     <ConsentProvider>
       <CartProvider locale={locale} currency={currency}>
         <WishlistProvider locale={locale} currency={currency}>
-          {isMagazine || isAdmin ? (
-            <main className="flex-1">
-              <Outlet />
-            </main>
-          ) : (
-            <div className="flex min-h-screen flex-col">
-              <Header />
+          <ChatProvider>
+            {isMagazine || isAdmin ? (
               <main className="flex-1">
                 <Outlet />
               </main>
-              <Footer />
-              <ConsentBanner />
-            </div>
-          )}
+            ) : (
+              <div className="flex min-h-screen flex-col">
+                <Header />
+                <main className="flex-1">
+                  <Outlet />
+                </main>
+                <Footer />
+                <ConsentBanner />
+                {/* site-wide chat (PRD §3.3.1); hidden on admin (own console) */}
+                <ChatWidget />
+              </div>
+            )}
+          </ChatProvider>
         </WishlistProvider>
       </CartProvider>
     </ConsentProvider>

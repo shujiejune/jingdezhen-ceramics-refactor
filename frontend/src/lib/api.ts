@@ -259,6 +259,9 @@ async function transport(): Promise<Transport> {
   return mockTransport
 }
 
+/** 'live' when VITE_API_MODE=live, else 'mock'. Gates WS chat/push until the backend lands. */
+export const API_MODE: 'live' | 'mock' = import.meta.env.VITE_API_MODE === 'live' ? 'live' : 'mock'
+
 export interface CatalogQuery {
   locale: string
   currency?: string

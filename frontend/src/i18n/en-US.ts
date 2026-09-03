@@ -745,6 +745,38 @@ export const enUS = {
   'admin.cert.issued': 'Issued',
   'admin.cert.regenerate': 'Regenerate',
   'admin.cert.regenerated': 'Certificate regenerated.',
+
+  /* chat widget + agent console (PRD §3.3.1) */
+  'chat.open': 'Chat with us',
+  'chat.title': 'Customer service',
+  'chat.statusBot': 'AI assistant',
+  'chat.statusWaiting': 'Connecting you to an agent…',
+  'chat.statusAgent': 'Live agent',
+  'chat.statusClosed': 'Ended',
+  'chat.offline': 'Live chat is being set up. Leave us a message and we will reply by email.',
+  'chat.leaveMessage': 'Email support',
+  'chat.empty': 'Say hello 👋',
+  'chat.requestAgent': 'Human agent',
+  'chat.placeholder': 'Type a message…',
+  'chat.send': 'Send',
+  'chat.agentName': 'Agent',
+  'admin.nav.chat': 'Live chat',
+  'admin.chat.title': 'Live chat console',
+  'admin.chat.mockNote':
+    'Mock mode — sessions live in memory until the backend chat endpoints land (TDD §5.3).',
+  'admin.chat.sessions': 'Conversations',
+  'admin.chat.guest': 'Guest',
+  'admin.chat.pickSession': 'Pick a conversation',
+  'admin.chat.claim': 'Claim conversation',
+  'admin.chat.replyPlaceholder': 'Reply as agent…',
+  'admin.chat.reply': 'Reply',
+  'admin.chat.closeSession': 'End session',
+  'admin.chat.botHandling': 'Bot is handling this session.',
+  'admin.chat.botName': 'Bot',
+  'admin.chat.status.bot': 'Bot',
+  'admin.chat.status.waiting_agent': 'Waiting',
+  'admin.chat.status.with_agent': 'With agent',
+  'admin.chat.status.closed': 'Closed',
 } as const
 
 /** Value type widened to string so translated catalogs satisfy the same shape. */

@@ -17,6 +17,7 @@ import {
   Users,
   Scroll,
   Certificate as CertIcon,
+  ChatText,
   SignOut,
   House,
 } from '@phosphor-icons/react'
@@ -116,6 +117,12 @@ export function AdminShell() {
           to: `${base}/certificates`,
           icon: <CertIcon size={18} weight="duotone" />,
           perm: 'certificate.manage',
+        },
+        {
+          label: t('admin.nav.chat'),
+          to: `${base}/chat`,
+          icon: <ChatText size={18} weight="duotone" />,
+          perm: 'chat.handle',
         },
       ],
     },

@@ -30,6 +30,7 @@ import { Route as LoginSuccessRouteImport } from './routes/login/success'
 import { Route as LocaleAdminIndexRouteImport } from './routes/$locale/admin/index'
 import { Route as LocaleAdminAuditRouteImport } from './routes/$locale/admin/audit'
 import { Route as LocaleAdminCertificatesRouteImport } from './routes/$locale/admin/certificates'
+import { Route as LocaleAdminChatRouteImport } from './routes/$locale/admin/chat'
 import { Route as LocaleAdminDashboardRouteImport } from './routes/$locale/admin/dashboard'
 import { Route as LocaleAdminSettingsRouteImport } from './routes/$locale/admin/settings'
 import { Route as LocaleAdminUsersRouteImport } from './routes/$locale/admin/users'
@@ -170,6 +171,11 @@ const LocaleAdminAuditRoute = LocaleAdminAuditRouteImport.update({
 const LocaleAdminCertificatesRoute = LocaleAdminCertificatesRouteImport.update({
   id: '/certificates',
   path: '/certificates',
+  getParentRoute: () => LocaleAdminRoute,
+} as any)
+const LocaleAdminChatRoute = LocaleAdminChatRouteImport.update({
+  id: '/chat',
+  path: '/chat',
   getParentRoute: () => LocaleAdminRoute,
 } as any)
 const LocaleAdminDashboardRoute = LocaleAdminDashboardRouteImport.update({
@@ -384,6 +390,7 @@ export interface FileRoutesByFullPath {
   '/$locale/': typeof LocaleIndexRoute
   '/$locale/admin/audit': typeof LocaleAdminAuditRoute
   '/$locale/admin/certificates': typeof LocaleAdminCertificatesRoute
+  '/$locale/admin/chat': typeof LocaleAdminChatRoute
   '/$locale/admin/dashboard': typeof LocaleAdminDashboardRoute
   '/$locale/admin/settings': typeof LocaleAdminSettingsRoute
   '/$locale/admin/users': typeof LocaleAdminUsersRoute
@@ -441,6 +448,7 @@ export interface FileRoutesByTo {
   '/$locale': typeof LocaleIndexRoute
   '/$locale/admin/audit': typeof LocaleAdminAuditRoute
   '/$locale/admin/certificates': typeof LocaleAdminCertificatesRoute
+  '/$locale/admin/chat': typeof LocaleAdminChatRoute
   '/$locale/admin/dashboard': typeof LocaleAdminDashboardRoute
   '/$locale/admin/settings': typeof LocaleAdminSettingsRoute
   '/$locale/admin/users': typeof LocaleAdminUsersRoute
@@ -501,6 +509,7 @@ export interface FileRoutesById {
   '/$locale/': typeof LocaleIndexRoute
   '/$locale/admin/audit': typeof LocaleAdminAuditRoute
   '/$locale/admin/certificates': typeof LocaleAdminCertificatesRoute
+  '/$locale/admin/chat': typeof LocaleAdminChatRoute
   '/$locale/admin/dashboard': typeof LocaleAdminDashboardRoute
   '/$locale/admin/settings': typeof LocaleAdminSettingsRoute
   '/$locale/admin/users': typeof LocaleAdminUsersRoute
@@ -562,6 +571,7 @@ export interface FileRouteTypes {
     | '/$locale/'
     | '/$locale/admin/audit'
     | '/$locale/admin/certificates'
+    | '/$locale/admin/chat'
     | '/$locale/admin/dashboard'
     | '/$locale/admin/settings'
     | '/$locale/admin/users'
@@ -619,6 +629,7 @@ export interface FileRouteTypes {
     | '/$locale'
     | '/$locale/admin/audit'
     | '/$locale/admin/certificates'
+    | '/$locale/admin/chat'
     | '/$locale/admin/dashboard'
     | '/$locale/admin/settings'
     | '/$locale/admin/users'
@@ -678,6 +689,7 @@ export interface FileRouteTypes {
     | '/$locale/'
     | '/$locale/admin/audit'
     | '/$locale/admin/certificates'
+    | '/$locale/admin/chat'
     | '/$locale/admin/dashboard'
     | '/$locale/admin/settings'
     | '/$locale/admin/users'
@@ -872,6 +884,13 @@ declare module '@tanstack/react-router' {
       path: '/certificates'
       fullPath: '/$locale/admin/certificates'
       preLoaderRoute: typeof LocaleAdminCertificatesRouteImport
+      parentRoute: typeof LocaleAdminRoute
+    }
+    '/$locale/admin/chat': {
+      id: '/$locale/admin/chat'
+      path: '/chat'
+      fullPath: '/$locale/admin/chat'
+      preLoaderRoute: typeof LocaleAdminChatRouteImport
       parentRoute: typeof LocaleAdminRoute
     }
     '/$locale/admin/dashboard': {
@@ -1132,6 +1151,7 @@ declare module '@tanstack/react-router' {
 interface LocaleAdminRouteChildren {
   LocaleAdminAuditRoute: typeof LocaleAdminAuditRoute
   LocaleAdminCertificatesRoute: typeof LocaleAdminCertificatesRoute
+  LocaleAdminChatRoute: typeof LocaleAdminChatRoute
   LocaleAdminDashboardRoute: typeof LocaleAdminDashboardRoute
   LocaleAdminSettingsRoute: typeof LocaleAdminSettingsRoute
   LocaleAdminUsersRoute: typeof LocaleAdminUsersRoute
@@ -1155,6 +1175,7 @@ interface LocaleAdminRouteChildren {
 const LocaleAdminRouteChildren: LocaleAdminRouteChildren = {
   LocaleAdminAuditRoute: LocaleAdminAuditRoute,
   LocaleAdminCertificatesRoute: LocaleAdminCertificatesRoute,
+  LocaleAdminChatRoute: LocaleAdminChatRoute,
   LocaleAdminDashboardRoute: LocaleAdminDashboardRoute,
   LocaleAdminSettingsRoute: LocaleAdminSettingsRoute,
   LocaleAdminUsersRoute: LocaleAdminUsersRoute,
