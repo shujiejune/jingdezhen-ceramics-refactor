@@ -14,3 +14,9 @@ __unconfig*
 
 # local design-reference screenshots (never commit)
 /screenshots/
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
