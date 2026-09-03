@@ -51,7 +51,11 @@ export function ChatWidget() {
 
       {/* panel */}
       {open && (
-        <div className="fixed right-4 bottom-20 z-[70] flex h-[26rem] w-[21rem] flex-col overflow-hidden rounded-xl border border-cobalt-100 bg-white shadow-lift">
+        <div
+          role="dialog"
+          aria-label={t('chat.title')}
+          className="fixed right-4 bottom-20 z-[70] flex h-[26rem] w-[21rem] flex-col overflow-hidden rounded-xl border border-cobalt-100 bg-white shadow-lift"
+        >
           <div className="flex items-center justify-between border-b border-cobalt-50 bg-cobalt-600 px-4 py-2.5 text-white">
             <span className="flex items-center gap-2 text-[0.86rem] font-semibold">
               <ChatCircleDots size={16} /> {t('chat.title')}
@@ -115,7 +119,11 @@ export function ChatWidget() {
                 </button>
               )}
               <div className="flex gap-2">
+                <label htmlFor="chat-input" className="sr-only">
+                  {t('chat.placeholder')}
+                </label>
                 <input
+                  id="chat-input"
                   className="input-base flex-1 text-[0.82rem]"
                   value={text}
                   placeholder={t('chat.placeholder')}

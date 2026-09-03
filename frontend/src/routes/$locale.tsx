@@ -69,7 +69,7 @@ function LocaleLayout() {
 }
 
 function LocaleShell({ locale }: { locale: Locale }) {
-  const { currency } = useI18n()
+  const { t, currency } = useI18n()
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   // horizontal-magazine pages (landing + heritage index; detail articles
   // stay vertical) own their chrome: spine + panels, no header/footer.
@@ -88,13 +88,19 @@ function LocaleShell({ locale }: { locale: Locale }) {
         <WishlistProvider locale={locale} currency={currency}>
           <ChatProvider>
             {isMagazine || isAdmin ? (
-              <main className="flex-1">
+              <main id="main-content" className="flex-1">
+                <a href="#main-content" className="skip-link">
+                  {t('common.skipToContent')}
+                </a>
                 <Outlet />
               </main>
             ) : (
               <div className="flex min-h-screen flex-col">
+                <a href="#main-content" className="skip-link">
+                  {t('common.skipToContent')}
+                </a>
                 <Header />
-                <main className="flex-1">
+                <main id="main-content" className="flex-1">
                   <Outlet />
                 </main>
                 <Footer />

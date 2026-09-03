@@ -26,7 +26,11 @@ export const enUS = {
   'common.remove': 'Remove',
   'common.reset': 'Reset',
   'common.search': 'Search',
+  'common.clearSearch': 'Clear search',
+  'common.increase': 'Increase',
+  'common.decrease': 'Decrease',
   'common.optional': 'optional',
+  'common.skipToContent': 'Skip to content',
   'common.prototypeNote': 'Hi-fi prototype — data is simulated and no real payments are processed.',
 
   'nav.gallery': 'Gallery',
@@ -584,6 +588,9 @@ export const enUS = {
   'heritage.continue': 'Continue the journey',
   'catalog.prev': 'Previous work',
   'catalog.next': 'Next work',
+  'catalog.prevPage': 'Previous page',
+  'catalog.nextPage': 'Next page',
+  'catalog.pagination': 'Pagination',
   'mag.dragHint': 'Drag or scroll sideways — it never ends',
 
   /* ------------------------------ admin ------------------------------ */

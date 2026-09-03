@@ -355,24 +355,43 @@ function CheckoutPage() {
             {gateway === 'airwallex' && (
               <div className="mt-5 grid gap-4 sm:grid-cols-2">
                 <div className="sm:col-span-2">
-                  <label className="label-base">{t('checkout.cardNumber')}</label>
+                  <label htmlFor="ck-card-number" className="label-base">
+                    {t('checkout.cardNumber')}
+                  </label>
                   <input
+                    id="ck-card-number"
                     className="input-base"
                     placeholder="4242 4242 4242 4242"
                     inputMode="numeric"
                   />
                 </div>
                 <div>
-                  <label className="label-base">{t('checkout.cardExpiry')}</label>
-                  <input className="input-base" placeholder="12 / 28" inputMode="numeric" />
+                  <label htmlFor="ck-card-expiry" className="label-base">
+                    {t('checkout.cardExpiry')}
+                  </label>
+                  <input
+                    id="ck-card-expiry"
+                    className="input-base"
+                    placeholder="12 / 28"
+                    inputMode="numeric"
+                  />
                 </div>
                 <div>
-                  <label className="label-base">{t('checkout.cardCvc')}</label>
-                  <input className="input-base" placeholder="123" inputMode="numeric" />
+                  <label htmlFor="ck-card-cvc" className="label-base">
+                    {t('checkout.cardCvc')}
+                  </label>
+                  <input
+                    id="ck-card-cvc"
+                    className="input-base"
+                    placeholder="123"
+                    inputMode="numeric"
+                  />
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="label-base">{t('checkout.cardName')}</label>
-                  <input className="input-base" placeholder={user.nickname} />
+                  <label htmlFor="ck-card-name" className="label-base">
+                    {t('checkout.cardName')}
+                  </label>
+                  <input id="ck-card-name" className="input-base" placeholder={user.nickname} />
                 </div>
               </div>
             )}
@@ -564,13 +583,28 @@ function NewAddressForm({ onCreated }: { onCreated: (a: Address) => void }) {
         ] as const
       ).map(([key, label, required]) => (
         <div key={key}>
-          <label className="label-base">{label}</label>
-          <input className="input-base" value={form[key]} onChange={set(key)} required={required} />
+          <label htmlFor={`af-${key}`} className="label-base">
+            {label}
+          </label>
+          <input
+            id={`af-${key}`}
+            className="input-base"
+            value={form[key]}
+            onChange={set(key)}
+            required={required}
+          />
         </div>
       ))}
       <div>
-        <label className="label-base">{t('checkout.country')}</label>
-        <select className="input-base" value={form.country} onChange={set('country')}>
+        <label htmlFor="af-country" className="label-base">
+          {t('checkout.country')}
+        </label>
+        <select
+          id="af-country"
+          className="input-base"
+          value={form.country}
+          onChange={set('country')}
+        >
           {SHIPPABLE_COUNTRIES.map((c) => (
             <option key={c} value={c}>
               {new Intl.DisplayNames([locale], { type: 'region' }).of(c)}
@@ -579,8 +613,16 @@ function NewAddressForm({ onCreated }: { onCreated: (a: Address) => void }) {
         </select>
       </div>
       <div>
-        <label className="label-base">{t('checkout.phone')}</label>
-        <input className="input-base" value={form.phone} onChange={set('phone')} required />
+        <label htmlFor="af-phone" className="label-base">
+          {t('checkout.phone')}
+        </label>
+        <input
+          id="af-phone"
+          className="input-base"
+          value={form.phone}
+          onChange={set('phone')}
+          required
+        />
       </div>
       <div className="sm:col-span-2 flex items-center gap-3">
         <Button type="submit" loading={saving}>

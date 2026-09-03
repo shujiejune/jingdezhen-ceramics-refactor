@@ -111,6 +111,21 @@
     @apply text-[0.72rem] font-semibold tracking-[0.2em] uppercase text-cobalt-600;
   }
 
+  .sr-only {
+    @apply absolute h-px w-px overflow-hidden border-0 p-0;
+    clip: rect(0, 0, 0, 0);
+    clip-path: inset(50%);
+    margin: -1px;
+    white-space: nowrap;
+  }
+
+  .skip-link {
+    @apply sr-only absolute left-4 top-4 z-[100] rounded-lg bg-cobalt-600 px-4 py-2.5 text-sm font-medium text-white shadow-card;
+    &:focus {
+      @apply not-sr-only;
+    }
+  }
+
   .card-surface {
     @apply rounded-md border border-cobalt-100/80 bg-paper shadow-card;
   }

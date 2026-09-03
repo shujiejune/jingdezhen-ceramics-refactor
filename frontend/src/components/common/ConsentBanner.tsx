@@ -10,7 +10,11 @@ export function ConsentBanner() {
   if (!needsBanner) return null
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-50 px-4 pb-4">
+    <div
+      className="fixed inset-x-0 bottom-0 z-50 px-4 pb-4"
+      role="region"
+      aria-label={t('consent.bannerBody')}
+    >
       <div className="mx-auto flex max-w-3xl flex-col gap-3 rounded-xl border border-cobalt-200 bg-white p-5 shadow-lg sm:flex-row sm:items-center sm:gap-6">
         <Cookie size={28} weight="duotone" className="hidden shrink-0 text-cobalt-600 sm:block" />
         <div className="flex-1">

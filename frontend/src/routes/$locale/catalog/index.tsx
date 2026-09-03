@@ -217,7 +217,7 @@ function CatalogPage() {
                 <button
                   type="button"
                   onClick={() => setParam({ q: undefined })}
-                  aria-label="clear search"
+                  aria-label={t('common.clearSearch')}
                 >
                   <X size={13} weight="bold" className="text-cobalt-600" />
                 </button>
@@ -277,11 +277,14 @@ function CatalogPage() {
           </div>
 
           {totalPages > 1 && (
-            <nav className="mt-12 flex items-center justify-center gap-1.5" aria-label="pagination">
+            <nav
+              className="mt-12 flex items-center justify-center gap-1.5"
+              aria-label={t('catalog.pagination')}
+            >
               <Button
                 variant="secondary"
                 size="sm"
-                aria-label={t('catalog.prev')}
+                aria-label={t('catalog.prevPage')}
                 disabled={page <= 1}
                 onClick={() => void navigate({ search: { ...search, page: page - 1 } })}
               >
@@ -291,6 +294,8 @@ function CatalogPage() {
                 <button
                   key={n}
                   type="button"
+                  aria-current={n === page ? 'page' : undefined}
+                  aria-label={`${t('catalog.pagination')} ${n}`}
                   onClick={() => void navigate({ search: { ...search, page: n } })}
                   className={cn(
                     'h-8 w-8 rounded-lg text-[0.82rem] font-medium transition',
@@ -303,7 +308,7 @@ function CatalogPage() {
               <Button
                 variant="secondary"
                 size="sm"
-                aria-label={t('catalog.next')}
+                aria-label={t('catalog.nextPage')}
                 disabled={page >= totalPages}
                 onClick={() => void navigate({ search: { ...search, page: page + 1 } })}
               >

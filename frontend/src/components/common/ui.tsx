@@ -2,6 +2,7 @@
 import { Link, type LinkProps } from '@tanstack/react-router'
 import { HeartStraight, Minus, Plus } from '@phosphor-icons/react'
 
+import { useI18n } from '~/lib/i18n'
 import { cn } from '~/lib/utils'
 
 /* ------------------------------ Button ------------------------------ */
@@ -203,6 +204,7 @@ export function QuantityStepper({
   size?: 'sm' | 'md'
   disabled?: boolean
 }) {
+  const { t } = useI18n()
   const btn = cn(
     'flex items-center justify-center text-ink-500 transition hover:text-cobalt-600 disabled:opacity-30',
     size === 'sm' ? 'h-7 w-7' : 'h-9 w-9',
@@ -219,7 +221,7 @@ export function QuantityStepper({
         className={btn}
         disabled={disabled || value <= min}
         onClick={() => onChange(value - 1)}
-        aria-label="decrease"
+        aria-label={t('common.decrease')}
       >
         <Minus size={size === 'sm' ? 12 : 14} weight="bold" />
       </button>
@@ -236,7 +238,7 @@ export function QuantityStepper({
         className={btn}
         disabled={disabled || value >= max}
         onClick={() => onChange(value + 1)}
-        aria-label="increase"
+        aria-label={t('common.increase')}
       >
         <Plus size={size === 'sm' ? 12 : 14} weight="bold" />
       </button>

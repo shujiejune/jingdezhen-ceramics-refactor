@@ -171,8 +171,10 @@ function AccountPage() {
             />
           </div>
           <div>
-            <label className="label-base">{t('auth.email')}</label>
-            <input className="input-base" value={user.email} disabled />
+            <label htmlFor="ac-email" className="label-base">
+              {t('auth.email')}
+            </label>
+            <input id="ac-email" className="input-base" value={user.email} disabled />
           </div>
         </div>
 
@@ -181,8 +183,11 @@ function AccountPage() {
         </h3>
         <div className="mt-3 grid gap-4 sm:grid-cols-2">
           <div>
-            <label className="label-base">{t('account.currencyPref')}</label>
+            <label htmlFor="ac-currency" className="label-base">
+              {t('account.currencyPref')}
+            </label>
             <select
+              id="ac-currency"
               className="input-base"
               value={currency}
               onChange={(e) => setCurrency(e.target.value as 'USD')}
@@ -195,8 +200,11 @@ function AccountPage() {
             </select>
           </div>
           <div>
-            <label className="label-base">{t('account.localePref')}</label>
+            <label htmlFor="ac-locale" className="label-base">
+              {t('account.localePref')}
+            </label>
             <input
+              id="ac-locale"
               className="input-base"
               value={locale === 'zh-CN' ? '中文（简体）' : 'English (US)'}
               disabled
@@ -347,7 +355,11 @@ function AccountPage() {
               <Warning size={15} weight="duotone" />
               {t('account.deleteConfirm')}
             </p>
+            <label htmlFor="ac-delete-confirm" className="sr-only">
+              {t('account.deleteConfirm')}
+            </label>
             <input
+              id="ac-delete-confirm"
               className="input-base mt-3"
               value={deleteConfirm}
               onChange={(e) => setDeleteConfirm(e.target.value)}

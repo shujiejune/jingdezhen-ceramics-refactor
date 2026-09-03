@@ -183,8 +183,11 @@ function CartPage() {
             {t('checkout.summary')}
           </h2>
 
-          <label className="label-base mt-5">{t('checkout.country')}</label>
+          <label htmlFor="cart-country" className="label-base mt-5">
+            {t('checkout.country')}
+          </label>
           <select
+            id="cart-country"
             value={country}
             onChange={(e) => setCountry(e.target.value)}
             className="input-base"

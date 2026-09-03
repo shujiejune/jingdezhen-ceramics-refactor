@@ -115,8 +115,11 @@ function LoginPage() {
 
             <form onSubmit={onLogin} className="mt-7 flex flex-col gap-4">
               <div>
-                <label className="label-base">{t('auth.email')}</label>
+                <label htmlFor="login-email" className="label-base">
+                  {t('auth.email')}
+                </label>
                 <input
+                  id="login-email"
                   type="email"
                   required
                   autoComplete="email"
@@ -127,8 +130,11 @@ function LoginPage() {
                 />
               </div>
               <div>
-                <label className="label-base">{t('auth.password')}</label>
+                <label htmlFor="login-password" className="label-base">
+                  {t('auth.password')}
+                </label>
                 <input
+                  id="login-password"
                   type="password"
                   required
                   autoComplete="current-password"

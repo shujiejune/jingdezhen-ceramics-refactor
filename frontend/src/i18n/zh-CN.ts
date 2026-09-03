@@ -26,7 +26,11 @@ export const zhCN: Catalog = {
   'common.remove': '移除',
   'common.reset': '重置',
   'common.search': '搜索',
+  'common.clearSearch': '清除搜索',
+  'common.increase': '增加',
+  'common.decrease': '减少',
   'common.optional': '选填',
+  'common.skipToContent': '跳至正文',
   'common.prototypeNote': '高保真原型 — 数据为模拟数据，不产生真实扣款。',
 
   'nav.gallery': '艺术画廊',
@@ -567,6 +571,9 @@ export const zhCN: Catalog = {
   'heritage.continue': '继续旅程',
   'catalog.prev': '上一件作品',
   'catalog.next': '下一件作品',
+  'catalog.prevPage': '上一页',
+  'catalog.nextPage': '下一页',
+  'catalog.pagination': '分页',
   'mag.dragHint': '拖动或横向滚动——永不落幕',
 
   /* ------------------------------ admin ------------------------------ */
