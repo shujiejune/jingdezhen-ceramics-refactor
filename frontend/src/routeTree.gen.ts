@@ -47,7 +47,11 @@ import { Route as LocaleItinerariesIdRouteImport } from './routes/$locale/itiner
 import { Route as LocaleOrdersIndexRouteImport } from './routes/$locale/orders/index'
 import { Route as LocaleOrdersIdRouteImport } from './routes/$locale/orders/$id'
 import { Route as Login2faEnrollRouteImport } from './routes/login/2fa/enroll'
+import { Route as LocaleAdminItinerariesIndexRouteImport } from './routes/$locale/admin/itineraries/index'
+import { Route as LocaleAdminItinerariesIdRouteImport } from './routes/$locale/admin/itineraries/$id'
 import { Route as LocaleAdminMediaIndexRouteImport } from './routes/$locale/admin/media/index'
+import { Route as LocaleAdminOrdersIndexRouteImport } from './routes/$locale/admin/orders/index'
+import { Route as LocaleAdminOrdersIdRouteImport } from './routes/$locale/admin/orders/$id'
 import { Route as LocaleAdminProductsIndexRouteImport } from './routes/$locale/admin/products/index'
 import { Route as LocaleAdminProductsIdRouteImport } from './routes/$locale/admin/products/$id'
 import { Route as LocaleAdminProductsImportRouteImport } from './routes/$locale/admin/products/import'
@@ -248,9 +252,31 @@ const Login2faEnrollRoute = Login2faEnrollRouteImport.update({
   path: '/enroll',
   getParentRoute: () => Login2faRoute,
 } as any)
+const LocaleAdminItinerariesIndexRoute =
+  LocaleAdminItinerariesIndexRouteImport.update({
+    id: '/itineraries/',
+    path: '/itineraries/',
+    getParentRoute: () => LocaleAdminRoute,
+  } as any)
+const LocaleAdminItinerariesIdRoute =
+  LocaleAdminItinerariesIdRouteImport.update({
+    id: '/itineraries/$id',
+    path: '/itineraries/$id',
+    getParentRoute: () => LocaleAdminRoute,
+  } as any)
 const LocaleAdminMediaIndexRoute = LocaleAdminMediaIndexRouteImport.update({
   id: '/media/',
   path: '/media/',
+  getParentRoute: () => LocaleAdminRoute,
+} as any)
+const LocaleAdminOrdersIndexRoute = LocaleAdminOrdersIndexRouteImport.update({
+  id: '/orders/',
+  path: '/orders/',
+  getParentRoute: () => LocaleAdminRoute,
+} as any)
+const LocaleAdminOrdersIdRoute = LocaleAdminOrdersIdRouteImport.update({
+  id: '/orders/$id',
+  path: '/orders/$id',
   getParentRoute: () => LocaleAdminRoute,
 } as any)
 const LocaleAdminProductsIndexRoute =
@@ -346,9 +372,13 @@ export interface FileRoutesByFullPath {
   '/$locale/ceramicstory/': typeof LocaleCeramicstoryIndexRoute
   '/$locale/engage/': typeof LocaleEngageIndexRoute
   '/$locale/orders/': typeof LocaleOrdersIndexRoute
+  '/$locale/admin/itineraries/$id': typeof LocaleAdminItinerariesIdRoute
+  '/$locale/admin/orders/$id': typeof LocaleAdminOrdersIdRoute
   '/$locale/admin/products/$id': typeof LocaleAdminProductsIdRoute
   '/$locale/admin/products/import': typeof LocaleAdminProductsImportRoute
+  '/$locale/admin/itineraries/': typeof LocaleAdminItinerariesIndexRoute
   '/$locale/admin/media/': typeof LocaleAdminMediaIndexRoute
+  '/$locale/admin/orders/': typeof LocaleAdminOrdersIndexRoute
   '/$locale/admin/products/': typeof LocaleAdminProductsIndexRoute
   '/$locale/admin/content/activities/$id': typeof LocaleAdminContentActivitiesIdRoute
   '/$locale/admin/content/artists/$id': typeof LocaleAdminContentArtistsIdRoute
@@ -394,9 +424,13 @@ export interface FileRoutesByTo {
   '/$locale/ceramicstory': typeof LocaleCeramicstoryIndexRoute
   '/$locale/engage': typeof LocaleEngageIndexRoute
   '/$locale/orders': typeof LocaleOrdersIndexRoute
+  '/$locale/admin/itineraries/$id': typeof LocaleAdminItinerariesIdRoute
+  '/$locale/admin/orders/$id': typeof LocaleAdminOrdersIdRoute
   '/$locale/admin/products/$id': typeof LocaleAdminProductsIdRoute
   '/$locale/admin/products/import': typeof LocaleAdminProductsImportRoute
+  '/$locale/admin/itineraries': typeof LocaleAdminItinerariesIndexRoute
   '/$locale/admin/media': typeof LocaleAdminMediaIndexRoute
+  '/$locale/admin/orders': typeof LocaleAdminOrdersIndexRoute
   '/$locale/admin/products': typeof LocaleAdminProductsIndexRoute
   '/$locale/admin/content/activities/$id': typeof LocaleAdminContentActivitiesIdRoute
   '/$locale/admin/content/artists/$id': typeof LocaleAdminContentArtistsIdRoute
@@ -445,9 +479,13 @@ export interface FileRoutesById {
   '/$locale/ceramicstory/': typeof LocaleCeramicstoryIndexRoute
   '/$locale/engage/': typeof LocaleEngageIndexRoute
   '/$locale/orders/': typeof LocaleOrdersIndexRoute
+  '/$locale/admin/itineraries/$id': typeof LocaleAdminItinerariesIdRoute
+  '/$locale/admin/orders/$id': typeof LocaleAdminOrdersIdRoute
   '/$locale/admin/products/$id': typeof LocaleAdminProductsIdRoute
   '/$locale/admin/products/import': typeof LocaleAdminProductsImportRoute
+  '/$locale/admin/itineraries/': typeof LocaleAdminItinerariesIndexRoute
   '/$locale/admin/media/': typeof LocaleAdminMediaIndexRoute
+  '/$locale/admin/orders/': typeof LocaleAdminOrdersIndexRoute
   '/$locale/admin/products/': typeof LocaleAdminProductsIndexRoute
   '/$locale/admin/content/activities/$id': typeof LocaleAdminContentActivitiesIdRoute
   '/$locale/admin/content/artists/$id': typeof LocaleAdminContentArtistsIdRoute
@@ -497,9 +535,13 @@ export interface FileRouteTypes {
     | '/$locale/ceramicstory/'
     | '/$locale/engage/'
     | '/$locale/orders/'
+    | '/$locale/admin/itineraries/$id'
+    | '/$locale/admin/orders/$id'
     | '/$locale/admin/products/$id'
     | '/$locale/admin/products/import'
+    | '/$locale/admin/itineraries/'
     | '/$locale/admin/media/'
+    | '/$locale/admin/orders/'
     | '/$locale/admin/products/'
     | '/$locale/admin/content/activities/$id'
     | '/$locale/admin/content/artists/$id'
@@ -545,9 +587,13 @@ export interface FileRouteTypes {
     | '/$locale/ceramicstory'
     | '/$locale/engage'
     | '/$locale/orders'
+    | '/$locale/admin/itineraries/$id'
+    | '/$locale/admin/orders/$id'
     | '/$locale/admin/products/$id'
     | '/$locale/admin/products/import'
+    | '/$locale/admin/itineraries'
     | '/$locale/admin/media'
+    | '/$locale/admin/orders'
     | '/$locale/admin/products'
     | '/$locale/admin/content/activities/$id'
     | '/$locale/admin/content/artists/$id'
@@ -595,9 +641,13 @@ export interface FileRouteTypes {
     | '/$locale/ceramicstory/'
     | '/$locale/engage/'
     | '/$locale/orders/'
+    | '/$locale/admin/itineraries/$id'
+    | '/$locale/admin/orders/$id'
     | '/$locale/admin/products/$id'
     | '/$locale/admin/products/import'
+    | '/$locale/admin/itineraries/'
     | '/$locale/admin/media/'
+    | '/$locale/admin/orders/'
     | '/$locale/admin/products/'
     | '/$locale/admin/content/activities/$id'
     | '/$locale/admin/content/artists/$id'
@@ -883,11 +933,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Login2faEnrollRouteImport
       parentRoute: typeof Login2faRoute
     }
+    '/$locale/admin/itineraries/': {
+      id: '/$locale/admin/itineraries/'
+      path: '/itineraries'
+      fullPath: '/$locale/admin/itineraries/'
+      preLoaderRoute: typeof LocaleAdminItinerariesIndexRouteImport
+      parentRoute: typeof LocaleAdminRoute
+    }
+    '/$locale/admin/itineraries/$id': {
+      id: '/$locale/admin/itineraries/$id'
+      path: '/itineraries/$id'
+      fullPath: '/$locale/admin/itineraries/$id'
+      preLoaderRoute: typeof LocaleAdminItinerariesIdRouteImport
+      parentRoute: typeof LocaleAdminRoute
+    }
     '/$locale/admin/media/': {
       id: '/$locale/admin/media/'
       path: '/media'
       fullPath: '/$locale/admin/media/'
       preLoaderRoute: typeof LocaleAdminMediaIndexRouteImport
+      parentRoute: typeof LocaleAdminRoute
+    }
+    '/$locale/admin/orders/': {
+      id: '/$locale/admin/orders/'
+      path: '/orders'
+      fullPath: '/$locale/admin/orders/'
+      preLoaderRoute: typeof LocaleAdminOrdersIndexRouteImport
+      parentRoute: typeof LocaleAdminRoute
+    }
+    '/$locale/admin/orders/$id': {
+      id: '/$locale/admin/orders/$id'
+      path: '/orders/$id'
+      fullPath: '/$locale/admin/orders/$id'
+      preLoaderRoute: typeof LocaleAdminOrdersIdRouteImport
       parentRoute: typeof LocaleAdminRoute
     }
     '/$locale/admin/products/': {
@@ -958,9 +1036,13 @@ declare module '@tanstack/react-router' {
 
 interface LocaleAdminRouteChildren {
   LocaleAdminIndexRoute: typeof LocaleAdminIndexRoute
+  LocaleAdminItinerariesIdRoute: typeof LocaleAdminItinerariesIdRoute
+  LocaleAdminOrdersIdRoute: typeof LocaleAdminOrdersIdRoute
   LocaleAdminProductsIdRoute: typeof LocaleAdminProductsIdRoute
   LocaleAdminProductsImportRoute: typeof LocaleAdminProductsImportRoute
+  LocaleAdminItinerariesIndexRoute: typeof LocaleAdminItinerariesIndexRoute
   LocaleAdminMediaIndexRoute: typeof LocaleAdminMediaIndexRoute
+  LocaleAdminOrdersIndexRoute: typeof LocaleAdminOrdersIndexRoute
   LocaleAdminProductsIndexRoute: typeof LocaleAdminProductsIndexRoute
   LocaleAdminContentActivitiesIdRoute: typeof LocaleAdminContentActivitiesIdRoute
   LocaleAdminContentArtistsIdRoute: typeof LocaleAdminContentArtistsIdRoute
@@ -972,9 +1054,13 @@ interface LocaleAdminRouteChildren {
 
 const LocaleAdminRouteChildren: LocaleAdminRouteChildren = {
   LocaleAdminIndexRoute: LocaleAdminIndexRoute,
+  LocaleAdminItinerariesIdRoute: LocaleAdminItinerariesIdRoute,
+  LocaleAdminOrdersIdRoute: LocaleAdminOrdersIdRoute,
   LocaleAdminProductsIdRoute: LocaleAdminProductsIdRoute,
   LocaleAdminProductsImportRoute: LocaleAdminProductsImportRoute,
+  LocaleAdminItinerariesIndexRoute: LocaleAdminItinerariesIndexRoute,
   LocaleAdminMediaIndexRoute: LocaleAdminMediaIndexRoute,
+  LocaleAdminOrdersIndexRoute: LocaleAdminOrdersIndexRoute,
   LocaleAdminProductsIndexRoute: LocaleAdminProductsIndexRoute,
   LocaleAdminContentActivitiesIdRoute: LocaleAdminContentActivitiesIdRoute,
   LocaleAdminContentArtistsIdRoute: LocaleAdminContentArtistsIdRoute,

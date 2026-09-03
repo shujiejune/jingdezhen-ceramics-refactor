@@ -89,6 +89,17 @@ const notifications: Notification[] = []
 const consentRecords: ConsentRecord[] = []
 const itineraryDrafts = new Map<string, Record<string, unknown>>()
 const itineraryQuotes = new Map<number, ItineraryQuote>()
+const itineraryNotes = new Map<
+  number,
+  Array<{
+    id: number
+    itinerary_id: number
+    author_id: string
+    author_email: string
+    body: string
+    created_at: string
+  }>
+>()
 
 /* admin mutable state */
 const mediaAssets: Array<{
@@ -1818,6 +1829,34 @@ async function handle(route: string, ctx: Ctx): Promise<unknown> {
     return presentOrder(order, loc)
   }
 
+  if (ctx.method === 'POST' && pathRegex('/admin/orders/:id/ship', ctx.path)) {
+    authUser(opts)
+    const id = Number(ctx.path.split('/').slice(-2, -1)[0])
+    const b = body as { carrier_name?: string; tracking_number?: string }
+    const order = orders.find((o) => o.id === id)
+    if (!order) throw new ApiError('not_found', 'order not found', 404)
+    order.status = 'shipped' as OrderStatus
+    order.tracking_number = b.tracking_number ?? ''
+    order.carrier_name = b.carrier_name ?? ''
+    return presentOrder(order, ctx.locale)
+  }
+  if (ctx.method === 'POST' && pathRegex('/admin/orders/:id/complete', ctx.path)) {
+    authUser(opts)
+    const id = Number(ctx.path.split('/').slice(-2, -1)[0])
+    const order = orders.find((o) => o.id === id)
+    if (!order) throw new ApiError('not_found', 'order not found', 404)
+    order.status = 'completed' as OrderStatus
+    return presentOrder(order, ctx.locale)
+  }
+  if (ctx.method === 'POST' && pathRegex('/admin/orders/:id/refund', ctx.path)) {
+    authUser(opts)
+    const id = Number(ctx.path.split('/').slice(-2, -1)[0])
+    const order = orders.find((o) => o.id === id)
+    if (!order) throw new ApiError('not_found', 'order not found', 404)
+    order.status = 'refunded' as OrderStatus
+    return presentOrder(order, ctx.locale)
+  }
+
   /* ---- admin: itineraries CRM ---- */
   if (route === 'GET /admin/itineraries') {
     authUser(opts)
@@ -1834,16 +1873,76 @@ async function handle(route: string, ctx: Ctx): Promise<unknown> {
 
   if (ctx.method === 'GET' && pathRegex('/admin/itineraries/:id/notes', ctx.path)) {
     authUser(opts)
-    return {
-      data: [] as Array<{
-        id: number
-        itinerary_id: number
-        author_id: string
-        author_email: string
-        body: string
-        created_at: string
-      }>,
+    const id = Number(ctx.path.split('/').slice(-2, -1)[0])
+    return { data: itineraryNotes.get(id) ?? [] }
+  }
+
+  if (ctx.method === 'POST' && pathRegex('/admin/itineraries/:id/notes', ctx.path)) {
+    authUser(opts)
+    const id = Number(ctx.path.split('/').slice(-2, -1)[0])
+    const b = body as { body?: string }
+    const note = {
+      id: (itineraryNotes.get(id)?.length ?? 0) + 1,
+      itinerary_id: id,
+      author_id: 'admin',
+      author_email: 'admin@demo.dev',
+      body: b.body ?? '',
+      created_at: new Date().toISOString(),
     }
+    const existing = itineraryNotes.get(id) ?? []
+    itineraryNotes.set(id, [...existing, note])
+    return note
+  }
+
+  if (ctx.method === 'POST' && pathRegex('/admin/itineraries/:id/assign', ctx.path)) {
+    authUser(opts)
+    const id = Number(ctx.path.split('/').slice(-2, -1)[0])
+    const req = itineraries.find((r) => r.id === id)
+    if (!req) throw new ApiError('not_found', 'itinerary not found', 404)
+    const b = body as { assignee_id?: string }
+    ;(req as unknown as Record<string, unknown>).assignee_id = b.assignee_id ?? ''
+    return req
+  }
+
+  if (ctx.method === 'POST' && pathRegex('/admin/itineraries/:id/quote', ctx.path)) {
+    authUser(opts)
+    const id = Number(ctx.path.split('/').slice(-2, -1)[0])
+    const b = body as { line_items?: QuoteLineItem[]; pay_full?: boolean }
+    const items = b.line_items ?? []
+    const total = items.reduce((sum, li) => sum + (li.amount_minor ?? 0), 0)
+    const quote: ItineraryQuote = {
+      id: Date.now(),
+      request_id: id,
+      line_items: items,
+      total_cny: total,
+      currency: 'CNY',
+      total_minor: total,
+      deposit_minor: Math.round(total * 0.3),
+      status: 'sent',
+      sent_at: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }
+    itineraryQuotes.set(id, quote)
+    return quote
+  }
+
+  if (ctx.method === 'POST' && pathRegex('/admin/itineraries/:id/confirm', ctx.path)) {
+    authUser(opts)
+    const id = Number(ctx.path.split('/').slice(-2, -1)[0])
+    const req = itineraries.find((r) => r.id === id)
+    if (!req) throw new ApiError('not_found', 'itinerary not found', 404)
+    ;(req as unknown as Record<string, unknown>).status = 'confirmed'
+    return req
+  }
+
+  if (ctx.method === 'POST' && pathRegex('/admin/itineraries/:id/refund-deposit', ctx.path)) {
+    authUser(opts)
+    const id = Number(ctx.path.split('/').slice(-2, -1)[0])
+    const req = itineraries.find((r) => r.id === id)
+    if (!req) throw new ApiError('not_found', 'itinerary not found', 404)
+    ;(req as unknown as Record<string, unknown>).status = 'deposit_refunded'
+    return req
   }
 
   if (ctx.method === 'GET' && pathRegex('/admin/itineraries/:id/quote', ctx.path)) {
