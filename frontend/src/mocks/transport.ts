@@ -2019,11 +2019,86 @@ async function handle(route: string, ctx: Ctx): Promise<unknown> {
     authUser(opts)
     return paginate([...CERTIFICATES], 1, 50)
   }
+  if (ctx.method === 'POST' && pathRegex('/admin/certificates/:id/regenerate', ctx.path)) {
+    authUser(opts)
+    const id = Number(ctx.path.split('/').slice(-2, -1)[0])
+    const cert = CERTIFICATES.find((c) => c.id === id)
+    if (!cert) throw new ApiError('not_found', 'certificate not found', 404)
+    return cert
+  }
 
   /* ---- admin: shipping tiers ---- */
   if (route === 'GET /admin/shipping/tiers') {
     authUser(opts)
-    return { data: shippingTiers as typeof shippingTiers }
+    return { data: [...shippingTiers] }
+  }
+  if (route === 'POST /admin/shipping/tiers') {
+    authUser(opts)
+    const b = body as Record<string, unknown>
+    const tier = {
+      id: Math.max(0, ...shippingTiers.map((t) => t.id)) + 1,
+      country_code: String(b.country_code ?? ''),
+      min_weight_grams: Number(b.min_weight_grams) || 0,
+      max_weight_grams: Number(b.max_weight_grams) || 0,
+      fee_cny: Number(b.fee_cny) || 0,
+    }
+    shippingTiers.push(tier)
+    return tier
+  }
+  if (ctx.method === 'PUT' && pathRegex('/admin/shipping/tiers/:id', ctx.path)) {
+    authUser(opts)
+    const id = Number(ctx.path.split('/').pop())
+    const tier = shippingTiers.find((t) => t.id === id)
+    if (!tier) throw new ApiError('not_found', 'shipping tier not found', 404)
+    const b = body as Record<string, unknown>
+    if (typeof b.country_code === 'string') tier.country_code = b.country_code
+    if (typeof b.min_weight_grams === 'number') tier.min_weight_grams = b.min_weight_grams
+    if (typeof b.max_weight_grams === 'number') tier.max_weight_grams = b.max_weight_grams
+    if (typeof b.fee_cny === 'number') tier.fee_cny = b.fee_cny
+    return tier
+  }
+  if (ctx.method === 'DELETE' && pathRegex('/admin/shipping/tiers/:id', ctx.path)) {
+    authUser(opts)
+    const id = Number(ctx.path.split('/').pop())
+    const idx = shippingTiers.findIndex((t) => t.id === id)
+    if (idx >= 0) shippingTiers.splice(idx, 1)
+    return
+  }
+
+  /* ---- admin: option rates ---- */
+  if (route === 'GET /admin/itineraries/option-rates') {
+    authUser(opts)
+    return { data: [...optionRates] }
+  }
+  if (route === 'POST /admin/itineraries/option-rates') {
+    authUser(opts)
+    const b = body as Record<string, unknown>
+    const rate = {
+      id: Math.max(0, ...optionRates.map((r) => r.id)) + 1,
+      option_key: String(b.option_key ?? ''),
+      label: String(b.label ?? ''),
+      rate_cny: Number(b.rate_cny) || 0,
+    }
+    optionRates.push(rate)
+    return rate
+  }
+  if (ctx.method === 'PUT' && pathRegex('/admin/itineraries/option-rates/:id', ctx.path)) {
+    authUser(opts)
+    const id = Number(ctx.path.split('/').pop())
+    const rate = optionRates.find((r) => r.id === id)
+    if (!rate) throw new ApiError('not_found', 'option rate not found', 404)
+    const b = body as Record<string, unknown>
+    if (typeof b.option_key === 'string') rate.option_key = b.option_key
+    if (typeof b.label === 'string') rate.label = b.label
+    if (typeof b.rate_cny === 'number') rate.rate_cny = b.rate_cny
+    return rate
+  }
+  if (ctx.method === 'DELETE' && pathRegex('/admin/itineraries/option-rates/:id', ctx.path)) {
+    authUser(opts)
+    const id = Number(ctx.path.split('/').pop())
+    const idx = optionRates.findIndex((r) => r.id === id)
+    if (idx >= 0) optionRates.splice(idx, 1)
+    return
   }
 
   /* ---- admin: users ---- */
@@ -2034,6 +2109,16 @@ async function handle(route: string, ctx: Ctx): Promise<unknown> {
       two_fa_enabled: u.twoFA ?? false,
     }))
     return paginate(users, 1, 50)
+  }
+  if (ctx.method === 'PUT' && pathRegex('/admin/users/:id/role', ctx.path)) {
+    authUser(opts)
+    const userId = ctx.path.split('/').slice(-2, -1)[0]
+    const b = body as { role?: string }
+    const user = DEMO_USERS.find((u) => u.user.id === userId)
+    if (user) {
+      ;(user.user as unknown as { role: string }).role = b.role ?? user.user.role
+    }
+    return user?.user ?? null
   }
 
   /* ---- admin: audit log ---- */

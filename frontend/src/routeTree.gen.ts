@@ -28,6 +28,11 @@ import { Route as Login2faRouteImport } from './routes/login/2fa'
 import { Route as LoginErrorRouteImport } from './routes/login/error'
 import { Route as LoginSuccessRouteImport } from './routes/login/success'
 import { Route as LocaleAdminIndexRouteImport } from './routes/$locale/admin/index'
+import { Route as LocaleAdminAuditRouteImport } from './routes/$locale/admin/audit'
+import { Route as LocaleAdminCertificatesRouteImport } from './routes/$locale/admin/certificates'
+import { Route as LocaleAdminDashboardRouteImport } from './routes/$locale/admin/dashboard'
+import { Route as LocaleAdminSettingsRouteImport } from './routes/$locale/admin/settings'
+import { Route as LocaleAdminUsersRouteImport } from './routes/$locale/admin/users'
 import { Route as LocaleArtistsIndexRouteImport } from './routes/$locale/artists/index'
 import { Route as LocaleArtistsSlugRouteImport } from './routes/$locale/artists/$slug'
 import { Route as LocaleAuth2faEnrollRouteImport } from './routes/$locale/auth/2fa-enroll'
@@ -155,6 +160,31 @@ const LoginSuccessRoute = LoginSuccessRouteImport.update({
 const LocaleAdminIndexRoute = LocaleAdminIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => LocaleAdminRoute,
+} as any)
+const LocaleAdminAuditRoute = LocaleAdminAuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
+  getParentRoute: () => LocaleAdminRoute,
+} as any)
+const LocaleAdminCertificatesRoute = LocaleAdminCertificatesRouteImport.update({
+  id: '/certificates',
+  path: '/certificates',
+  getParentRoute: () => LocaleAdminRoute,
+} as any)
+const LocaleAdminDashboardRoute = LocaleAdminDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => LocaleAdminRoute,
+} as any)
+const LocaleAdminSettingsRoute = LocaleAdminSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => LocaleAdminRoute,
+} as any)
+const LocaleAdminUsersRoute = LocaleAdminUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
   getParentRoute: () => LocaleAdminRoute,
 } as any)
 const LocaleArtistsIndexRoute = LocaleArtistsIndexRouteImport.update({
@@ -352,6 +382,11 @@ export interface FileRoutesByFullPath {
   '/login/error': typeof LoginErrorRoute
   '/login/success': typeof LoginSuccessRoute
   '/$locale/': typeof LocaleIndexRoute
+  '/$locale/admin/audit': typeof LocaleAdminAuditRoute
+  '/$locale/admin/certificates': typeof LocaleAdminCertificatesRoute
+  '/$locale/admin/dashboard': typeof LocaleAdminDashboardRoute
+  '/$locale/admin/settings': typeof LocaleAdminSettingsRoute
+  '/$locale/admin/users': typeof LocaleAdminUsersRoute
   '/$locale/artists/$slug': typeof LocaleArtistsSlugRoute
   '/$locale/auth/2fa-enroll': typeof LocaleAuth2faEnrollRoute
   '/$locale/auth/activate': typeof LocaleAuthActivateRoute
@@ -404,6 +439,11 @@ export interface FileRoutesByTo {
   '/login/error': typeof LoginErrorRoute
   '/login/success': typeof LoginSuccessRoute
   '/$locale': typeof LocaleIndexRoute
+  '/$locale/admin/audit': typeof LocaleAdminAuditRoute
+  '/$locale/admin/certificates': typeof LocaleAdminCertificatesRoute
+  '/$locale/admin/dashboard': typeof LocaleAdminDashboardRoute
+  '/$locale/admin/settings': typeof LocaleAdminSettingsRoute
+  '/$locale/admin/users': typeof LocaleAdminUsersRoute
   '/$locale/artists/$slug': typeof LocaleArtistsSlugRoute
   '/$locale/auth/2fa-enroll': typeof LocaleAuth2faEnrollRoute
   '/$locale/auth/activate': typeof LocaleAuthActivateRoute
@@ -459,6 +499,11 @@ export interface FileRoutesById {
   '/login/error': typeof LoginErrorRoute
   '/login/success': typeof LoginSuccessRoute
   '/$locale/': typeof LocaleIndexRoute
+  '/$locale/admin/audit': typeof LocaleAdminAuditRoute
+  '/$locale/admin/certificates': typeof LocaleAdminCertificatesRoute
+  '/$locale/admin/dashboard': typeof LocaleAdminDashboardRoute
+  '/$locale/admin/settings': typeof LocaleAdminSettingsRoute
+  '/$locale/admin/users': typeof LocaleAdminUsersRoute
   '/$locale/artists/$slug': typeof LocaleArtistsSlugRoute
   '/$locale/auth/2fa-enroll': typeof LocaleAuth2faEnrollRoute
   '/$locale/auth/activate': typeof LocaleAuthActivateRoute
@@ -515,6 +560,11 @@ export interface FileRouteTypes {
     | '/login/error'
     | '/login/success'
     | '/$locale/'
+    | '/$locale/admin/audit'
+    | '/$locale/admin/certificates'
+    | '/$locale/admin/dashboard'
+    | '/$locale/admin/settings'
+    | '/$locale/admin/users'
     | '/$locale/artists/$slug'
     | '/$locale/auth/2fa-enroll'
     | '/$locale/auth/activate'
@@ -567,6 +617,11 @@ export interface FileRouteTypes {
     | '/login/error'
     | '/login/success'
     | '/$locale'
+    | '/$locale/admin/audit'
+    | '/$locale/admin/certificates'
+    | '/$locale/admin/dashboard'
+    | '/$locale/admin/settings'
+    | '/$locale/admin/users'
     | '/$locale/artists/$slug'
     | '/$locale/auth/2fa-enroll'
     | '/$locale/auth/activate'
@@ -621,6 +676,11 @@ export interface FileRouteTypes {
     | '/login/error'
     | '/login/success'
     | '/$locale/'
+    | '/$locale/admin/audit'
+    | '/$locale/admin/certificates'
+    | '/$locale/admin/dashboard'
+    | '/$locale/admin/settings'
+    | '/$locale/admin/users'
     | '/$locale/artists/$slug'
     | '/$locale/auth/2fa-enroll'
     | '/$locale/auth/activate'
@@ -798,6 +858,41 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/$locale/admin/'
       preLoaderRoute: typeof LocaleAdminIndexRouteImport
+      parentRoute: typeof LocaleAdminRoute
+    }
+    '/$locale/admin/audit': {
+      id: '/$locale/admin/audit'
+      path: '/audit'
+      fullPath: '/$locale/admin/audit'
+      preLoaderRoute: typeof LocaleAdminAuditRouteImport
+      parentRoute: typeof LocaleAdminRoute
+    }
+    '/$locale/admin/certificates': {
+      id: '/$locale/admin/certificates'
+      path: '/certificates'
+      fullPath: '/$locale/admin/certificates'
+      preLoaderRoute: typeof LocaleAdminCertificatesRouteImport
+      parentRoute: typeof LocaleAdminRoute
+    }
+    '/$locale/admin/dashboard': {
+      id: '/$locale/admin/dashboard'
+      path: '/dashboard'
+      fullPath: '/$locale/admin/dashboard'
+      preLoaderRoute: typeof LocaleAdminDashboardRouteImport
+      parentRoute: typeof LocaleAdminRoute
+    }
+    '/$locale/admin/settings': {
+      id: '/$locale/admin/settings'
+      path: '/settings'
+      fullPath: '/$locale/admin/settings'
+      preLoaderRoute: typeof LocaleAdminSettingsRouteImport
+      parentRoute: typeof LocaleAdminRoute
+    }
+    '/$locale/admin/users': {
+      id: '/$locale/admin/users'
+      path: '/users'
+      fullPath: '/$locale/admin/users'
+      preLoaderRoute: typeof LocaleAdminUsersRouteImport
       parentRoute: typeof LocaleAdminRoute
     }
     '/$locale/artists/': {
@@ -1035,6 +1130,11 @@ declare module '@tanstack/react-router' {
 }
 
 interface LocaleAdminRouteChildren {
+  LocaleAdminAuditRoute: typeof LocaleAdminAuditRoute
+  LocaleAdminCertificatesRoute: typeof LocaleAdminCertificatesRoute
+  LocaleAdminDashboardRoute: typeof LocaleAdminDashboardRoute
+  LocaleAdminSettingsRoute: typeof LocaleAdminSettingsRoute
+  LocaleAdminUsersRoute: typeof LocaleAdminUsersRoute
   LocaleAdminIndexRoute: typeof LocaleAdminIndexRoute
   LocaleAdminItinerariesIdRoute: typeof LocaleAdminItinerariesIdRoute
   LocaleAdminOrdersIdRoute: typeof LocaleAdminOrdersIdRoute
@@ -1053,6 +1153,11 @@ interface LocaleAdminRouteChildren {
 }
 
 const LocaleAdminRouteChildren: LocaleAdminRouteChildren = {
+  LocaleAdminAuditRoute: LocaleAdminAuditRoute,
+  LocaleAdminCertificatesRoute: LocaleAdminCertificatesRoute,
+  LocaleAdminDashboardRoute: LocaleAdminDashboardRoute,
+  LocaleAdminSettingsRoute: LocaleAdminSettingsRoute,
+  LocaleAdminUsersRoute: LocaleAdminUsersRoute,
   LocaleAdminIndexRoute: LocaleAdminIndexRoute,
   LocaleAdminItinerariesIdRoute: LocaleAdminItinerariesIdRoute,
   LocaleAdminOrdersIdRoute: LocaleAdminOrdersIdRoute,
