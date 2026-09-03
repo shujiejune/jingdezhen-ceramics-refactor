@@ -51,7 +51,7 @@ interface MetaEntry {
 interface LinkEntry {
   rel: string
   href: string
-  hreflang?: string
+  hrefLang?: string
 }
 
 export interface SeoHead {
@@ -98,18 +98,18 @@ export function buildSeoHead(input: SeoMetaInput): SeoHead {
   const links: LinkEntry[] = [{ rel: 'canonical', href: canonical }]
 
   // self-referencing hreflang for the current locale
-  links.push({ rel: 'alternate', hreflang: locale, href: canonical })
+  links.push({ rel: 'alternate', hrefLang: locale, href: canonical })
 
   if (alternates && alternateRoute) {
     for (const [altLocale, altSlug] of Object.entries(alternates)) {
       const altPath = `/${alternateRoute}/${altSlug}`
-      links.push({ rel: 'alternate', hreflang: altLocale, href: canonicalUrl(altLocale, altPath) })
+      links.push({ rel: 'alternate', hrefLang: altLocale, href: canonicalUrl(altLocale, altPath) })
     }
     // x-default points at en-US if available
     if (alternates['en-US']) {
       links.push({
         rel: 'alternate',
-        hreflang: 'x-default',
+        hrefLang: 'x-default',
         href: canonicalUrl('en-US', `/${alternateRoute}/${alternates['en-US']}`),
       })
     }
