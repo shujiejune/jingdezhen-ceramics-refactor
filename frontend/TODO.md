@@ -53,10 +53,10 @@ Contract realities from the backend inventory (absorb **all** of these):
 
 ## M-F3 — Compliance, SEO & analytics
 
-- [ ] Cookie consent banner: granular kinds → public `POST /consent` (`doc_version`), persisted state, re-open from footer ("Cookie preferences")
-- [ ] Analytics events: `pageview` on route change + `itinerary_form_view` on wizard mount (dashboard funnel contract); 204 = silently dropped, never retried
-- [ ] SEO: `hreflang` from the API `alternates` maps, canonical + OG/Twitter meta per entity, JSON-LD completion (Product / Article / BreadcrumbList everywhere), sitemap cross-link in footer
-- [ ] Policy placeholder pages (privacy / terms / cookies) with consent-version framing
+- [x] Cookie consent banner: granular kinds → public `POST /consent` (`doc_version`), persisted state, re-open from footer ("Cookie preferences")
+- [x] Analytics events: `pageview` on route change + `itinerary_form_view` on wizard mount (dashboard funnel contract); 204 = silently dropped, never retried
+- [x] SEO: `hreflang` from the API `alternates` maps, canonical + OG/Twitter meta per entity, JSON-LD completion (Product / Article / BreadcrumbList everywhere), sitemap cross-link in footer
+- [x] Policy placeholder pages (privacy / terms / cookies) with consent-version framing
 - [ ] PRD §4.4 audit checklist run in both locales
 
 **Acceptance:** SEO audit passes per locale; consented events appear in the admin dashboard.
