@@ -5,18 +5,20 @@ import { SectionHeading } from '~/components/common/ui'
 import { WaveDivider } from '~/components/cards'
 import { api } from '~/lib/api'
 import { useI18n } from '~/lib/i18n'
+import { loaderCurrency } from '~/lib/utils'
 
 export const Route = createFileRoute('/$locale/artists/')({
   loader: async ({ context, params }) => {
     const { queryClient } = context
+    const currency = await loaderCurrency()
     const [artists, catalog] = await Promise.all([
       queryClient.ensureQueryData({
         queryKey: ['artists', params.locale],
         queryFn: () => api.getArtists(params.locale),
       }),
       queryClient.ensureQueryData({
-        queryKey: ['products', params.locale, undefined, 'all', 48],
-        queryFn: () => api.getProducts({ locale: params.locale, limit: 48 }),
+        queryKey: ['products', params.locale, currency, 'all', 48],
+        queryFn: () => api.getProducts({ locale: params.locale, currency, limit: 48 }),
       }),
     ])
     return { artists, worksByArtist: catalog.data }

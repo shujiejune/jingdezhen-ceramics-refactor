@@ -111,9 +111,13 @@ export function CartProvider({
     [token],
   )
 
-  // mutations carry locale+currency so responses include presentment totals
+  // mutations carry locale+currency in params so responses include
+  // presentment totals (both transports read opts.params.locale/currency)
   const withCtx = useCallback(
-    (o: Owner): Owner & { locale: string; currency: string } => ({ ...o, locale, currency }),
+    (o: Owner): Owner & { params: { locale: string; currency: string } } => ({
+      ...o,
+      params: { locale, currency },
+    }),
     [locale, currency],
   )
 
