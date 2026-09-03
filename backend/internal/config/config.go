@@ -115,6 +115,11 @@ type Config struct {
 	//   City db (region-level) is a later schema change; MVP stores CHAR(2).
 	GeoIPMode      string `mapstructure:"GEOIP_MODE"`       // noop | maxmind
 	GeoLite2DBPath string `mapstructure:"GEOLITE2_DB_PATH"` // path to .mmdb
+
+	// --- Global rate-limit backstop (TDD §333: 100/min/IP in prod) ---
+	// RATE_LIMIT_MAX=0 disables the global limiter (for local load testing).
+	// Default 100 when unset (see cmd/api/main.go).
+	RateLimitMax int `mapstructure:"RATE_LIMIT_MAX"`
 }
 
 func LoadConfig(path string) (config Config, err error) {

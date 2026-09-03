@@ -248,14 +248,28 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 	// the HMAC signature is already the security boundary there. The stricter
 	// auth (5/min) + analytics (60/min) group limiters are applied in router.go
 	// and kick in before this backstop for those routes.
-	app.Use(limiter.New(limiter.Config{
-		Max:          100,
-		Expiration:   1 * time.Minute,
-		KeyGenerator: func(c *fiber.Ctx) string { return c.IP() },
-		Next: func(c *fiber.Ctx) bool {
-			return strings.HasPrefix(c.Path(), "/webhooks/")
-		},
-	}))
+	// RATE_LIMIT_MAX=0 disables the limiter (for local load testing).
+	// Unset or negative → default 100/min/IP (TDD §333).
+	rlMax := 100
+	if cfg.RateLimitMax > 0 {
+		rlMax = cfg.RateLimitMax
+	} else if cfg.RateLimitMax == 0 {
+		// Only treat as "disabled" when the env var was explicitly set to 0.
+		// Viper returns 0 for both unset and explicitly-0; check the raw env.
+		if v := os.Getenv("RATE_LIMIT_MAX"); v == "0" {
+			rlMax = 0
+		}
+	}
+	if rlMax > 0 {
+		app.Use(limiter.New(limiter.Config{
+			Max:          rlMax,
+			Expiration:   1 * time.Minute,
+			KeyGenerator: func(c *fiber.Ctx) string { return c.IP() },
+			Next: func(c *fiber.Ctx) bool {
+				return strings.HasPrefix(c.Path(), "/webhooks/")
+			},
+		}))
+	}
 
 	// --- Database connection ---
 	dbConfig, err := pgxpool.ParseConfig(cfg.DatabaseURL)

@@ -30,6 +30,7 @@ services:
       - BREVO_SENDER_NAME=${BREVO_SENDER_NAME:-}
       - CONSENT_HMAC_KEY=${CONSENT_HMAC_KEY}
       - TWO_FA_ENCRYPTION_KEY=${TWO_FA_ENCRYPTION_KEY}
+      - RATE_LIMIT_MAX=${RATE_LIMIT_MAX:-0}
 
     depends_on:
       db:

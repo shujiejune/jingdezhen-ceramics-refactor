@@ -85,7 +85,7 @@ export default function () {
     check(res, {
       'product detail 200 or 404': (r) => r.status === 200 || r.status === 404,
     })
-    errorRate.add(res.status !== 200 && r.status !== 404)
+    errorRate.add(res.status !== 200 && res.status !== 404)
     pageLoadDuration.add(res.timings.duration)
   })
 
