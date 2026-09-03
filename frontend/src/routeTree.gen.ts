@@ -18,9 +18,16 @@ import { Route as LocaleCheckoutRouteImport } from './routes/$locale/checkout'
 import { Route as LocaleItinerariesRouteImport } from './routes/$locale/itineraries'
 import { Route as LocaleItineraryRouteImport } from './routes/$locale/itinerary'
 import { Route as LocaleWishlistRouteImport } from './routes/$locale/wishlist'
+import { Route as Login2faRouteImport } from './routes/login/2fa'
+import { Route as LoginErrorRouteImport } from './routes/login/error'
+import { Route as LoginSuccessRouteImport } from './routes/login/success'
 import { Route as LocaleArtistsIndexRouteImport } from './routes/$locale/artists/index'
 import { Route as LocaleArtistsSlugRouteImport } from './routes/$locale/artists/$slug'
+import { Route as LocaleAuth2faEnrollRouteImport } from './routes/$locale/auth/2fa-enroll'
+import { Route as LocaleAuthActivateRouteImport } from './routes/$locale/auth/activate'
+import { Route as LocaleAuthForgotRouteImport } from './routes/$locale/auth/forgot'
 import { Route as LocaleAuthLoginRouteImport } from './routes/$locale/auth/login'
+import { Route as LocaleAuthResetRouteImport } from './routes/$locale/auth/reset'
 import { Route as LocaleAuthSignupRouteImport } from './routes/$locale/auth/signup'
 import { Route as LocaleCatalogIndexRouteImport } from './routes/$locale/catalog/index'
 import { Route as LocaleCatalogSlugRouteImport } from './routes/$locale/catalog/$slug'
@@ -31,6 +38,7 @@ import { Route as LocaleEngageIndexRouteImport } from './routes/$locale/engage/i
 import { Route as LocaleEngageSlugRouteImport } from './routes/$locale/engage/$slug'
 import { Route as LocaleOrdersIndexRouteImport } from './routes/$locale/orders/index'
 import { Route as LocaleOrdersIdRouteImport } from './routes/$locale/orders/$id'
+import { Route as Login2faEnrollRouteImport } from './routes/login/2fa/enroll'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -77,6 +85,21 @@ const LocaleWishlistRoute = LocaleWishlistRouteImport.update({
   path: '/wishlist',
   getParentRoute: () => LocaleRoute,
 } as any)
+const Login2faRoute = Login2faRouteImport.update({
+  id: '/login/2fa',
+  path: '/login/2fa',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginErrorRoute = LoginErrorRouteImport.update({
+  id: '/login/error',
+  path: '/login/error',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginSuccessRoute = LoginSuccessRouteImport.update({
+  id: '/login/success',
+  path: '/login/success',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LocaleArtistsIndexRoute = LocaleArtistsIndexRouteImport.update({
   id: '/artists/',
   path: '/artists/',
@@ -87,9 +110,29 @@ const LocaleArtistsSlugRoute = LocaleArtistsSlugRouteImport.update({
   path: '/artists/$slug',
   getParentRoute: () => LocaleRoute,
 } as any)
+const LocaleAuth2faEnrollRoute = LocaleAuth2faEnrollRouteImport.update({
+  id: '/auth/2fa-enroll',
+  path: '/auth/2fa-enroll',
+  getParentRoute: () => LocaleRoute,
+} as any)
+const LocaleAuthActivateRoute = LocaleAuthActivateRouteImport.update({
+  id: '/auth/activate',
+  path: '/auth/activate',
+  getParentRoute: () => LocaleRoute,
+} as any)
+const LocaleAuthForgotRoute = LocaleAuthForgotRouteImport.update({
+  id: '/auth/forgot',
+  path: '/auth/forgot',
+  getParentRoute: () => LocaleRoute,
+} as any)
 const LocaleAuthLoginRoute = LocaleAuthLoginRouteImport.update({
   id: '/auth/login',
   path: '/auth/login',
+  getParentRoute: () => LocaleRoute,
+} as any)
+const LocaleAuthResetRoute = LocaleAuthResetRouteImport.update({
+  id: '/auth/reset',
+  path: '/auth/reset',
   getParentRoute: () => LocaleRoute,
 } as any)
 const LocaleAuthSignupRoute = LocaleAuthSignupRouteImport.update({
@@ -142,6 +185,11 @@ const LocaleOrdersIdRoute = LocaleOrdersIdRouteImport.update({
   path: '/orders/$id',
   getParentRoute: () => LocaleRoute,
 } as any)
+const Login2faEnrollRoute = Login2faEnrollRouteImport.update({
+  id: '/enroll',
+  path: '/enroll',
+  getParentRoute: () => Login2faRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -152,15 +200,23 @@ export interface FileRoutesByFullPath {
   '/$locale/itineraries': typeof LocaleItinerariesRoute
   '/$locale/itinerary': typeof LocaleItineraryRoute
   '/$locale/wishlist': typeof LocaleWishlistRoute
+  '/login/2fa': typeof Login2faRouteWithChildren
+  '/login/error': typeof LoginErrorRoute
+  '/login/success': typeof LoginSuccessRoute
   '/$locale/': typeof LocaleIndexRoute
   '/$locale/artists/$slug': typeof LocaleArtistsSlugRoute
+  '/$locale/auth/2fa-enroll': typeof LocaleAuth2faEnrollRoute
+  '/$locale/auth/activate': typeof LocaleAuthActivateRoute
+  '/$locale/auth/forgot': typeof LocaleAuthForgotRoute
   '/$locale/auth/login': typeof LocaleAuthLoginRoute
+  '/$locale/auth/reset': typeof LocaleAuthResetRoute
   '/$locale/auth/signup': typeof LocaleAuthSignupRoute
   '/$locale/catalog/$slug': typeof LocaleCatalogSlugRoute
   '/$locale/ceramicstory/$slug': typeof LocaleCeramicstorySlugRoute
   '/$locale/certificates/$code': typeof LocaleCertificatesCodeRoute
   '/$locale/engage/$slug': typeof LocaleEngageSlugRoute
   '/$locale/orders/$id': typeof LocaleOrdersIdRoute
+  '/login/2fa/enroll': typeof Login2faEnrollRoute
   '/$locale/artists/': typeof LocaleArtistsIndexRoute
   '/$locale/catalog/': typeof LocaleCatalogIndexRoute
   '/$locale/ceramicstory/': typeof LocaleCeramicstoryIndexRoute
@@ -175,15 +231,23 @@ export interface FileRoutesByTo {
   '/$locale/itineraries': typeof LocaleItinerariesRoute
   '/$locale/itinerary': typeof LocaleItineraryRoute
   '/$locale/wishlist': typeof LocaleWishlistRoute
+  '/login/2fa': typeof Login2faRouteWithChildren
+  '/login/error': typeof LoginErrorRoute
+  '/login/success': typeof LoginSuccessRoute
   '/$locale': typeof LocaleIndexRoute
   '/$locale/artists/$slug': typeof LocaleArtistsSlugRoute
+  '/$locale/auth/2fa-enroll': typeof LocaleAuth2faEnrollRoute
+  '/$locale/auth/activate': typeof LocaleAuthActivateRoute
+  '/$locale/auth/forgot': typeof LocaleAuthForgotRoute
   '/$locale/auth/login': typeof LocaleAuthLoginRoute
+  '/$locale/auth/reset': typeof LocaleAuthResetRoute
   '/$locale/auth/signup': typeof LocaleAuthSignupRoute
   '/$locale/catalog/$slug': typeof LocaleCatalogSlugRoute
   '/$locale/ceramicstory/$slug': typeof LocaleCeramicstorySlugRoute
   '/$locale/certificates/$code': typeof LocaleCertificatesCodeRoute
   '/$locale/engage/$slug': typeof LocaleEngageSlugRoute
   '/$locale/orders/$id': typeof LocaleOrdersIdRoute
+  '/login/2fa/enroll': typeof Login2faEnrollRoute
   '/$locale/artists': typeof LocaleArtistsIndexRoute
   '/$locale/catalog': typeof LocaleCatalogIndexRoute
   '/$locale/ceramicstory': typeof LocaleCeramicstoryIndexRoute
@@ -200,15 +264,23 @@ export interface FileRoutesById {
   '/$locale/itineraries': typeof LocaleItinerariesRoute
   '/$locale/itinerary': typeof LocaleItineraryRoute
   '/$locale/wishlist': typeof LocaleWishlistRoute
+  '/login/2fa': typeof Login2faRouteWithChildren
+  '/login/error': typeof LoginErrorRoute
+  '/login/success': typeof LoginSuccessRoute
   '/$locale/': typeof LocaleIndexRoute
   '/$locale/artists/$slug': typeof LocaleArtistsSlugRoute
+  '/$locale/auth/2fa-enroll': typeof LocaleAuth2faEnrollRoute
+  '/$locale/auth/activate': typeof LocaleAuthActivateRoute
+  '/$locale/auth/forgot': typeof LocaleAuthForgotRoute
   '/$locale/auth/login': typeof LocaleAuthLoginRoute
+  '/$locale/auth/reset': typeof LocaleAuthResetRoute
   '/$locale/auth/signup': typeof LocaleAuthSignupRoute
   '/$locale/catalog/$slug': typeof LocaleCatalogSlugRoute
   '/$locale/ceramicstory/$slug': typeof LocaleCeramicstorySlugRoute
   '/$locale/certificates/$code': typeof LocaleCertificatesCodeRoute
   '/$locale/engage/$slug': typeof LocaleEngageSlugRoute
   '/$locale/orders/$id': typeof LocaleOrdersIdRoute
+  '/login/2fa/enroll': typeof Login2faEnrollRoute
   '/$locale/artists/': typeof LocaleArtistsIndexRoute
   '/$locale/catalog/': typeof LocaleCatalogIndexRoute
   '/$locale/ceramicstory/': typeof LocaleCeramicstoryIndexRoute
@@ -226,15 +298,23 @@ export interface FileRouteTypes {
     | '/$locale/itineraries'
     | '/$locale/itinerary'
     | '/$locale/wishlist'
+    | '/login/2fa'
+    | '/login/error'
+    | '/login/success'
     | '/$locale/'
     | '/$locale/artists/$slug'
+    | '/$locale/auth/2fa-enroll'
+    | '/$locale/auth/activate'
+    | '/$locale/auth/forgot'
     | '/$locale/auth/login'
+    | '/$locale/auth/reset'
     | '/$locale/auth/signup'
     | '/$locale/catalog/$slug'
     | '/$locale/ceramicstory/$slug'
     | '/$locale/certificates/$code'
     | '/$locale/engage/$slug'
     | '/$locale/orders/$id'
+    | '/login/2fa/enroll'
     | '/$locale/artists/'
     | '/$locale/catalog/'
     | '/$locale/ceramicstory/'
@@ -249,15 +329,23 @@ export interface FileRouteTypes {
     | '/$locale/itineraries'
     | '/$locale/itinerary'
     | '/$locale/wishlist'
+    | '/login/2fa'
+    | '/login/error'
+    | '/login/success'
     | '/$locale'
     | '/$locale/artists/$slug'
+    | '/$locale/auth/2fa-enroll'
+    | '/$locale/auth/activate'
+    | '/$locale/auth/forgot'
     | '/$locale/auth/login'
+    | '/$locale/auth/reset'
     | '/$locale/auth/signup'
     | '/$locale/catalog/$slug'
     | '/$locale/ceramicstory/$slug'
     | '/$locale/certificates/$code'
     | '/$locale/engage/$slug'
     | '/$locale/orders/$id'
+    | '/login/2fa/enroll'
     | '/$locale/artists'
     | '/$locale/catalog'
     | '/$locale/ceramicstory'
@@ -273,15 +361,23 @@ export interface FileRouteTypes {
     | '/$locale/itineraries'
     | '/$locale/itinerary'
     | '/$locale/wishlist'
+    | '/login/2fa'
+    | '/login/error'
+    | '/login/success'
     | '/$locale/'
     | '/$locale/artists/$slug'
+    | '/$locale/auth/2fa-enroll'
+    | '/$locale/auth/activate'
+    | '/$locale/auth/forgot'
     | '/$locale/auth/login'
+    | '/$locale/auth/reset'
     | '/$locale/auth/signup'
     | '/$locale/catalog/$slug'
     | '/$locale/ceramicstory/$slug'
     | '/$locale/certificates/$code'
     | '/$locale/engage/$slug'
     | '/$locale/orders/$id'
+    | '/login/2fa/enroll'
     | '/$locale/artists/'
     | '/$locale/catalog/'
     | '/$locale/ceramicstory/'
@@ -292,6 +388,9 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LocaleRoute: typeof LocaleRouteWithChildren
+  Login2faRoute: typeof Login2faRouteWithChildren
+  LoginErrorRoute: typeof LoginErrorRoute
+  LoginSuccessRoute: typeof LoginSuccessRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -359,6 +458,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LocaleWishlistRouteImport
       parentRoute: typeof LocaleRoute
     }
+    '/login/2fa': {
+      id: '/login/2fa'
+      path: '/login/2fa'
+      fullPath: '/login/2fa'
+      preLoaderRoute: typeof Login2faRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login/error': {
+      id: '/login/error'
+      path: '/login/error'
+      fullPath: '/login/error'
+      preLoaderRoute: typeof LoginErrorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login/success': {
+      id: '/login/success'
+      path: '/login/success'
+      fullPath: '/login/success'
+      preLoaderRoute: typeof LoginSuccessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/$locale/artists/': {
       id: '/$locale/artists/'
       path: '/artists'
@@ -373,11 +493,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LocaleArtistsSlugRouteImport
       parentRoute: typeof LocaleRoute
     }
+    '/$locale/auth/2fa-enroll': {
+      id: '/$locale/auth/2fa-enroll'
+      path: '/auth/2fa-enroll'
+      fullPath: '/$locale/auth/2fa-enroll'
+      preLoaderRoute: typeof LocaleAuth2faEnrollRouteImport
+      parentRoute: typeof LocaleRoute
+    }
+    '/$locale/auth/activate': {
+      id: '/$locale/auth/activate'
+      path: '/auth/activate'
+      fullPath: '/$locale/auth/activate'
+      preLoaderRoute: typeof LocaleAuthActivateRouteImport
+      parentRoute: typeof LocaleRoute
+    }
+    '/$locale/auth/forgot': {
+      id: '/$locale/auth/forgot'
+      path: '/auth/forgot'
+      fullPath: '/$locale/auth/forgot'
+      preLoaderRoute: typeof LocaleAuthForgotRouteImport
+      parentRoute: typeof LocaleRoute
+    }
     '/$locale/auth/login': {
       id: '/$locale/auth/login'
       path: '/auth/login'
       fullPath: '/$locale/auth/login'
       preLoaderRoute: typeof LocaleAuthLoginRouteImport
+      parentRoute: typeof LocaleRoute
+    }
+    '/$locale/auth/reset': {
+      id: '/$locale/auth/reset'
+      path: '/auth/reset'
+      fullPath: '/$locale/auth/reset'
+      preLoaderRoute: typeof LocaleAuthResetRouteImport
       parentRoute: typeof LocaleRoute
     }
     '/$locale/auth/signup': {
@@ -450,6 +598,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LocaleOrdersIdRouteImport
       parentRoute: typeof LocaleRoute
     }
+    '/login/2fa/enroll': {
+      id: '/login/2fa/enroll'
+      path: '/enroll'
+      fullPath: '/login/2fa/enroll'
+      preLoaderRoute: typeof Login2faEnrollRouteImport
+      parentRoute: typeof Login2faRoute
+    }
   }
 }
 
@@ -462,7 +617,11 @@ interface LocaleRouteChildren {
   LocaleWishlistRoute: typeof LocaleWishlistRoute
   LocaleIndexRoute: typeof LocaleIndexRoute
   LocaleArtistsSlugRoute: typeof LocaleArtistsSlugRoute
+  LocaleAuth2faEnrollRoute: typeof LocaleAuth2faEnrollRoute
+  LocaleAuthActivateRoute: typeof LocaleAuthActivateRoute
+  LocaleAuthForgotRoute: typeof LocaleAuthForgotRoute
   LocaleAuthLoginRoute: typeof LocaleAuthLoginRoute
+  LocaleAuthResetRoute: typeof LocaleAuthResetRoute
   LocaleAuthSignupRoute: typeof LocaleAuthSignupRoute
   LocaleCatalogSlugRoute: typeof LocaleCatalogSlugRoute
   LocaleCeramicstorySlugRoute: typeof LocaleCeramicstorySlugRoute
@@ -485,7 +644,11 @@ const LocaleRouteChildren: LocaleRouteChildren = {
   LocaleWishlistRoute: LocaleWishlistRoute,
   LocaleIndexRoute: LocaleIndexRoute,
   LocaleArtistsSlugRoute: LocaleArtistsSlugRoute,
+  LocaleAuth2faEnrollRoute: LocaleAuth2faEnrollRoute,
+  LocaleAuthActivateRoute: LocaleAuthActivateRoute,
+  LocaleAuthForgotRoute: LocaleAuthForgotRoute,
   LocaleAuthLoginRoute: LocaleAuthLoginRoute,
+  LocaleAuthResetRoute: LocaleAuthResetRoute,
   LocaleAuthSignupRoute: LocaleAuthSignupRoute,
   LocaleCatalogSlugRoute: LocaleCatalogSlugRoute,
   LocaleCeramicstorySlugRoute: LocaleCeramicstorySlugRoute,
@@ -502,9 +665,24 @@ const LocaleRouteChildren: LocaleRouteChildren = {
 const LocaleRouteWithChildren =
   LocaleRoute._addFileChildren(LocaleRouteChildren)
 
+interface Login2faRouteChildren {
+  Login2faEnrollRoute: typeof Login2faEnrollRoute
+}
+
+const Login2faRouteChildren: Login2faRouteChildren = {
+  Login2faEnrollRoute: Login2faEnrollRoute,
+}
+
+const Login2faRouteWithChildren = Login2faRoute._addFileChildren(
+  Login2faRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LocaleRoute: LocaleRouteWithChildren,
+  Login2faRoute: Login2faRouteWithChildren,
+  LoginErrorRoute: LoginErrorRoute,
+  LoginSuccessRoute: LoginSuccessRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

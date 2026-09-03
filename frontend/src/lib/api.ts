@@ -313,8 +313,44 @@ export const api = {
         body: { pending_token: pendingToken, code },
       }),
     ),
+  /** super_admin must-enroll: password proof → otpauth URI + secret */
+  pending2FAEnroll: (pendingToken: string, password: string) =>
+    t().then((x) =>
+      x.call<{ otpauth_url: string; secret: string }>('POST', '/auth/2fa/pending-enroll', {
+        body: { pending_token: pendingToken, password },
+      }),
+    ),
+  /** confirms enrollment; backup codes are shown exactly once */
+  pending2FAConfirm: (pendingToken: string, code: string) =>
+    t().then((x) =>
+      x.call<AuthResponse & { backup_codes: string[] }>('POST', '/auth/2fa/pending-confirm', {
+        body: { pending_token: pendingToken, code },
+      }),
+    ),
+  /** email-link activation: the API takes a JSON body, the link points here */
+  activate: (token: string) =>
+    t().then((x) => x.call<AuthResponse>('POST', '/auth/activate', { body: { token } })),
+  resendActivation: (email: string) =>
+    t().then((x) =>
+      x.call<{ message: string }>('POST', '/auth/resend-activation', { body: { email } }),
+    ),
+  /** anti-enumeration: always 200 {message} */
+  requestPasswordReset: (email: string) =>
+    t().then((x) =>
+      x.call<{ message: string; reset_token?: string }>('POST', '/auth/request-password-reset', {
+        body: { email },
+      }),
+    ),
+  resetPassword: (token: string, newPassword: string) =>
+    t().then((x) =>
+      x.call<AuthResponse>('POST', '/auth/reset-password', {
+        body: { token, new_password: newPassword },
+      }),
+    ),
   signup: (body: { email: string; password: string; nickname: string }) =>
-    t().then((x) => x.call<AuthResponse>('POST', '/auth/signup', { body })),
+    t().then((x) =>
+      x.call<AuthResponse & { activation_token?: string }>('POST', '/auth/signup', { body }),
+    ),
 
   /* ---- profile ---- */
   getProfile: (token: string) => t().then((x) => x.call<User>('GET', '/profile', { token })),

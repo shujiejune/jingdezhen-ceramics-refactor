@@ -62,6 +62,8 @@ type StoredAddress = Address & { user_id: string }
 
 const sessions = new Map<string, string>() // token → userId
 const pending2FA = new Map<string, { userId: string; fails: number }>()
+const activationTokens = new Map<string, string>() // token → userId (inactive users)
+const resetTokens = new Map<string, string>() // token → userId
 const userCarts = new Map<string, CartLine[]>()
 const guestCarts = new Map<string, CartLine[]>()
 const wishlists = new Map<string, number[]>(SEED_WISHLIST.map((w) => [w.user_id, [w.sku_id]]))
@@ -98,6 +100,9 @@ function persist() {
       STATE_KEY,
       JSON.stringify({
         sessions: [...sessions],
+        activationTokens: [...activationTokens],
+        resetTokens: [...resetTokens],
+        pending2FA: [...pending2FA],
         userCarts: [...userCarts],
         guestCarts: [...guestCarts],
         wishlists: [...wishlists],
@@ -120,6 +125,9 @@ function hydrate() {
     if (!raw) return
     const s = JSON.parse(raw) as {
       sessions?: Array<[string, string]>
+      activationTokens?: Array<[string, string]>
+      resetTokens?: Array<[string, string]>
+      pending2FA?: Array<[string, { userId: string; fails: number }]>
       userCarts?: Array<[string, CartLine[]]>
       guestCarts?: Array<[string, CartLine[]]>
       wishlists?: Array<[string, number[]]>
@@ -130,6 +138,9 @@ function hydrate() {
       extraUsers?: Array<(typeof DEMO_USERS)[number]>
     }
     for (const [k, v] of s.sessions ?? []) sessions.set(k, v)
+    for (const [k, v] of s.activationTokens ?? []) activationTokens.set(k, v)
+    for (const [k, v] of s.resetTokens ?? []) resetTokens.set(k, v)
+    for (const [k, v] of s.pending2FA ?? []) pending2FA.set(k, v)
     for (const [k, v] of s.userCarts ?? []) userCarts.set(k, v)
     for (const [k, v] of s.guestCarts ?? []) guestCarts.set(k, v)
     for (const [k, v] of s.wishlists ?? []) wishlists.set(k, v)
@@ -427,7 +438,12 @@ export const mockTransport: Transport = {
       if (method !== 'GET') persist()
       return result
     } catch (e) {
-      if (e instanceof ApiError) throw e
+      // ApiError throws (e.g. 2FA challenge) mutate Maps too — persist so
+      // the pending token survives HMR module re-evaluation and reloads.
+      if (e instanceof ApiError) {
+        if (method !== 'GET') persist()
+        throw e
+      }
       throw new ApiError('internal', 'mock transport failure', 500)
     }
   },
@@ -615,16 +631,23 @@ async function handle(route: string, ctx: Ctx): Promise<unknown> {
     const email = String(body.email ?? '').toLowerCase()
     const password = String(body.password ?? '')
     const found = DEMO_USERS.find((u) => u.email === email)
-    if (!found || found.password !== password) {
-      throw new ApiError('invalid_credentials', 'invalid credentials', 401)
+    // demo affordance: the literal password 'enroll-me' triggers the
+    // must-enroll challenge; the REAL password is still required at the
+    // pending-enroll step on the enroll page
+    const demoEnroll = found !== undefined && password === 'enroll-me'
+    if (!found || (found.password !== password && !demoEnroll)) {
+      throw new ApiError('invalid_credentials', 'Invalid email or password', 401)
     }
-    if (found.twoFA) {
+    if (demoEnroll || found.twoFA) {
+      const code = demoEnroll ? '2fa_enrollment_required' : '2fa_required'
       // real contract: 401 {"error":{code:"2fa_required", message, pending_token}}
       const pending = `pending_${found.id}_${idSeq.token++}`
       pending2FA.set(pending, { userId: found.id, fails: 0 })
       throw new ApiError(
-        '2fa_required',
-        'two-factor authentication code required',
+        code,
+        code === '2fa_required'
+          ? 'two-factor authentication code required'
+          : 'two-factor enrollment required',
         401,
         undefined,
         pending,
@@ -633,6 +656,93 @@ async function handle(route: string, ctx: Ctx): Promise<unknown> {
     const token = `tok_${found.id}_${idSeq.token++}`
     sessions.set(token, found.id)
     return { access_token: token, user: found.user }
+  }
+
+  if (route === 'POST /auth/2fa/enroll-portal') {
+    // unused placeholder guard (kept for readability)
+  }
+
+  if (route === 'POST /auth/activate') {
+    const token = String(body.token ?? '')
+    const userId = activationTokens.get(token)
+    if (!userId) throw new ApiError('unauthorized', 'token not found or expired', 401)
+    activationTokens.delete(token)
+    const found = DEMO_USERS.find((u) => u.id === userId)!
+    const tok = `tok_${found.id}_${idSeq.token++}`
+    sessions.set(tok, found.id)
+    return { access_token: tok, user: found.user }
+  }
+
+  if (route === 'POST /auth/resend-activation') {
+    const email = String(body.email ?? '').toLowerCase()
+    const found = DEMO_USERS.find((u) => u.email === email)
+    if (found) {
+      const act = (found as { activationToken?: string }).activationToken
+      if (act) activationTokens.delete(act)
+      const fresh = `activate_${found.id}_${idSeq.token++}`
+      activationTokens.set(fresh, found.id)
+      ;(found as { activationToken?: string }).activationToken = fresh
+    }
+    return { message: 'If the address exists, an activation email has been sent.' }
+  }
+
+  if (route === 'POST /auth/request-password-reset') {
+    const email = String(body.email ?? '').toLowerCase()
+    const found = DEMO_USERS.find((u) => u.email === email)
+    if (found) {
+      const tok = `reset_${found.id}_${idSeq.token++}`
+      resetTokens.set(tok, found.id)
+      ;(found as { resetToken?: string }).resetToken = tok
+      return {
+        message: 'If the address exists, a password reset link has been sent.',
+        reset_token: tok, // mock-only dev affordance
+      }
+    }
+    return { message: 'If the address exists, a password reset link has been sent.' }
+  }
+
+  if (route === 'POST /auth/reset-password') {
+    const token = String(body.token ?? '')
+    const userId = resetTokens.get(token)
+    if (!userId) throw new ApiError('unauthorized', 'token not found or expired', 401)
+    resetTokens.delete(token)
+    const found = DEMO_USERS.find((u) => u.id === userId)!
+    found.password = String(body.new_password ?? '')
+    const tok = `tok_${found.id}_${idSeq.token++}`
+    sessions.set(tok, found.id)
+    return { access_token: tok, user: found.user }
+  }
+
+  if (route === 'POST /auth/2fa/pending-enroll') {
+    const pending = String(body.pending_token ?? '')
+    const entry = pending2FA.get(pending)
+    if (!entry) throw new ApiError('unauthorized', 'token not found or expired', 401)
+    const found = DEMO_USERS.find((u) => u.id === entry.userId)!
+    if (found.password !== String(body.password ?? '')) {
+      throw new ApiError('invalid_credentials', 'invalid credentials', 401)
+    }
+    const secret = 'JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP'
+    return {
+      otpauth_url: `otpauth://totp/JDZ:${found.email}?secret=${secret}&issuer=Jingdezhen`,
+      secret,
+    }
+  }
+
+  if (route === 'POST /auth/2fa/pending-confirm') {
+    const pending = String(body.pending_token ?? '')
+    const entry = pending2FA.get(pending)
+    if (!entry) throw new ApiError('unauthorized', 'token not found or expired', 401)
+    if (String(body.code ?? '') !== '123456') {
+      throw new ApiError('invalid_credentials', 'invalid credentials', 401)
+    }
+    pending2FA.delete(pending)
+    const found = DEMO_USERS.find((u) => u.id === entry.userId)!
+    found.twoFA = true
+    found.demoCode = '123456'
+    const tok = `tok_${found.id}_${idSeq.token++}`
+    sessions.set(tok, found.id)
+    const backup = Array.from({ length: 5 }, (_, i) => `${found.id.slice(-4)}-${1000 + i}`)
+    return { access_token: tok, user: found.user, backup_codes: backup }
   }
 
   if (route === 'POST /auth/2fa/verify') {
@@ -687,9 +797,12 @@ async function handle(route: string, ctx: Ctx): Promise<unknown> {
       user,
     } as (typeof DEMO_USERS)[number]
     DEMO_USERS.push(demo)
-    const token = `tok_${user.id}_${idSeq.token++}`
-    sessions.set(token, user.id)
-    return { access_token: token, user }
+    // real contract: 201 with an EMPTY access_token — the account is
+    // inactive until the email-link activation completes
+    const activationToken = `activate_${user.id}_${idSeq.token++}`
+    activationTokens.set(activationToken, user.id)
+    ;(demo as { activationToken?: string }).activationToken = activationToken
+    return { access_token: '', user, activation_token: activationToken }
   }
 
   /* ---------------- profile ---------------- */

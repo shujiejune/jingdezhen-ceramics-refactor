@@ -1,6 +1,6 @@
 import { Link, createFileRoute, useNavigate, useSearch } from '@tanstack/react-router'
 import { SealCheck } from '@phosphor-icons/react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { z } from 'zod'
 
 import { SealMark, CloudScroll } from '~/components/ornaments'
@@ -13,7 +13,13 @@ import { PetalScatter } from '~/components/ornaments'
  * Sign-in — email + password, with the 2FA verify step when the account
  * has TOTP enabled (contract: login → pending token → /auth/2fa/verify).
  */
-const searchSchema = z.object({ returnTo: z.string().optional() })
+const searchSchema = z.object({
+  returnTo: z.string().optional(),
+  /** preseeded by the OAuth receiver routes */
+  pending2fa: z.string().optional(),
+  enrollment: z.boolean().optional(),
+  oauthError: z.number().optional(),
+})
 
 export const Route = createFileRoute('/$locale/auth/login')({
   validateSearch: searchSchema,
@@ -30,8 +36,17 @@ function LoginPage() {
   const [password, setPassword] = useState('')
   const [pending2FA, setPending2FA] = useState<string | null>(null)
   const [code, setCode] = useState('')
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(search.oauthError ? t('auth.oauthError') : null)
   const [busy, setBusy] = useState(false)
+
+  // OAuth receiver hand-off: preseed the challenge state
+  useEffect(() => {
+    if (search.pending2fa) {
+      setPending2FA(search.pending2fa)
+      setError(t('auth.login2faPreseeded'))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const finish = async () => {
     // cart merge/reload is handled by CartProvider's token-change effect
@@ -44,6 +59,15 @@ function LoginPage() {
     setBusy(true)
     try {
       const res = await login(email, password)
+      if (res.pending2FA && res.enrollment) {
+        // super_admin must enroll 2FA before a session is granted
+        await navigate({
+          to: '/$locale/auth/2fa-enroll',
+          params: { locale },
+          search: { pending: res.pending2FA },
+        })
+        return
+      }
       if (res.pending2FA) {
         setPending2FA(res.pending2FA)
       } else {

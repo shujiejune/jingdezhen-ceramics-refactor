@@ -31,8 +31,29 @@ export interface AuthValue {
     password: string,
   ) => Promise<{ pending2FA?: string; enrollment?: boolean; user?: User }>
   verify2FA: (pendingToken: string, code: string) => Promise<User>
-  signup: (email: string, password: string, nickname: string) => Promise<User>
+  /**
+   * Real contract: signup answers 201 with an EMPTY access_token — the
+   * account needs email activation first. needsActivation reflects that;
+   * activation_token is a mock-mode affordance for the dev shortcut UI.
+   */
+  signup: (
+    email: string,
+    password: string,
+    nickname: string,
+  ) => Promise<{ user: User; needsActivation: boolean; activationToken?: string }>
   logout: () => void
+}
+
+/** Persist a session from outside the provider (OAuth receiver routes). */
+export function persistSession(token: string, user: User) {
+  const payload: StoredAuth = { token, user }
+  try {
+    localStorage.setItem(AUTH_KEY, JSON.stringify(payload))
+  } catch {
+    /* storage blocked — session stays in-memory for this tab */
+  }
+  // other tabs re-read on their next 'storage' event; this tab's
+  // provider picks it up on next mount
 }
 
 const AuthContext = createContext<AuthValue | null>(null)
@@ -95,8 +116,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signup = useCallback<AuthValue['signup']>(
     async (email, password, nickname) => {
       const res = await api.signup({ email, password, nickname })
+      if (!res.access_token) {
+        return { user: res.user, needsActivation: true, activationToken: res.activation_token }
+      }
       persist({ token: res.access_token, user: res.user })
-      return res.user
+      return { user: res.user, needsActivation: false }
     },
     [persist],
   )
