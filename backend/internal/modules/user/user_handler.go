@@ -307,6 +307,19 @@ func (h *Handler) ResendActivation(c *fiber.Ctx) error {
 
 	err := h.service.ResendActivationEmail(c.Context(), req.Email)
 	if err != nil {
+		// Surface the throttle as 429 so the client can show "try again later".
+		// This does leak that the email exists, but the throttle's purpose is
+		// to stop flooding, not to hide existence — the attacker already knows
+		// the email (they're targeting it). All other errors are swallowed
+		// for anti-enumeration.
+		if errors.Is(err, models.ErrTooManyAttempts) {
+			return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
+				"error": fiber.Map{
+					"code":    "too_many_attempts",
+					"message": "Too many activation email requests. Please try again later.",
+				},
+			})
+		}
 		// Even if the service returns an error, don't expose it to the client
 		// to prevent email enumeration. The error is logged in the service layer.
 		log.Printf("Handler.ResendActivation encountered a service error: %v", err)
@@ -447,6 +460,15 @@ func (h *Handler) RequestPasswordReset(c *fiber.Ctx) error {
 
 	err := h.service.RequestPasswordReset(c.Context(), req.Email)
 	if err != nil {
+		// Surface the throttle as 429 (see ResendActivation for rationale).
+		if errors.Is(err, models.ErrTooManyAttempts) {
+			return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
+				"error": fiber.Map{
+					"code":    "too_many_attempts",
+					"message": "Too many password reset requests. Please try again later.",
+				},
+			})
+		}
 		// As with activation, we log the error but don't expose it to the client.
 		log.Printf("Handler.RequestPasswordReset encountered a service error: %v", err)
 	}

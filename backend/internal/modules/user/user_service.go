@@ -99,8 +99,9 @@ type Service struct {
 	clientOrigin      string // For sending activation and password reset emails (domain name)
 	adminEmail        string
 	googleOAuthConfig *oauth2.Config
-	twoFAChecker      TwoFAChecker             // nil if 2FA not wired (login proceeds without challenge)
-	attemptTracker    ratelimit.AttemptTracker // nil/Noop in tests+worker; Redis-backed in serve
+	twoFAChecker      TwoFAChecker              // nil if 2FA not wired (login proceeds without challenge)
+	attemptTracker    ratelimit.AttemptTracker  // nil/Noop in tests+worker; Redis-backed in serve
+	emailThrottler    ratelimit.EmailThrottler  // nil/Noop in tests+worker; per-email throttle (C5)
 }
 
 func NewService(
@@ -113,9 +114,13 @@ func NewService(
 	googleOAuthConfig *oauth2.Config,
 	twoFAChecker TwoFAChecker,
 	attemptTracker ratelimit.AttemptTracker,
+	emailThrottler ratelimit.EmailThrottler,
 ) ServiceInterface {
 	if attemptTracker == nil {
 		attemptTracker = ratelimit.NoopAttemptTracker{}
+	}
+	if emailThrottler == nil {
+		emailThrottler = ratelimit.NoopEmailThrottler{}
 	}
 	return &Service{
 		userRepo:          userRepo,
@@ -127,6 +132,7 @@ func NewService(
 		googleOAuthConfig: googleOAuthConfig,
 		twoFAChecker:      twoFAChecker,
 		attemptTracker:    attemptTracker,
+		emailThrottler:    emailThrottler,
 	}
 }
 
@@ -273,19 +279,31 @@ func (s *Service) ResendActivationEmail(ctx context.Context, email string) error
 		return nil // Do nothing, don't signal that they are active.
 	}
 
-	// 3. Generate a new activation token
+	// 3. Per-email throttle (C5): stop an attacker rotating IPs from
+	// flooding a single mailbox. Fail-open on Redis outage (the per-IP
+	// auth-group limiter stays active). Returns ErrTooManyAttempts when
+	// the limit is hit; the handler surfaces it as 429.
+	allowed, err := s.emailThrottler.Allow(ctx, email)
+	if err != nil {
+		log.Printf("WARN: email throttle check failed for %s: %v (allowing)", email, err)
+	}
+	if !allowed {
+		return models.ErrTooManyAttempts
+	}
+
+	// 4. Generate a new activation token
 	activationToken, err := utils.GenerateSecureToken(32)
 	if err != nil {
 		return fmt.Errorf("service.ResendActivationEmail.GenerateToken: %w", err)
 	}
 	expiresAt := time.Now().Add(time.Minute * 30)
 
-	// 4. Update the user record with the new token
+	// 5. Update the user record with the new token
 	if err := s.userRepo.UpdateActivationToken(ctx, user.ID, activationToken, expiresAt); err != nil {
 		return fmt.Errorf("service.ResendActivationEmail.UpdateToken: %w", err)
 	}
 
-	// 5. Send the new activation email
+	// 6. Send the new activation email
 	activationURL := fmt.Sprintf("%s/activate?token=%s", s.clientOrigin, activationToken)
 
 	htmlContent, err := s.templateManager.GenerateActivateAccountEmailHTML(emailSvc.TemplateData{
@@ -414,7 +432,18 @@ func (s *Service) RequestPasswordReset(ctx context.Context, email string) error 
 		return nil
 	}
 
-	// 2. Gnerate reset token and expiry
+	// 2. Per-email throttle (C5): stop an attacker rotating IPs from
+	// flooding a single mailbox. Fail-open on Redis outage. Returns
+	// ErrTooManyAttempts when the limit is hit; the handler surfaces 429.
+	allowed, err := s.emailThrottler.Allow(ctx, email)
+	if err != nil {
+		log.Printf("WARN: email throttle check failed for %s: %v (allowing)", email, err)
+	}
+	if !allowed {
+		return models.ErrTooManyAttempts
+	}
+
+	// 3. Generate reset token and expiry
 	token, err := utils.GenerateSecureToken(32)
 	if err != nil {
 		return err

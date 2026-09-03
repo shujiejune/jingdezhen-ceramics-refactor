@@ -294,6 +294,12 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 	// The worker has no auth path, so it gets the Noop tracker.
 	attemptTracker := ratelimit.NewRedisAttemptTracker(redisClient)
 
+	// --- Per-email throttle (REFACTOR-TODO C5) ---
+	// Stop an attacker rotating IPs from flooding a single mailbox via
+	// resend-activation / request-password-reset. 3 sends/hour per email,
+	// fail-open on Redis outage (the per-IP auth-group limiter stays active).
+	emailThrottler := ratelimit.NewRedisEmailThrottler(redisClient)
+
 	// --- Asynq enqueue client (so handlers can defer flaky/heavy work) ---
 	redisAddr, err := redisAddrFromURL(cfg.RedisURL)
 	if err != nil {
@@ -344,7 +350,7 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 	userService := user.NewService(
 		userRepo, jobClient, templateManager,
 		cfg.JWTSecret, cfg.ClientOrigin, cfg.AdminEmail, googleOAuthConfig,
-		twoFAService, attemptTracker,
+		twoFAService, attemptTracker, emailThrottler,
 	)
 	userHandler := user.NewHandler(userService)
 

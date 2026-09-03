@@ -72,7 +72,7 @@ func TestComplete2FALogin_LocksAfterMaxFailures(t *testing.T) {
 		user.NewRepository(db), nil, nil, // repo, emailEnqueuer, templateManager
 		"jwt-secret", "https://test", "admin@test", nil, // jwt, origin, admin, googleOAuth
 		&fakeTwoFAChecker{userID: userID, verifyOk: false}, // always-fail verify
-		tracker,
+		tracker, nil,
 	)
 	ctx := context.Background()
 
@@ -93,7 +93,7 @@ func TestComplete2FALogin_LocksAfterMaxFailures(t *testing.T) {
 		user.NewRepository(db), nil, nil,
 		"jwt-secret", "https://test", "admin@test", nil,
 		&fakeTwoFAChecker{userID: userID, verifyOk: true}, // correct code now
-		tracker, // SAME tracker — lock state persists across service instances (Redis)
+		tracker, nil, // SAME tracker — lock state persists across service instances (Redis)
 	)
 	_, err = svc2.Complete2FALogin(ctx, "pending", "correct")
 	require.ErrorIs(t, err, models.ErrTooManyAttempts, "locked: correct code rejected until window expires")
@@ -121,7 +121,7 @@ func TestComplete2FALogin_SuccessResetsCounter(t *testing.T) {
 		user.NewRepository(db), nil, nil,
 		"jwt-secret", "https://test", "admin@test", nil,
 		&fakeTwoFAChecker{userID: userID, verifyOk: false},
-		tracker,
+		tracker, nil,
 	)
 	for i := 0; i < ratelimit.MaxFailures-2; i++ {
 		_, err := failSvc.Complete2FALogin(ctx, "pending", "bad")
@@ -133,7 +133,7 @@ func TestComplete2FALogin_SuccessResetsCounter(t *testing.T) {
 		user.NewRepository(db), nil, nil,
 		"jwt-secret", "https://test", "admin@test", nil,
 		&fakeTwoFAChecker{userID: userID, verifyOk: true},
-		tracker,
+		tracker, nil,
 	)
 	_, err := okSvc.Complete2FALogin(ctx, "pending", "correct")
 	require.NoError(t, err)
@@ -167,7 +167,7 @@ func TestComplete2FALogin_BadPendingTokenShortCircuits(t *testing.T) {
 		user.NewRepository(db), nil, nil,
 		"jwt-secret", "https://test", "admin@test", nil,
 		&badPendingChecker{userID: userID}, // ResolvePendingToken → ErrInvalidToken
-		tracker,
+		tracker, nil,
 	)
 
 	for i := 0; i < ratelimit.MaxFailures+3; i++ {
