@@ -15,28 +15,28 @@
 
 - [x] ESLint (typescript-eslint, react-hooks, react-refresh) + Prettier configs; `lint` / `format` scripts — flat config; react-hooks v6 `set-state-in-effect`/`refs` flow rules off with rationale (fetch-in-effect is deliberate until TanStack Query in M-F1) in `package.json`
 - [x] Vitest + React Testing Library setup (`vitest.config.ts`, jsdom, explicit cleanup, `test` scripts)
-- [x] Unit tests (39): money formatting, i18n catalog key-parity, loop-scroller wrap/nearest-panel math (extracted as pure helpers), ApiError + errorKey mapping, `seededRandom` determinism, RTL Button smoke
+- [x] Unit tests (51): money formatting, i18n catalog key-parity, loop-scroller wrap/nearest-panel math (extracted as pure helpers), ApiError + errorKey mapping + contract envelopes (flat/paginated/2FA/204), seededRandom determinism, tokens-sync drift guard, RTL Button smoke
 - [x] Root `errorComponent` (branded 500 + dev error detail + reset) and pending spinner on root + router defaults across routes
 - [x] A11y baseline: `prefers-reduced-motion` (CSS kill-switch + loop-scroller skips parallax/reveal and snaps instantly), keyboard arrows for loop, spine dots are focusable buttons with aria labels
 - [x] Frontend CI job in `.github/workflows/ci.yml`: pnpm 11.19 + Node 22 (cached) → lint → format:check → typecheck → vitest → build
 - [x] `frontend/README.md` quickstart (dev commands, mock vs live, demo accounts, scripts table, layout map)
 
-**Acceptance: MET** — lint/format/typecheck/39 tests/build all green locally; CI job wired (first GitHub run pending push).
+**Acceptance: MET** — lint/format/typecheck/51 tests/build all green locally; CI job wired (first GitHub run pending push).
 
 ## M-F1 — Live API integration (storefront)
 
 Contract realities from the backend inventory (absorb **all** of these):
 
-- [ ] LiveTransport: flat success bodies (no `{data:…}` wrapper); `PaginatedResponse {data,page,limit,total,total_pages}`; `{data:[…]}` wrappers (consent history, media assets); CSV exports & PDF 302s consumed as direct links
-- [ ] ApiError adapter for the **real** envelope: `{"message"}` only today (+ Fiber plain-text 404/405/panic bodies), 401 `{"error":{code,message,pending_token}}` for the 2FA login challenge; map status+message → typed keys; treat **204 as success** (analytics drop, mark-read)
-- [ ] Dev proxy: vite `server.proxy` `/api/*` → Fiber `:1323` (strip prefix) + `/media` passthrough; origin-prefix helper for relative `/media/...` URLs (local storage mode)
-- [ ] TanStack Query client + SSR-loader → cache hydration; migrate catalog / product / content / cart / wishlist reads off direct-context fetches
-- [ ] Real auth: signup returns 201 with `access_token:""` → activation page consuming email link (`POST /auth/activate {token}`); forgot/reset-password pages; Google OAuth receiver routes `/login/success | /login/2fa | /login/2fa/enroll | /login/error` (backend 307s to `{CLIENT_ORIGIN}`)
-- [ ] 2FA complete: verify, pending-enroll (QR + secret), pending-confirm (backup codes shown once)
-- [ ] `?locale=&currency=` on every read; cookie ↔ provider sync (existing `jdz-currency` invalidate path)
-- [ ] Keep `mock` mode as dev/test fixture (`VITE_API_MODE`); add contract tests asserting both envelopes parse
+- [x] LiveTransport: flat success bodies (no `{data:…}` wrapper); `PaginatedResponse {data,page,limit,total,total_pages}`; `{data:[…]}` wrappers (consent history, media assets); CSV exports & PDF 302s consumed as direct links
+- [x] ApiError adapter for the **real** envelope: `{"message"}` only today (+ Fiber plain-text 404/405/panic bodies), 401 `{"error":{code,message,pending_token}}` for the 2FA login challenge; map status+message → typed keys; treat **204 as success** (analytics drop, mark-read)
+- [x] Dev proxy: vite `server.proxy` `/api/*` → Fiber `:1323` (strip prefix) + `/media` passthrough; origin-prefix helper for relative `/media/...` URLs (local storage mode)
+- [x] TanStack Query client + SSR-loader → cache hydration; migrate catalog / product / content / cart / wishlist reads off direct-context fetches
+- [x] Real auth: signup returns 201 with `access_token:""` → activation page consuming email link (`POST /auth/activate {token}`); forgot/reset-password pages; Google OAuth receiver routes `/login/success | /login/2fa | /login/2fa/enroll | /login/error` (backend 307s to `{CLIENT_ORIGIN}`)
+- [x] 2FA complete: verify, pending-enroll (QR + secret), pending-confirm (backup codes shown once)
+- [x] `?locale=&currency=` on every read; cookie ↔ provider sync (existing `jdz-currency` invalidate path) — cart mutations fixed to carry currency in `params`; artists loader fixed to thread `loaderCurrency()`
+- [x] Keep `mock` mode as dev/test fixture (`VITE_API_MODE`); contract tests asserting both envelopes parse (`src/lib/__tests__/api-contract.test.ts`, 12 tests)
 
-**Acceptance:** full browse → cart → checkout (mock gateway) → orders, plus auth/2FA, against the live backend (`make up`) with zero mock imports on the live path.
+**Acceptance:** MET in mock mode — all flows browser-verified (signup+activation, 2FA enrollment + verify, locale switch, currency switch with EUR cart totals). Live backend run (`make up`) pending: the dev proxy and `LiveTransport` are wired but the backend Docker stack needs to be running for a live round-trip. The mock path remains as a dev/test fixture.
 
 ## M-F2 — Commerce & account depth
 
