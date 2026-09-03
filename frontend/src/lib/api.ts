@@ -29,7 +29,13 @@ import type {
   Cart,
   Certificate,
   CeramicStory,
+  ConsentKind,
+  ConsentRecord,
+  ConsentState,
+  DepositPaidResponse,
+  ItineraryQuote,
   ItineraryRequest,
+  Notification,
   Order,
   Paginated,
   Product,
@@ -37,6 +43,7 @@ import type {
   SKU,
   Tag,
   User,
+  UserDataExport,
   WishlistItem,
 } from './types'
 
@@ -431,9 +438,75 @@ export const api = {
 
   /* ---- itineraries ---- */
   listItineraries: (token: string) =>
-    t().then((x) => x.call<ItineraryRequest[]>('GET', '/itineraries', { token })),
+    t().then((x) => x.call<Paginated<ItineraryRequest>>('GET', '/itineraries', { token })),
+  getItinerary: (token: string, id: number) =>
+    t().then((x) => x.call<ItineraryRequest>('GET', `/itineraries/${id}`, { token })),
   submitItinerary: (token: string, body: Record<string, unknown>) =>
     t().then((x) => x.call<ItineraryRequest>('POST', '/itineraries', { token, body })),
+  getItineraryDraft: (token: string) =>
+    t().then((x) => x.call<ItineraryRequest>('GET', '/itineraries/draft', { token })),
+  saveItineraryDraft: (token: string, body: Record<string, unknown>) =>
+    t().then((x) => x.call<void>('PUT', '/itineraries/draft', { token, body })),
+  deleteItineraryDraft: (token: string) =>
+    t().then((x) => x.call<void>('DELETE', '/itineraries/draft', { token })),
+  getItineraryQuote: (token: string, id: number) =>
+    t().then((x) => x.call<ItineraryQuote>('GET', `/itineraries/${id}/quote`, { token })),
+  payItineraryDeposit: (token: string, id: number, gateway: string) =>
+    t().then((x) =>
+      x.call<DepositPaidResponse>('POST', `/itineraries/${id}/pay-deposit`, {
+        token,
+        body: { gateway },
+      }),
+    ),
+  cancelItinerary: (token: string, id: number, reason?: string) =>
+    t().then((x) => x.call<void>('POST', `/itineraries/${id}/cancel`, { token, body: { reason } })),
+
+  /* ---- addresses (CRUD + set-default) ---- */
+  getAddress: (token: string, id: number) =>
+    t().then((x) => x.call<Address>('GET', `/profile/addresses/${id}`, { token })),
+  updateAddress: (
+    token: string,
+    id: number,
+    body: Partial<Omit<Address, 'id' | 'is_default'>> & { is_default?: boolean },
+  ) => t().then((x) => x.call<Address>('PUT', `/profile/addresses/${id}`, { token, body })),
+  deleteAddress: (token: string, id: number) =>
+    t().then((x) => x.call<void>('DELETE', `/profile/addresses/${id}`, { token })),
+  setDefaultAddress: (token: string, id: number) =>
+    t().then((x) => x.call<void>('POST', `/profile/addresses/${id}/default`, { token })),
+
+  /* ---- notifications ---- */
+  listNotifications: (token: string, page = 1) =>
+    t().then((x) =>
+      x.call<Paginated<Notification>>('GET', '/notifications', {
+        token,
+        params: { page },
+      }),
+    ),
+  getUnreadNotificationCount: (token: string) =>
+    t().then((x) => x.call<{ count: number }>('GET', '/notifications/unread-count', { token })),
+  markNotificationRead: (token: string, id: number) =>
+    t().then((x) => x.call<void>('POST', `/notifications/${id}/mark-read`, { token })),
+  markAllNotificationsRead: (token: string) =>
+    t().then((x) => x.call<void>('POST', '/notifications/mark-all-read', { token })),
+
+  /* ---- consent ---- */
+  recordConsent: (body: { kind: ConsentKind; doc_version: string; granted: boolean }, token?: string) =>
+    t().then((x) => x.call<ConsentRecord>('POST', '/consent', { body, token })),
+  getConsentHistory: (token: string) =>
+    t().then((x) => x.call<ConsentRecord[]>('GET', '/profile/consent', { token })),
+  getConsentState: (token: string, kind: ConsentKind) =>
+    t().then((x) => x.call<ConsentState>('GET', `/profile/consent/${kind}`, { token })),
+
+  /* ---- GDPR ---- */
+  exportUserData: (token: string, locale?: string) =>
+    t().then((x) =>
+      x.call<UserDataExport>('GET', '/profile/export', {
+        token,
+        params: locale ? { locale } : undefined,
+      }),
+    ),
+  deleteAccount: (token: string) =>
+    t().then((x) => x.call<void>('POST', '/privacy/delete-account', { token, body: { confirm: 'DELETE' } })),
 }
 
 /** Pick a SKU's presentment price helper (server-provided only). */

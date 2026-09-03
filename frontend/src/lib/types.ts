@@ -281,6 +281,37 @@ export interface WishlistItem {
 export type ItineraryStatus =
   'pending' | 'processing' | 'quoted' | 'deposit_paid' | 'confirmed' | 'cancelled' | 'closed'
 
+export type QuoteStatus = 'sent' | 'deposit_paid' | 'fully_paid' | 'cancelled'
+
+export interface QuoteLineItem {
+  label: string
+  detail?: string
+  amount_minor: number
+  amount?: number
+}
+
+export interface ItineraryQuote {
+  id: number
+  request_id: number
+  line_items: QuoteLineItem[]
+  total_cny: number
+  currency: string
+  total_minor: number
+  deposit_minor: number
+  fx_rate_used?: number
+  status: QuoteStatus
+  sent_at: string
+  paid_at?: string
+  pdf_key?: string
+  created_at: string
+  updated_at: string
+}
+
+export interface DepositPaidResponse {
+  quote_id: number
+  hosted_url?: string
+}
+
 export interface Budget {
   currency: 'USD' | 'EUR' | 'GBP'
   min_minor: number
@@ -319,6 +350,7 @@ export interface ItineraryRequest {
   locale: string
   sla_deadline: string
   submitted_at: string
+  quote?: ItineraryQuote
 }
 
 /* ------------------------------ certificate ------------------------------ */
@@ -342,6 +374,58 @@ export interface Certificate {
   figure_kind: ProductMediaItem['figure_kind']
   attributes?: SKUAttributes
   provenance: ProvenanceRecord[]
+  qr_key?: string
+  pdf_key?: string
+}
+
+/* ------------------------------ notifications ------------------------------ */
+
+export interface Notification {
+  notification_id: number
+  recipient_user_id: string
+  actor_user_id?: string
+  actor_user?: string
+  notification_type: string
+  entity_type?: string
+  entity_id?: number
+  message: string
+  is_read: boolean
+  created_at: string
+}
+
+/* ------------------------------ consent ------------------------------ */
+
+export type ConsentKind = 'privacy_policy' | 'tos' | 'cookie_analytics' | 'cookie_marketing'
+
+export interface ConsentRecord {
+  id: number
+  user_id?: string
+  kind: ConsentKind
+  doc_version: string
+  granted: boolean
+  created_at: string
+}
+
+export interface ConsentState {
+  kind: ConsentKind
+  granted: boolean
+  recorded: boolean
+  doc_version?: string
+  created_at?: string
+}
+
+/* ------------------------------ GDPR ------------------------------ */
+
+export interface UserDataExport {
+  exported_at: string
+  user_id: string
+  locale?: string
+  profile?: User
+  addresses?: Address[]
+  consent_records?: ConsentRecord[]
+  two_fa?: boolean
+  wishlist?: WishlistItem[]
+  notifications?: Notification[]
 }
 
 /* ------------------------------ shipping ------------------------------ */

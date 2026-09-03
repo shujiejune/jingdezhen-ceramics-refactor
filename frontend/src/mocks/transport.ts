@@ -20,14 +20,23 @@ import type {
   CartItem,
   Certificate,
   CeramicStory,
+  ConsentKind,
+  ConsentRecord,
+  ConsentState,
+  DepositPaidResponse,
+  ItineraryQuote,
   ItineraryRequest,
+  ItineraryStatus,
+  Notification,
   Order,
   OrderItem,
   OrderStatus,
   Product,
+  QuoteLineItem,
   SKU,
   Tag,
   User,
+  UserDataExport,
   WishlistItem,
 } from '~/lib/types'
 import {
@@ -75,7 +84,11 @@ type StoredOrderItem = Omit<OrderItem, 'title_snapshot'> & {
 type StoredOrder = Omit<Order, 'items'> & { items?: StoredOrderItem[] }
 const orders: StoredOrder[] = []
 const itineraries: ItineraryRequest[] = []
-let idSeq = { order: 2000, item: 9100, address: 10, itinerary: 6000, token: 100 }
+const notifications: Notification[] = []
+const consentRecords: ConsentRecord[] = []
+const itineraryDrafts = new Map<string, Record<string, unknown>>()
+const itineraryQuotes = new Map<number, ItineraryQuote>()
+let idSeq = { order: 2000, item: 9100, address: 10, itinerary: 6000, token: 100, notif: 100, consent: 100, quote: 7000 }
 
 /* seed orders/itineraries with resolved addresses. Order titles are
    stored bilingual (title_snapshot) and resolved to the request locale
@@ -85,6 +98,15 @@ for (const o of SEED_ORDERS) {
   orders.push({ ...o, address: addr })
 }
 for (const r of SEED_ITINERARIES) itineraries.push({ ...r })
+// seed a demo notification for the admin user
+notifications.push({
+  notification_id: 1,
+  recipient_user_id: DEMO_USERS[1].id,
+  notification_type: 'order_status',
+  message: 'Your order #1001 has been paid and is being prepared.',
+  is_read: false,
+  created_at: new Date(Date.now() - 3600_000).toISOString(),
+})
 
 /* ------------------------------------------------------------------ */
 /* Persistence — keeps the demo session alive across page reloads      */
@@ -109,6 +131,8 @@ function persist() {
         addresses,
         orders,
         itineraries,
+        notifications,
+        consentRecords,
         idSeq,
         extraUsers: DEMO_USERS.slice(2),
       }),
@@ -134,6 +158,8 @@ function hydrate() {
       addresses?: StoredAddress[]
       orders?: StoredOrder[]
       itineraries?: ItineraryRequest[]
+      notifications?: Notification[]
+      consentRecords?: ConsentRecord[]
       idSeq?: typeof idSeq
       extraUsers?: Array<(typeof DEMO_USERS)[number]>
     }
@@ -147,6 +173,8 @@ function hydrate() {
     if (s.addresses) addresses.splice(0, addresses.length, ...s.addresses)
     if (s.orders) orders.splice(0, orders.length, ...s.orders)
     if (s.itineraries) itineraries.splice(0, itineraries.length, ...s.itineraries)
+    if (s.notifications) notifications.splice(0, notifications.length, ...s.notifications)
+    if (s.consentRecords) consentRecords.splice(0, consentRecords.length, ...s.consentRecords)
     if (s.idSeq) idSeq = s.idSeq
     for (const u of s.extraUsers ?? []) DEMO_USERS.push(u)
   } catch {
@@ -195,6 +223,37 @@ function authUser(opts?: CallOptions): (typeof DEMO_USERS)[number] {
     throw new ApiError('unauthorized', 'token not found or expired', 401)
   }
   return found
+}
+
+/** Auto-generate a demo itinerary quote so the "pay deposit" flow is
+ *  exercisable without waiting for a planner. The real backend's planner
+ *  sends the quote; the mock flips status to 'quoted' immediately. */
+function makeDemoQuote(req: ItineraryRequest, loc: MockLocale): ItineraryQuote {
+  const totalCny = 880000 // ¥8,800
+  const cur = req.budget?.currency ?? 'USD'
+  const totalMinor = convertMinor(totalCny, cur)
+  const depositMinor = Math.ceil(totalMinor * 0.3)
+  const lineItems: QuoteLineItem[] = [
+    {
+      label: loc === 'zh-CN' ? '5日行程设计与全程陪同' : '5-day itinerary design + full escort',
+      amount_minor: totalMinor,
+      amount: totalMinor,
+    },
+  ]
+  return {
+    id: idSeq.quote++,
+    request_id: req.id,
+    line_items: lineItems,
+    total_cny: totalCny,
+    currency: cur,
+    total_minor: totalMinor,
+    deposit_minor: depositMinor,
+    fx_rate_used: effectiveRate(cur),
+    status: 'sent',
+    sent_at: new Date().toISOString(),
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  }
 }
 
 function findSku(id: number): { sku: ProductRecord['skus'][number]; product: ProductRecord } {
@@ -1127,7 +1186,17 @@ async function handle(route: string, ctx: Ctx): Promise<unknown> {
 
   if (route === 'GET /itineraries') {
     const user = authUser(opts)
-    return itineraries.filter((r) => r.user_id === user.id)
+    const list = itineraries.filter((r) => r.user_id === user.id)
+    return { data: list, page: 1, limit: 20, total: list.length, total_pages: 1 }
+  }
+
+  if (ctx.method === 'GET' && pathRegex('/itineraries/:id', ctx.path)) {
+    const user = authUser(opts)
+    const id = Number(ctx.path.split('/').pop())
+    const req = itineraries.find((r) => r.id === id && r.user_id === user.id)
+    if (!req) throw new ApiError('not_found', 'requested resource not found', 404)
+    const quote = itineraryQuotes.get(id)
+    return { ...req, quote }
   }
 
   if (route === 'POST /itineraries') {
@@ -1160,7 +1229,220 @@ async function handle(route: string, ctx: Ctx): Promise<unknown> {
       submitted_at: now.toISOString(),
     }
     itineraries.unshift(req)
+    // demo: auto-generate a quote and flip to 'quoted' so the pay-deposit
+    // flow is exercisable immediately (real backend: planner sends later)
+    const quote = makeDemoQuote(req, locale)
+    itineraryQuotes.set(req.id, quote)
+    req.status = 'quoted' as ItineraryStatus
     return req
+  }
+
+  if (route === 'GET /itineraries/draft') {
+    const user = authUser(opts)
+    const draft = itineraryDrafts.get(user.id)
+    if (!draft) throw new ApiError('not_found', 'no draft', 404)
+    return draft as unknown
+  }
+
+  if (route === 'PUT /itineraries/draft') {
+    const user = authUser(opts)
+    itineraryDrafts.set(user.id, body)
+    return body as unknown
+  }
+
+  if (route === 'DELETE /itineraries/draft') {
+    const user = authUser(opts)
+    itineraryDrafts.delete(user.id)
+    return
+  }
+
+  if (ctx.method === 'GET' && pathRegex('/itineraries/:id/quote', ctx.path)) {
+    const user = authUser(opts)
+    const id = Number(ctx.path.split('/').slice(-2, -1)[0])
+    const req = itineraries.find((r) => r.id === id && r.user_id === user.id)
+    if (!req) throw new ApiError('not_found', 'requested resource not found', 404)
+    const quote = itineraryQuotes.get(id)
+    if (!quote) throw new ApiError('not_found', 'quote not yet generated', 404)
+    return quote
+  }
+
+  if (ctx.method === 'POST' && pathRegex('/itineraries/:id/pay-deposit', ctx.path)) {
+    const user = authUser(opts)
+    const id = Number(ctx.path.split('/').slice(-2, -1)[0])
+    const req = itineraries.find((r) => r.id === id && r.user_id === user.id)
+    if (!req) throw new ApiError('not_found', 'requested resource not found', 404)
+    const quote = itineraryQuotes.get(id)
+    if (!quote || req.status !== 'quoted')
+      throw new ApiError('invalid_operation', 'quote is not available for payment', 409)
+    req.status = 'deposit_paid' as ItineraryStatus
+    quote.status = 'deposit_paid'
+    quote.paid_at = new Date().toISOString()
+    return { quote_id: quote.id, hosted_url: 'mock://sandbox-deposit' } satisfies DepositPaidResponse
+  }
+
+  if (ctx.method === 'POST' && pathRegex('/itineraries/:id/cancel', ctx.path)) {
+    const user = authUser(opts)
+    const id = Number(ctx.path.split('/').slice(-2, -1)[0])
+    const req = itineraries.find((r) => r.id === id && r.user_id === user.id)
+    if (!req) throw new ApiError('not_found', 'requested resource not found', 404)
+    if (req.status === 'deposit_paid' || req.status === 'confirmed') {
+      throw new ApiError('invalid_operation', 'cannot cancel after deposit', 409)
+    }
+    req.status = 'cancelled' as ItineraryStatus
+    return
+  }
+
+  /* ---------------- address CRUD ---------------- */
+
+  if (ctx.method === 'GET' && pathRegex('/profile/addresses/:id', ctx.path)) {
+    const user = authUser(opts)
+    const id = Number(ctx.path.split('/').pop())
+    const addr = addresses.find((a) => a.id === id && a.user_id === user.id)
+    if (!addr) throw new ApiError('not_found', 'requested resource not found', 404)
+    return addr
+  }
+
+  if (ctx.method === 'PUT' && pathRegex('/profile/addresses/:id', ctx.path)) {
+    const user = authUser(opts)
+    const id = Number(ctx.path.split('/').pop())
+    const addr = addresses.find((a) => a.id === id && a.user_id === user.id)
+    if (!addr) throw new ApiError('not_found', 'requested resource not found', 404)
+    if (body.recipient != null) addr.recipient = String(body.recipient)
+    if (body.line1 != null) addr.line1 = String(body.line1)
+    if (body.line2 !== undefined) addr.line2 = body.line2 ? String(body.line2) : undefined
+    if (body.city != null) addr.city = String(body.city)
+    if (body.region !== undefined) addr.region = body.region ? String(body.region) : undefined
+    if (body.postal_code != null) addr.postal_code = String(body.postal_code)
+    if (body.country != null) addr.country = String(body.country)
+    if (body.phone != null) addr.phone = String(body.phone)
+    if (body.is_default) {
+      for (const a of addresses) if (a.user_id === user.id) a.is_default = false
+      addr.is_default = true
+    }
+    return addr
+  }
+
+  if (ctx.method === 'DELETE' && pathRegex('/profile/addresses/:id', ctx.path)) {
+    const user = authUser(opts)
+    const id = Number(ctx.path.split('/').pop())
+    const idx = addresses.findIndex((a) => a.id === id && a.user_id === user.id)
+    if (idx < 0) throw new ApiError('not_found', 'requested resource not found', 404)
+    addresses.splice(idx, 1)
+    return
+  }
+
+  if (ctx.method === 'POST' && pathRegex('/profile/addresses/:id/default', ctx.path)) {
+    const user = authUser(opts)
+    const id = Number(ctx.path.split('/').slice(-2, -1)[0])
+    const addr = addresses.find((a) => a.id === id && a.user_id === user.id)
+    if (!addr) throw new ApiError('not_found', 'requested resource not found', 404)
+    for (const a of addresses) if (a.user_id === user.id) a.is_default = false
+    addr.is_default = true
+    return { message: 'Default address updated' }
+  }
+
+  /* ---------------- notifications ---------------- */
+
+  if (route === 'GET /notifications') {
+    const user = authUser(opts)
+    const list = notifications.filter((n) => n.recipient_user_id === user.id)
+    return { data: list, page: 1, limit: 20, total: list.length, total_pages: 1 }
+  }
+
+  if (route === 'GET /notifications/unread-count') {
+    const user = authUser(opts)
+    const count = notifications.filter((n) => n.recipient_user_id === user.id && !n.is_read).length
+    return { count }
+  }
+
+  if (route === 'POST /notifications/mark-all-read') {
+    const user = authUser(opts)
+    for (const n of notifications)
+      if (n.recipient_user_id === user.id) n.is_read = true
+    return
+  }
+
+  if (ctx.method === 'POST' && pathRegex('/notifications/:id/mark-read', ctx.path)) {
+    const user = authUser(opts)
+    const id = Number(ctx.path.split('/').slice(-2, -1)[0])
+    const n = notifications.find((x) => x.notification_id === id && x.recipient_user_id === user.id)
+    if (!n) throw new ApiError('not_found', 'requested resource not found', 404)
+    n.is_read = true
+    return
+  }
+
+  /* ---------------- consent ---------------- */
+
+  if (route === 'POST /consent') {
+    const rec: ConsentRecord = {
+      id: idSeq.consent++,
+      user_id: opts.token ? authUser(opts).id : undefined,
+      kind: String(body.kind ?? 'cookie_analytics') as ConsentKind,
+      doc_version: String(body.doc_version ?? '1.0'),
+      granted: Boolean(body.granted),
+      created_at: new Date().toISOString(),
+    }
+    consentRecords.unshift(rec)
+    return rec
+  }
+
+  if (route === 'GET /profile/consent') {
+    const user = authUser(opts)
+    return { data: consentRecords.filter((r) => r.user_id === user.id) }
+  }
+
+  if (ctx.method === 'GET' && pathRegex('/profile/consent/:kind', ctx.path)) {
+    const user = authUser(opts)
+    const kind = ctx.path.split('/').pop() as ConsentKind
+    const rec = consentRecords.find((r) => r.user_id === user.id && r.kind === kind)
+    if (!rec) return { kind, granted: false, recorded: false } satisfies ConsentState
+    return {
+      kind: rec.kind,
+      granted: rec.granted,
+      recorded: true,
+      doc_version: rec.doc_version,
+      created_at: rec.created_at,
+    } satisfies ConsentState
+  }
+
+  /* ---------------- GDPR ---------------- */
+
+  if (route === 'GET /profile/export') {
+    const user = authUser(opts)
+    const exportData: UserDataExport = {
+      exported_at: new Date().toISOString(),
+      user_id: user.id,
+      locale,
+      profile: user.user,
+      addresses: addresses.filter((a) => a.user_id === user.id),
+      consent_records: consentRecords.filter((r) => r.user_id === user.id),
+      two_fa: user.twoFA,
+    }
+    return exportData
+  }
+
+  if (route === 'POST /privacy/delete-account') {
+    const user = authUser(opts)
+    if (String(body.confirm ?? '') !== 'DELETE')
+      throw new ApiError('validation_failed', 'must confirm with "DELETE"', 422)
+    // anonymize user
+    user.user.email = `deleted_${user.id}@anon.local`
+    user.user.nickname = 'Deleted user'
+    user.user.avatar_glyph = 'D'
+    // remove from sessions
+    for (const [k, v] of sessions) if (v === user.id) sessions.delete(k)
+    return
+  }
+
+  /* ---------------- certificates QR/PDF ---------------- */
+
+  if (ctx.method === 'GET' && pathRegex('/certificates/:code/qr', ctx.path)) {
+    // real backend returns a PNG; mock returns a data URL placeholder
+    const code = ctx.path.split('/').slice(-2, -1)[0]
+    const cert = CERTIFICATES.find((c) => c.cert_code === code)
+    if (!cert) throw new ApiError('not_found', 'requested resource not found', 404)
+    // signal to the LiveTransport that this is a media response
+    return { qr_url: `/media/cert-${code}-qr.png` }
   }
 
   throw new ApiError('not_found', `no mock route for ${route}`, 404)

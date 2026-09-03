@@ -34,7 +34,7 @@ function ItinerariesPage() {
     if (ready && token)
       void api
         .listItineraries(token)
-        .then(setList)
+        .then((res) => setList(res.data))
         .catch(() => setList([]))
     else if (ready) setList([])
   }, [ready, token])
