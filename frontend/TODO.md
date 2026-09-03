@@ -36,7 +36,7 @@ Contract realities from the backend inventory (absorb **all** of these):
 - [x] `?locale=&currency=` on every read; cookie ↔ provider sync (existing `jdz-currency` invalidate path) — cart mutations fixed to carry currency in `params`; artists loader fixed to thread `loaderCurrency()`
 - [x] Keep `mock` mode as dev/test fixture (`VITE_API_MODE`); contract tests asserting both envelopes parse (`src/lib/__tests__/api-contract.test.ts`, 12 tests)
 
-**Acceptance:** MET in mock mode — all flows browser-verified (signup+activation, 2FA enrollment + verify, locale switch, currency switch with EUR cart totals). Live backend run (`make up`) pending: the dev proxy and `LiveTransport` are wired but the backend Docker stack needs to be running for a live round-trip. The mock path remains as a dev/test fixture.
+**Acceptance:** MET — all flows browser-verified in mock mode (signup+activation, 2FA enrollment + verify, locale switch, currency switch with EUR cart totals) and **live mode** (`make up` + `VITE_API_MODE=live`: landing, catalog, product detail with USD prices, signup→activation email, locale switch with locale-specific products). The mock path remains as a dev/test fixture.
 
 ## M-F2 — Commerce & account depth
 
@@ -49,7 +49,7 @@ Contract realities from the backend inventory (absorb **all** of these):
 - [x] Account: profile update, 2FA enroll/confirm/backup-codes, consent history, GDPR data export download + delete-account flow — consent history section; GDPR export via `GET /profile/export`; delete via `POST /privacy/delete-account` with DELETE confirm; 2FA enroll already shipped in M-F1
 - [x] Notifications: list + unread badge + mark-read (poll `/notifications/unread-count`; WS push deferred to M-F5) — new `/$locale/notifications` route; header bell with 30s poll; mark-all-read + click-to-mark-read
 
-**Acceptance:** MET in mock mode — account page (addresses, consent, GDPR), notifications, certificate QR/PDF, itinerary quote/deposit all browser-verified. Sandbox payment + EUR/GBP checkout already verified in M-F1. Live backend run pending (`make up`). WS notification push deferred to M-F5.
+**Acceptance:** MET — account page (addresses, consent, GDPR), notifications, certificate QR/PDF, itinerary quote/deposit all browser-verified in mock mode. Sandbox payment + EUR/GBP checkout verified in M-F1. Live backend verified (`make up`) for the storefront flows in M-F1 acceptance. WS notification push deferred to M-F5.
 
 ## M-F3 — Compliance, SEO & analytics
 
