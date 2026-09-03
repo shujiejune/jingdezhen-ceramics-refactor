@@ -20,6 +20,7 @@ import type {
   CartItem,
   Certificate,
   CeramicStory,
+  BulkImportSummary,
   ConsentKind,
   ConsentRecord,
   ConsentState,
@@ -1747,6 +1748,54 @@ async function handle(route: string, ctx: Ctx): Promise<unknown> {
   if (route === 'POST /admin/products') {
     authUser(opts)
     return toProduct(PRODUCTS[0]!, ctx.locale, undefined, true)
+  }
+  if (route === 'POST /admin/products/import') {
+    authUser(opts)
+    const b = body as { csv?: string; rows?: unknown[] }
+    const count = b.rows?.length ?? b.csv?.split('\n').filter((l) => l.trim()).length ?? 0
+    return {
+      total_rows: count,
+      imported: Math.max(0, count - 1),
+      updated: 1,
+      failed: 0,
+      errors: [],
+    } satisfies BulkImportSummary
+  }
+  if (ctx.method === 'POST' && pathRegex('/admin/products/:id/skus', ctx.path)) {
+    authUser(opts)
+    const productId = Number(ctx.path.split('/').slice(-2, -1)[0])
+    const b = body as Record<string, unknown>
+    return {
+      id: Math.floor(Math.random() * 10000) + 1,
+      product_id: productId,
+      sku_code: String(b.sku_code ?? ''),
+      price_cny: Number(b.price_cny) || 0,
+      stock: Number(b.stock) || 0,
+      weight_grams: Number(b.weight_grams) || 0,
+      low_stock_threshold: Number(b.low_stock_threshold) || 5,
+      attributes: (b.attributes as Record<string, unknown>) ?? {},
+      is_active: true,
+    }
+  }
+  if (ctx.method === 'PUT' && pathRegex('/admin/skus/:id', ctx.path)) {
+    authUser(opts)
+    const b = body as Record<string, unknown>
+    const id = Number(ctx.path.split('/').pop())
+    return {
+      id,
+      product_id: 1,
+      sku_code: String(b.sku_code ?? ''),
+      price_cny: Number(b.price_cny) || 0,
+      stock: Number(b.stock) || 0,
+      weight_grams: Number(b.weight_grams) || 0,
+      low_stock_threshold: Number(b.low_stock_threshold) || 5,
+      attributes: (b.attributes as Record<string, unknown>) ?? {},
+      is_active: true,
+    }
+  }
+  if (ctx.method === 'DELETE' && pathRegex('/admin/skus/:id', ctx.path)) {
+    authUser(opts)
+    return
   }
 
   /* ---- admin: orders ---- */

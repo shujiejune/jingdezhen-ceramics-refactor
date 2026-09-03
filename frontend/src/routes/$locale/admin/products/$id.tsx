@@ -1,5 +1,13 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { ArrowLeft, CheckCircle, XCircle, Eye, PencilSimple } from '@phosphor-icons/react'
+import {
+  ArrowLeft,
+  CheckCircle,
+  XCircle,
+  Eye,
+  PencilSimple,
+  Plus,
+  Trash,
+} from '@phosphor-icons/react'
 import { useEffect, useState } from 'react'
 
 import { StatusBadge } from '~/components/admin/ContentTable'
@@ -8,11 +16,21 @@ import { useToast } from '~/components/common/Toaster'
 import { api } from '~/lib/api'
 import { errorKey, useAuth } from '~/lib/auth'
 import { useI18n } from '~/lib/i18n'
-import type { ContentStatus, Product } from '~/lib/types'
+import type { ContentStatus, Product, SKU, SKUAttributes } from '~/lib/types'
 
 export const Route = createFileRoute('/$locale/admin/products/$id')({
   component: ProductDetailPage,
 })
+
+const ATTR_KEYS: (keyof SKUAttributes)[] = [
+  'size',
+  'technique',
+  'glaze',
+  'edition_type',
+  'edition_number',
+  'year',
+  'kiln',
+]
 
 function ProductDetailPage() {
   const { id } = Route.useParams()
@@ -27,6 +45,15 @@ function ProductDetailPage() {
   const [metaDescription, setMetaDescription] = useState('')
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState<string | null>(null)
+  const [attributes, setAttributes] = useState<Record<string, string>>({})
+  const [skus, setSkus] = useState<SKU[]>([])
+  const [newSku, setNewSku] = useState({
+    sku_code: '',
+    price_cny: '',
+    stock: '',
+    weight_grams: '',
+    low_stock_threshold: '5',
+  })
 
   useEffect(() => {
     if (!ready || !token) return
@@ -39,6 +66,7 @@ function ProductDetailPage() {
         setDescription(s.description ?? '')
         setMetaTitle(s.meta_title ?? '')
         setMetaDescription(s.meta_description ?? '')
+        setSkus(s.skus ?? [])
       })
       .catch(() => setItem(null))
   }, [ready, token, id])
@@ -57,6 +85,7 @@ function ProductDetailPage() {
         description,
         meta_title: metaTitle,
         meta_description: metaDescription,
+        attributes,
       })
       setItem(updated)
       push({ title: t('admin.common.saved'), kind: 'success' })
@@ -85,6 +114,45 @@ function ProductDetailPage() {
         unpublish: 'admin.workflow.unpublished',
       }[action]
       push({ title: t(msg as Parameters<typeof t>[0]), kind: 'success' })
+    } catch (e) {
+      setErr(t(errorKey(e) as Parameters<typeof t>[0]))
+    }
+  }
+
+  const addSku = async () => {
+    if (!token) return
+    const code = newSku.sku_code.trim()
+    if (!code) return
+    try {
+      const created = await api.adminCreateSKU(token, Number(id), {
+        sku_code: code,
+        price_cny: Number(newSku.price_cny) || 0,
+        stock: Number(newSku.stock) || 0,
+        weight_grams: Number(newSku.weight_grams) || 0,
+        low_stock_threshold: Number(newSku.low_stock_threshold) || 5,
+        attributes: {},
+        is_active: true,
+      })
+      setSkus((prev) => [...prev, created])
+      setNewSku({
+        sku_code: '',
+        price_cny: '',
+        stock: '',
+        weight_grams: '',
+        low_stock_threshold: '5',
+      })
+      push({ title: t('admin.sku.add'), kind: 'success' })
+    } catch (e) {
+      setErr(t(errorKey(e) as Parameters<typeof t>[0]))
+    }
+  }
+
+  const deleteSku = async (skuId: number) => {
+    if (!token) return
+    try {
+      await api.adminDeleteSKU(token, skuId)
+      setSkus((prev) => prev.filter((s) => s.id !== skuId))
+      push({ title: t('admin.sku.delete'), kind: 'success' })
     } catch (e) {
       setErr(t(errorKey(e) as Parameters<typeof t>[0]))
     }
@@ -212,6 +280,127 @@ function ProductDetailPage() {
             )}
           </div>
         </div>
+      </div>
+
+      {/* Attributes JSONB editor */}
+      {canWrite && (
+        <div className="mt-6 card-surface p-6">
+          <h3 className="mb-4 text-[0.88rem] font-semibold text-ink-700">Attributes</h3>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {ATTR_KEYS.map((key) => (
+              <div key={key}>
+                <label className="label-base">{key}</label>
+                <input
+                  className="input-base"
+                  value={attributes[key as string] ?? ''}
+                  onChange={(e) => setAttributes((prev) => ({ ...prev, [key]: e.target.value }))}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* SKU management */}
+      <div className="mt-6 card-surface p-6">
+        <h3 className="mb-4 text-[0.88rem] font-semibold text-ink-700">SKUs</h3>
+
+        {skus.length > 0 ? (
+          <div className="overflow-x-auto rounded-lg border border-cobalt-50">
+            <table className="w-full text-left text-[0.82rem]">
+              <thead className="bg-wash/50">
+                <tr className="border-b border-cobalt-50">
+                  <th className="px-3 py-2 font-semibold text-ink-500">{t('admin.sku.skuCode')}</th>
+                  <th className="px-3 py-2 font-semibold text-ink-500">
+                    {t('admin.sku.priceCny')}
+                  </th>
+                  <th className="px-3 py-2 font-semibold text-ink-500">{t('admin.sku.stock')}</th>
+                  <th className="px-3 py-2 font-semibold text-ink-500">{t('admin.sku.weight')}</th>
+                  <th className="px-3 py-2 font-semibold text-ink-500">
+                    {t('admin.sku.lowStock')}
+                  </th>
+                  {canWrite && <th className="px-3 py-2" />}
+                </tr>
+              </thead>
+              <tbody>
+                {skus.map((sku) => (
+                  <tr key={sku.id} className="border-b border-cobalt-50/60">
+                    <td className="px-3 py-2 text-ink-700">{sku.sku_code}</td>
+                    <td className="px-3 py-2 text-ink-700">{sku.price_cny}</td>
+                    <td className="px-3 py-2 text-ink-700">{sku.stock}</td>
+                    <td className="px-3 py-2 text-ink-700">{sku.weight_grams}</td>
+                    <td className="px-3 py-2 text-ink-700">{sku.low_stock_threshold}</td>
+                    {canWrite && (
+                      <td className="px-3 py-2">
+                        <button
+                          type="button"
+                          onClick={() => void deleteSku(sku.id)}
+                          className="text-ink-400 transition hover:text-[color:var(--color-danger)]"
+                        >
+                          <Trash size={14} />
+                        </button>
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="py-4 text-center text-[0.84rem] text-ink-400">{t('admin.common.empty')}</p>
+        )}
+
+        {canWrite && (
+          <div className="mt-4 flex flex-wrap items-end gap-3 rounded-lg border border-dashed border-cobalt-100 p-4">
+            <div>
+              <label className="label-base">{t('admin.sku.skuCode')}</label>
+              <input
+                className="input-base"
+                value={newSku.sku_code}
+                onChange={(e) => setNewSku((s) => ({ ...s, sku_code: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="label-base">{t('admin.sku.priceCny')}</label>
+              <input
+                className="input-base"
+                type="number"
+                value={newSku.price_cny}
+                onChange={(e) => setNewSku((s) => ({ ...s, price_cny: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="label-base">{t('admin.sku.stock')}</label>
+              <input
+                className="input-base"
+                type="number"
+                value={newSku.stock}
+                onChange={(e) => setNewSku((s) => ({ ...s, stock: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="label-base">{t('admin.sku.weight')}</label>
+              <input
+                className="input-base"
+                type="number"
+                value={newSku.weight_grams}
+                onChange={(e) => setNewSku((s) => ({ ...s, weight_grams: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="label-base">{t('admin.sku.lowStock')}</label>
+              <input
+                className="input-base"
+                type="number"
+                value={newSku.low_stock_threshold}
+                onChange={(e) => setNewSku((s) => ({ ...s, low_stock_threshold: e.target.value }))}
+              />
+            </div>
+            <Button variant="secondary" onClick={() => void addSku()}>
+              <Plus size={15} /> {t('admin.sku.add')}
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   )

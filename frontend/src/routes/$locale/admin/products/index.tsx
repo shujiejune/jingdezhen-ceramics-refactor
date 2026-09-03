@@ -1,7 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { Upload } from '@phosphor-icons/react'
 import { useEffect, useState } from 'react'
 
 import { AdminTable, DetailLinkCell, StatusBadge } from '~/components/admin/ContentTable'
+import { ButtonLink } from '~/components/common/ui'
 import { api } from '~/lib/api'
 import { errorKey, useAuth } from '~/lib/auth'
 import { useI18n } from '~/lib/i18n'
@@ -52,6 +54,9 @@ function ProductsListPage() {
     <div>
       <div className="flex items-center justify-between">
         <h2 className="text-[1.1rem] font-semibold text-ink-900">{t('admin.content.products')}</h2>
+        <ButtonLink to={`/${locale}/admin/products/import` as never} variant="secondary">
+          <Upload size={15} /> {t('admin.products.import')}
+        </ButtonLink>
       </div>
       {error && <p className="mt-4 text-[0.84rem] text-[color:var(--color-danger)]">{error}</p>}
       <div className="mt-6">
