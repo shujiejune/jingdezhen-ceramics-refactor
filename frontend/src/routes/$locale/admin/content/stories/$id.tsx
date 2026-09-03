@@ -1,14 +1,25 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { ArrowLeft, CheckCircle, XCircle, Eye, PencilSimple } from '@phosphor-icons/react'
+import {
+  ArrowLeft,
+  CheckCircle,
+  XCircle,
+  Eye,
+  PencilSimple,
+  Images,
+  Trash,
+  ArrowUp,
+  ArrowDown,
+} from '@phosphor-icons/react'
 import { useEffect, useState } from 'react'
 
+import { MediaPicker } from '~/components/admin/MediaPicker'
 import { StatusBadge } from '~/components/admin/ContentTable'
 import { Badge, Button, FieldError, Spinner } from '~/components/common/ui'
 import { useToast } from '~/components/common/Toaster'
 import { api } from '~/lib/api'
 import { errorKey, useAuth } from '~/lib/auth'
 import { useI18n } from '~/lib/i18n'
-import type { CeramicStory, ContentStatus } from '~/lib/types'
+import type { CeramicStory, ContentStatus, MediaAsset } from '~/lib/types'
 
 export const Route = createFileRoute('/$locale/admin/content/stories/$id')({
   component: StoryDetailPage,
@@ -27,6 +38,8 @@ function StoryDetailPage() {
   const [metaDescription, setMetaDescription] = useState('')
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState<string | null>(null)
+  const [gallery, setGallery] = useState<MediaAsset[]>([])
+  const [showPicker, setShowPicker] = useState(false)
 
   useEffect(() => {
     if (!ready || !token) return
@@ -215,6 +228,94 @@ function StoryDetailPage() {
           </div>
         </div>
       </div>
+
+      {canWrite && (
+        <div className="mt-6 card-surface p-6">
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="text-[0.88rem] font-semibold text-ink-700">
+              <Images size={15} className="mr-1.5 inline" />
+              {t('admin.media.attached')}
+            </h3>
+            <Button variant="secondary" size="sm" onClick={() => setShowPicker((v) => !v)}>
+              {t('admin.media.attach')}
+            </Button>
+          </div>
+
+          {showPicker && (
+            <div className="mb-4 rounded-lg border border-cobalt-100 bg-wash/20 p-4">
+              <MediaPicker
+                attachedIds={gallery.map((g) => g.id)}
+                onPick={(asset) => {
+                  setGallery((prev) => [...prev, asset])
+                  setShowPicker(false)
+                }}
+              />
+            </div>
+          )}
+
+          {gallery.length === 0 ? (
+            <p className="text-[0.84rem] text-ink-400">{t('admin.media.galleryEmpty')}</p>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {gallery.map((asset, idx) => (
+                <div
+                  key={asset.id}
+                  className="flex items-center gap-3 rounded-lg border border-cobalt-50 bg-white p-2"
+                >
+                  <div className="flex h-12 w-12 items-center justify-center rounded bg-wash/50">
+                    <img
+                      src={asset.public_url}
+                      alt={asset.caption ?? ''}
+                      className="max-h-full max-w-full object-contain"
+                      onError={(e) => {
+                        ;(e.target as HTMLImageElement).style.display = 'none'
+                      }}
+                    />
+                  </div>
+                  <span className="flex-1 text-[0.8rem] text-ink-600">
+                    {asset.caption ?? asset.public_url}
+                  </span>
+                  <button
+                    type="button"
+                    disabled={idx === 0}
+                    onClick={() =>
+                      setGallery((prev) => {
+                        const next = [...prev]
+                        ;[next[idx - 1], next[idx]] = [next[idx]!, next[idx - 1]!]
+                        return next
+                      })
+                    }
+                    className="text-ink-400 transition hover:text-cobalt-600 disabled:opacity-30"
+                  >
+                    <ArrowUp size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    disabled={idx === gallery.length - 1}
+                    onClick={() =>
+                      setGallery((prev) => {
+                        const next = [...prev]
+                        ;[next[idx + 1], next[idx]] = [next[idx]!, next[idx + 1]!]
+                        return next
+                      })
+                    }
+                    className="text-ink-400 transition hover:text-cobalt-600 disabled:opacity-30"
+                  >
+                    <ArrowDown size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setGallery((prev) => prev.filter((g) => g.id !== asset.id))}
+                    className="text-ink-400 transition hover:text-[color:var(--color-danger)]"
+                  >
+                    <Trash size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

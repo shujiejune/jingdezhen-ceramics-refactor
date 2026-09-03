@@ -1825,7 +1825,45 @@ async function handle(route: string, ctx: Ctx): Promise<unknown> {
   /* ---- admin: media ---- */
   if (route === 'GET /admin/media/assets') {
     authUser(opts)
-    return { data: mediaAssets as typeof mediaAssets }
+    return { data: [...mediaAssets] }
+  }
+  if (route === 'POST /admin/media/assets') {
+    authUser(opts)
+    const b = body as {
+      public_url?: string
+      caption?: string
+      mime_type?: string
+      file_size?: number
+    }
+    const asset = {
+      id: Math.max(0, ...mediaAssets.map((a) => a.id)) + 1,
+      public_url: b.public_url ?? `mock://media/asset-${Date.now()}.png`,
+      caption: b.caption,
+      mime_type: b.mime_type ?? 'image/png',
+      file_size: b.file_size ?? 0,
+      created_at: new Date().toISOString(),
+    }
+    mediaAssets.push(asset)
+    return asset
+  }
+  if (ctx.method === 'DELETE' && pathRegex('/admin/media/assets/:id', ctx.path)) {
+    authUser(opts)
+    const id = Number(ctx.path.split('/').pop())
+    const idx = mediaAssets.findIndex((a) => a.id === id)
+    if (idx >= 0) mediaAssets.splice(idx, 1)
+    return
+  }
+  if (route === 'POST /admin/media/upload') {
+    authUser(opts)
+    const asset = {
+      id: Math.max(0, ...mediaAssets.map((a) => a.id)) + 1,
+      public_url: `mock://media/asset-${Date.now()}.png`,
+      mime_type: 'image/png',
+      file_size: 200000,
+      created_at: new Date().toISOString(),
+    }
+    mediaAssets.push(asset)
+    return asset
   }
 
   /* ---- admin: certificates ---- */

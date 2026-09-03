@@ -47,6 +47,7 @@ import { Route as LocaleItinerariesIdRouteImport } from './routes/$locale/itiner
 import { Route as LocaleOrdersIndexRouteImport } from './routes/$locale/orders/index'
 import { Route as LocaleOrdersIdRouteImport } from './routes/$locale/orders/$id'
 import { Route as Login2faEnrollRouteImport } from './routes/login/2fa/enroll'
+import { Route as LocaleAdminMediaIndexRouteImport } from './routes/$locale/admin/media/index'
 import { Route as LocaleAdminProductsIndexRouteImport } from './routes/$locale/admin/products/index'
 import { Route as LocaleAdminProductsIdRouteImport } from './routes/$locale/admin/products/$id'
 import { Route as LocaleAdminContentActivitiesIndexRouteImport } from './routes/$locale/admin/content/activities/index'
@@ -246,6 +247,11 @@ const Login2faEnrollRoute = Login2faEnrollRouteImport.update({
   path: '/enroll',
   getParentRoute: () => Login2faRoute,
 } as any)
+const LocaleAdminMediaIndexRoute = LocaleAdminMediaIndexRouteImport.update({
+  id: '/media/',
+  path: '/media/',
+  getParentRoute: () => LocaleAdminRoute,
+} as any)
 const LocaleAdminProductsIndexRoute =
   LocaleAdminProductsIndexRouteImport.update({
     id: '/products/',
@@ -334,6 +340,7 @@ export interface FileRoutesByFullPath {
   '/$locale/engage/': typeof LocaleEngageIndexRoute
   '/$locale/orders/': typeof LocaleOrdersIndexRoute
   '/$locale/admin/products/$id': typeof LocaleAdminProductsIdRoute
+  '/$locale/admin/media/': typeof LocaleAdminMediaIndexRoute
   '/$locale/admin/products/': typeof LocaleAdminProductsIndexRoute
   '/$locale/admin/content/activities/$id': typeof LocaleAdminContentActivitiesIdRoute
   '/$locale/admin/content/artists/$id': typeof LocaleAdminContentArtistsIdRoute
@@ -380,6 +387,7 @@ export interface FileRoutesByTo {
   '/$locale/engage': typeof LocaleEngageIndexRoute
   '/$locale/orders': typeof LocaleOrdersIndexRoute
   '/$locale/admin/products/$id': typeof LocaleAdminProductsIdRoute
+  '/$locale/admin/media': typeof LocaleAdminMediaIndexRoute
   '/$locale/admin/products': typeof LocaleAdminProductsIndexRoute
   '/$locale/admin/content/activities/$id': typeof LocaleAdminContentActivitiesIdRoute
   '/$locale/admin/content/artists/$id': typeof LocaleAdminContentArtistsIdRoute
@@ -429,6 +437,7 @@ export interface FileRoutesById {
   '/$locale/engage/': typeof LocaleEngageIndexRoute
   '/$locale/orders/': typeof LocaleOrdersIndexRoute
   '/$locale/admin/products/$id': typeof LocaleAdminProductsIdRoute
+  '/$locale/admin/media/': typeof LocaleAdminMediaIndexRoute
   '/$locale/admin/products/': typeof LocaleAdminProductsIndexRoute
   '/$locale/admin/content/activities/$id': typeof LocaleAdminContentActivitiesIdRoute
   '/$locale/admin/content/artists/$id': typeof LocaleAdminContentArtistsIdRoute
@@ -479,6 +488,7 @@ export interface FileRouteTypes {
     | '/$locale/engage/'
     | '/$locale/orders/'
     | '/$locale/admin/products/$id'
+    | '/$locale/admin/media/'
     | '/$locale/admin/products/'
     | '/$locale/admin/content/activities/$id'
     | '/$locale/admin/content/artists/$id'
@@ -525,6 +535,7 @@ export interface FileRouteTypes {
     | '/$locale/engage'
     | '/$locale/orders'
     | '/$locale/admin/products/$id'
+    | '/$locale/admin/media'
     | '/$locale/admin/products'
     | '/$locale/admin/content/activities/$id'
     | '/$locale/admin/content/artists/$id'
@@ -573,6 +584,7 @@ export interface FileRouteTypes {
     | '/$locale/engage/'
     | '/$locale/orders/'
     | '/$locale/admin/products/$id'
+    | '/$locale/admin/media/'
     | '/$locale/admin/products/'
     | '/$locale/admin/content/activities/$id'
     | '/$locale/admin/content/artists/$id'
@@ -858,6 +870,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Login2faEnrollRouteImport
       parentRoute: typeof Login2faRoute
     }
+    '/$locale/admin/media/': {
+      id: '/$locale/admin/media/'
+      path: '/media'
+      fullPath: '/$locale/admin/media/'
+      preLoaderRoute: typeof LocaleAdminMediaIndexRouteImport
+      parentRoute: typeof LocaleAdminRoute
+    }
     '/$locale/admin/products/': {
       id: '/$locale/admin/products/'
       path: '/products'
@@ -920,6 +939,7 @@ declare module '@tanstack/react-router' {
 interface LocaleAdminRouteChildren {
   LocaleAdminIndexRoute: typeof LocaleAdminIndexRoute
   LocaleAdminProductsIdRoute: typeof LocaleAdminProductsIdRoute
+  LocaleAdminMediaIndexRoute: typeof LocaleAdminMediaIndexRoute
   LocaleAdminProductsIndexRoute: typeof LocaleAdminProductsIndexRoute
   LocaleAdminContentActivitiesIdRoute: typeof LocaleAdminContentActivitiesIdRoute
   LocaleAdminContentArtistsIdRoute: typeof LocaleAdminContentArtistsIdRoute
@@ -932,6 +952,7 @@ interface LocaleAdminRouteChildren {
 const LocaleAdminRouteChildren: LocaleAdminRouteChildren = {
   LocaleAdminIndexRoute: LocaleAdminIndexRoute,
   LocaleAdminProductsIdRoute: LocaleAdminProductsIdRoute,
+  LocaleAdminMediaIndexRoute: LocaleAdminMediaIndexRoute,
   LocaleAdminProductsIndexRoute: LocaleAdminProductsIndexRoute,
   LocaleAdminContentActivitiesIdRoute: LocaleAdminContentActivitiesIdRoute,
   LocaleAdminContentArtistsIdRoute: LocaleAdminContentArtistsIdRoute,
