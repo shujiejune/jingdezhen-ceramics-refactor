@@ -1,5 +1,6 @@
 import { Outlet, createFileRoute, redirect, useRouterState } from '@tanstack/react-router'
 import { QueryClientProvider } from '@tanstack/react-query'
+import { useEffect } from 'react'
 
 import { ConsentBanner } from '~/components/common/ConsentBanner'
 import { ToastProvider } from '~/components/common/Toaster'
@@ -9,6 +10,7 @@ import { Header } from '~/components/layout/Header'
 import { AuthProvider } from '~/lib/auth'
 import { CartProvider } from '~/lib/cart'
 import { ConsentProvider } from '~/lib/consent'
+import { trackPageview } from '~/lib/analytics'
 import { I18nProvider, useI18n } from '~/lib/i18n'
 import { isLocale, type Locale } from '~/lib/utils'
 import { WishlistProvider } from '~/lib/wishlist'
@@ -67,6 +69,12 @@ function LocaleShell({ locale }: { locale: Locale }) {
   // horizontal-magazine pages (landing + heritage index; detail articles
   // stay vertical) own their chrome: spine + panels, no header/footer
   const isMagazine = /^\/[^/]+\/?$/.test(pathname) || /^\/[^/]+\/ceramicstory\/?$/.test(pathname)
+
+  // analytics: fire a pageview on every route change (PRD §4.3, TDD §4.3)
+  useEffect(() => {
+    trackPageview(pathname, locale)
+  }, [pathname, locale])
+
   return (
     <ConsentProvider>
       <CartProvider locale={locale} currency={currency}>

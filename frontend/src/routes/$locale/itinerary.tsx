@@ -13,6 +13,7 @@ import { PetalScatter, WaveBand } from '~/components/ornaments'
 import { Badge, Button, FieldError, Spinner } from '~/components/common/ui'
 import { api } from '~/lib/api'
 import { errorKey, useAuth } from '~/lib/auth'
+import { trackItineraryFormView } from '~/lib/analytics'
 import { useI18n } from '~/lib/i18n'
 import { formatMinor } from '~/lib/money'
 import { INTEREST_OPTIONS } from '~/mocks/data'
@@ -108,6 +109,11 @@ function ItineraryWizard() {
       }
     }
   }, [])
+
+  /* analytics: track itinerary form view on mount (funnel contract) */
+  useEffect(() => {
+    trackItineraryFormView(locale)
+  }, [locale])
 
   /* autosave draft */
   useEffect(() => {
