@@ -17,6 +17,7 @@ import { Route as LocaleCartRouteImport } from './routes/$locale/cart'
 import { Route as LocaleCheckoutRouteImport } from './routes/$locale/checkout'
 import { Route as LocaleItinerariesRouteImport } from './routes/$locale/itineraries'
 import { Route as LocaleItineraryRouteImport } from './routes/$locale/itinerary'
+import { Route as LocaleNotificationsRouteImport } from './routes/$locale/notifications'
 import { Route as LocaleWishlistRouteImport } from './routes/$locale/wishlist'
 import { Route as Login2faRouteImport } from './routes/login/2fa'
 import { Route as LoginErrorRouteImport } from './routes/login/error'
@@ -36,6 +37,7 @@ import { Route as LocaleCeramicstorySlugRouteImport } from './routes/$locale/cer
 import { Route as LocaleCertificatesCodeRouteImport } from './routes/$locale/certificates/$code'
 import { Route as LocaleEngageIndexRouteImport } from './routes/$locale/engage/index'
 import { Route as LocaleEngageSlugRouteImport } from './routes/$locale/engage/$slug'
+import { Route as LocaleItinerariesIdRouteImport } from './routes/$locale/itineraries/$id'
 import { Route as LocaleOrdersIndexRouteImport } from './routes/$locale/orders/index'
 import { Route as LocaleOrdersIdRouteImport } from './routes/$locale/orders/$id'
 import { Route as Login2faEnrollRouteImport } from './routes/login/2fa/enroll'
@@ -78,6 +80,11 @@ const LocaleItinerariesRoute = LocaleItinerariesRouteImport.update({
 const LocaleItineraryRoute = LocaleItineraryRouteImport.update({
   id: '/itinerary',
   path: '/itinerary',
+  getParentRoute: () => LocaleRoute,
+} as any)
+const LocaleNotificationsRoute = LocaleNotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
   getParentRoute: () => LocaleRoute,
 } as any)
 const LocaleWishlistRoute = LocaleWishlistRouteImport.update({
@@ -175,6 +182,11 @@ const LocaleEngageSlugRoute = LocaleEngageSlugRouteImport.update({
   path: '/engage/$slug',
   getParentRoute: () => LocaleRoute,
 } as any)
+const LocaleItinerariesIdRoute = LocaleItinerariesIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => LocaleItinerariesRoute,
+} as any)
 const LocaleOrdersIndexRoute = LocaleOrdersIndexRouteImport.update({
   id: '/orders/',
   path: '/orders/',
@@ -197,8 +209,9 @@ export interface FileRoutesByFullPath {
   '/$locale/account': typeof LocaleAccountRoute
   '/$locale/cart': typeof LocaleCartRoute
   '/$locale/checkout': typeof LocaleCheckoutRoute
-  '/$locale/itineraries': typeof LocaleItinerariesRoute
+  '/$locale/itineraries': typeof LocaleItinerariesRouteWithChildren
   '/$locale/itinerary': typeof LocaleItineraryRoute
+  '/$locale/notifications': typeof LocaleNotificationsRoute
   '/$locale/wishlist': typeof LocaleWishlistRoute
   '/login/2fa': typeof Login2faRouteWithChildren
   '/login/error': typeof LoginErrorRoute
@@ -215,6 +228,7 @@ export interface FileRoutesByFullPath {
   '/$locale/ceramicstory/$slug': typeof LocaleCeramicstorySlugRoute
   '/$locale/certificates/$code': typeof LocaleCertificatesCodeRoute
   '/$locale/engage/$slug': typeof LocaleEngageSlugRoute
+  '/$locale/itineraries/$id': typeof LocaleItinerariesIdRoute
   '/$locale/orders/$id': typeof LocaleOrdersIdRoute
   '/login/2fa/enroll': typeof Login2faEnrollRoute
   '/$locale/artists/': typeof LocaleArtistsIndexRoute
@@ -228,8 +242,9 @@ export interface FileRoutesByTo {
   '/$locale/account': typeof LocaleAccountRoute
   '/$locale/cart': typeof LocaleCartRoute
   '/$locale/checkout': typeof LocaleCheckoutRoute
-  '/$locale/itineraries': typeof LocaleItinerariesRoute
+  '/$locale/itineraries': typeof LocaleItinerariesRouteWithChildren
   '/$locale/itinerary': typeof LocaleItineraryRoute
+  '/$locale/notifications': typeof LocaleNotificationsRoute
   '/$locale/wishlist': typeof LocaleWishlistRoute
   '/login/2fa': typeof Login2faRouteWithChildren
   '/login/error': typeof LoginErrorRoute
@@ -246,6 +261,7 @@ export interface FileRoutesByTo {
   '/$locale/ceramicstory/$slug': typeof LocaleCeramicstorySlugRoute
   '/$locale/certificates/$code': typeof LocaleCertificatesCodeRoute
   '/$locale/engage/$slug': typeof LocaleEngageSlugRoute
+  '/$locale/itineraries/$id': typeof LocaleItinerariesIdRoute
   '/$locale/orders/$id': typeof LocaleOrdersIdRoute
   '/login/2fa/enroll': typeof Login2faEnrollRoute
   '/$locale/artists': typeof LocaleArtistsIndexRoute
@@ -261,8 +277,9 @@ export interface FileRoutesById {
   '/$locale/account': typeof LocaleAccountRoute
   '/$locale/cart': typeof LocaleCartRoute
   '/$locale/checkout': typeof LocaleCheckoutRoute
-  '/$locale/itineraries': typeof LocaleItinerariesRoute
+  '/$locale/itineraries': typeof LocaleItinerariesRouteWithChildren
   '/$locale/itinerary': typeof LocaleItineraryRoute
+  '/$locale/notifications': typeof LocaleNotificationsRoute
   '/$locale/wishlist': typeof LocaleWishlistRoute
   '/login/2fa': typeof Login2faRouteWithChildren
   '/login/error': typeof LoginErrorRoute
@@ -279,6 +296,7 @@ export interface FileRoutesById {
   '/$locale/ceramicstory/$slug': typeof LocaleCeramicstorySlugRoute
   '/$locale/certificates/$code': typeof LocaleCertificatesCodeRoute
   '/$locale/engage/$slug': typeof LocaleEngageSlugRoute
+  '/$locale/itineraries/$id': typeof LocaleItinerariesIdRoute
   '/$locale/orders/$id': typeof LocaleOrdersIdRoute
   '/login/2fa/enroll': typeof Login2faEnrollRoute
   '/$locale/artists/': typeof LocaleArtistsIndexRoute
@@ -297,6 +315,7 @@ export interface FileRouteTypes {
     | '/$locale/checkout'
     | '/$locale/itineraries'
     | '/$locale/itinerary'
+    | '/$locale/notifications'
     | '/$locale/wishlist'
     | '/login/2fa'
     | '/login/error'
@@ -313,6 +332,7 @@ export interface FileRouteTypes {
     | '/$locale/ceramicstory/$slug'
     | '/$locale/certificates/$code'
     | '/$locale/engage/$slug'
+    | '/$locale/itineraries/$id'
     | '/$locale/orders/$id'
     | '/login/2fa/enroll'
     | '/$locale/artists/'
@@ -328,6 +348,7 @@ export interface FileRouteTypes {
     | '/$locale/checkout'
     | '/$locale/itineraries'
     | '/$locale/itinerary'
+    | '/$locale/notifications'
     | '/$locale/wishlist'
     | '/login/2fa'
     | '/login/error'
@@ -344,6 +365,7 @@ export interface FileRouteTypes {
     | '/$locale/ceramicstory/$slug'
     | '/$locale/certificates/$code'
     | '/$locale/engage/$slug'
+    | '/$locale/itineraries/$id'
     | '/$locale/orders/$id'
     | '/login/2fa/enroll'
     | '/$locale/artists'
@@ -360,6 +382,7 @@ export interface FileRouteTypes {
     | '/$locale/checkout'
     | '/$locale/itineraries'
     | '/$locale/itinerary'
+    | '/$locale/notifications'
     | '/$locale/wishlist'
     | '/login/2fa'
     | '/login/error'
@@ -376,6 +399,7 @@ export interface FileRouteTypes {
     | '/$locale/ceramicstory/$slug'
     | '/$locale/certificates/$code'
     | '/$locale/engage/$slug'
+    | '/$locale/itineraries/$id'
     | '/$locale/orders/$id'
     | '/login/2fa/enroll'
     | '/$locale/artists/'
@@ -449,6 +473,13 @@ declare module '@tanstack/react-router' {
       path: '/itinerary'
       fullPath: '/$locale/itinerary'
       preLoaderRoute: typeof LocaleItineraryRouteImport
+      parentRoute: typeof LocaleRoute
+    }
+    '/$locale/notifications': {
+      id: '/$locale/notifications'
+      path: '/notifications'
+      fullPath: '/$locale/notifications'
+      preLoaderRoute: typeof LocaleNotificationsRouteImport
       parentRoute: typeof LocaleRoute
     }
     '/$locale/wishlist': {
@@ -584,6 +615,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LocaleEngageSlugRouteImport
       parentRoute: typeof LocaleRoute
     }
+    '/$locale/itineraries/$id': {
+      id: '/$locale/itineraries/$id'
+      path: '/$id'
+      fullPath: '/$locale/itineraries/$id'
+      preLoaderRoute: typeof LocaleItinerariesIdRouteImport
+      parentRoute: typeof LocaleItinerariesRoute
+    }
     '/$locale/orders/': {
       id: '/$locale/orders/'
       path: '/orders'
@@ -608,12 +646,24 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface LocaleItinerariesRouteChildren {
+  LocaleItinerariesIdRoute: typeof LocaleItinerariesIdRoute
+}
+
+const LocaleItinerariesRouteChildren: LocaleItinerariesRouteChildren = {
+  LocaleItinerariesIdRoute: LocaleItinerariesIdRoute,
+}
+
+const LocaleItinerariesRouteWithChildren =
+  LocaleItinerariesRoute._addFileChildren(LocaleItinerariesRouteChildren)
+
 interface LocaleRouteChildren {
   LocaleAccountRoute: typeof LocaleAccountRoute
   LocaleCartRoute: typeof LocaleCartRoute
   LocaleCheckoutRoute: typeof LocaleCheckoutRoute
-  LocaleItinerariesRoute: typeof LocaleItinerariesRoute
+  LocaleItinerariesRoute: typeof LocaleItinerariesRouteWithChildren
   LocaleItineraryRoute: typeof LocaleItineraryRoute
+  LocaleNotificationsRoute: typeof LocaleNotificationsRoute
   LocaleWishlistRoute: typeof LocaleWishlistRoute
   LocaleIndexRoute: typeof LocaleIndexRoute
   LocaleArtistsSlugRoute: typeof LocaleArtistsSlugRoute
@@ -639,8 +689,9 @@ const LocaleRouteChildren: LocaleRouteChildren = {
   LocaleAccountRoute: LocaleAccountRoute,
   LocaleCartRoute: LocaleCartRoute,
   LocaleCheckoutRoute: LocaleCheckoutRoute,
-  LocaleItinerariesRoute: LocaleItinerariesRoute,
+  LocaleItinerariesRoute: LocaleItinerariesRouteWithChildren,
   LocaleItineraryRoute: LocaleItineraryRoute,
+  LocaleNotificationsRoute: LocaleNotificationsRoute,
   LocaleWishlistRoute: LocaleWishlistRoute,
   LocaleIndexRoute: LocaleIndexRoute,
   LocaleArtistsSlugRoute: LocaleArtistsSlugRoute,

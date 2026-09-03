@@ -107,9 +107,19 @@ function ItinerariesPage() {
                 </div>
               </div>
               {r.status === 'quoted' ? (
-                <span className="inline-flex h-9 items-center rounded-lg bg-cobalt-600 px-4 text-[0.82rem] font-medium text-white">
+                <Link
+                  to="/$locale/itineraries/$id"
+                  params={{ locale, id: String(r.id) }}
+                  className="inline-flex h-9 items-center rounded-lg bg-cobalt-600 px-4 text-[0.82rem] font-medium text-white shadow-card transition hover:bg-cobalt-700"
+                >
                   {t('itin.viewQuote')}
-                </span>
+                </Link>
+              ) : r.status === 'deposit_paid' || r.status === 'confirmed' ? (
+                <Badge tone="success">{t('itin.status.confirmed')}</Badge>
+              ) : r.status === 'pending' || r.status === 'processing' ? (
+                <Badge tone="warning">
+                  {t(`itin.status.${r.status}` as Parameters<typeof t>[0])}
+                </Badge>
               ) : (
                 <Link
                   to="/$locale/itinerary"

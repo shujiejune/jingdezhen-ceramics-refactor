@@ -9,6 +9,7 @@ import { useI18n } from '~/lib/i18n'
 import { formatWeight } from '~/lib/money'
 import type { Address, Order, ShippingQuote } from '~/lib/types'
 import { SHIPPABLE_COUNTRIES } from '~/mocks/data'
+import { useToast } from '~/components/common/Toaster'
 import { Badge, Button, ButtonLink, FieldError, Spinner } from '~/components/common/ui'
 
 /**
@@ -27,6 +28,7 @@ function CheckoutPage() {
   const { ready, token, user } = useAuth()
   const { cart, refresh } = useCart()
   const navigate = useNavigate()
+  const { push } = useToast()
 
   const [addresses, setAddresses] = useState<Address[] | null>(null)
   const [addressId, setAddressId] = useState<number | null>(null)
@@ -37,6 +39,7 @@ function CheckoutPage() {
   const [agreePrivacy, setAgreePrivacy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [placing, setPlacing] = useState(false)
+  const [polling, setPolling] = useState(false)
   const [sandboxOrder, setSandboxOrder] = useState<Order | null>(null)
 
   const weight = useMemo(
@@ -71,6 +74,65 @@ function CheckoutPage() {
       cancelled = true
     }
   }, [address, cart, weight, currency])
+
+  /* poll an order until status === 'paid', then navigate to the order detail
+   * page with ?placed=1. Returns a cleanup function that cancels the timer. */
+  const pollOrderStatus = (orderId: number, authToken: string) => {
+    setPolling(true)
+    const maxRetries = 15
+    let retries = 0
+    let timer: ReturnType<typeof setTimeout>
+    const tick = () => {
+      retries += 1
+      api
+        .getOrder(authToken, orderId, locale)
+        .then((order) => {
+          if (order.status === 'paid') {
+            setPolling(false)
+            push({ title: t('checkout.paymentConfirmed'), kind: 'success' })
+            void refresh()
+            void navigate({
+              to: '/$locale/orders/$id',
+              params: { locale, id: String(orderId) },
+              search: { placed: 1 },
+            })
+          } else if (retries < maxRetries) {
+            timer = setTimeout(tick, 2000)
+          } else {
+            setPolling(false)
+            push({ title: t('checkout.pollTimeout'), kind: 'error' })
+          }
+        })
+        .catch(() => {
+          if (retries < maxRetries) {
+            timer = setTimeout(tick, 2000)
+          } else {
+            setPolling(false)
+            push({ title: t('checkout.pollTimeout'), kind: 'error' })
+          }
+        })
+    }
+    timer = setTimeout(tick, 2000)
+    return () => clearTimeout(timer)
+  }
+
+  /* return-from-gateway: when the payment gateway redirects back with
+   * ?order_id=...&paid=1, start polling for payment confirmation. */
+  useEffect(() => {
+    if (!token) return
+    const params = new URLSearchParams(window.location.search)
+    const orderIdParam = params.get('order_id')
+    const paid = params.get('paid')
+    if (orderIdParam && paid === '1') {
+      const orderId = Number(orderIdParam)
+      if (Number.isFinite(orderId)) {
+        push({ title: t('checkout.polling'), kind: 'info' })
+        return pollOrderStatus(orderId, token)
+      }
+    }
+    return undefined
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token])
 
   if (!ready || (token && (!cart || addresses === null))) {
     return (
@@ -125,6 +187,15 @@ function CheckoutPage() {
         locale,
         consent: true,
       })
+      const hostedUrl = order.hosted_url
+      if (hostedUrl && /^https?:\/\//.test(hostedUrl)) {
+        /* live gateway: redirect away; the gateway will redirect back here
+         * with ?order_id=...&paid=1, handled by the polling effect. */
+        push({ title: t('checkout.redirecting'), kind: 'info' })
+        window.location.href = hostedUrl
+        return
+      }
+      /* mock / sandbox: fall through to the interstitial modal. */
       setSandboxOrder(order)
     } catch (e) {
       setError(t(errorKey(e) as Parameters<typeof t>[0]))
@@ -140,13 +211,11 @@ function CheckoutPage() {
     try {
       await api.simulatePayment(token, sandboxOrder.id)
       await refresh()
-      await navigate({
-        to: '/$locale/orders/$id',
-        params: { locale, id: String(sandboxOrder.id) },
-        search: { placed: 1 },
-      })
+      push({ title: t('checkout.polling'), kind: 'info' })
+      pollOrderStatus(sandboxOrder.id, token)
     } finally {
       setPlacing(false)
+      setSandboxOrder(null)
     }
   }
 
@@ -424,6 +493,18 @@ function CheckoutPage() {
                 {t('checkout.approvePayment')}
               </Button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ------------------------- payment polling overlay ------------------------- */}
+      {polling && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-ink-900/45 p-4 backdrop-blur-sm">
+          <div className="card-surface w-full max-w-md p-8 text-center shadow-pop">
+            <Spinner className="mx-auto h-7 w-7 text-cobalt-400" />
+            <p className="mt-4 text-[0.9rem] leading-relaxed text-ink-600">
+              {t('checkout.polling')}
+            </p>
           </div>
         </div>
       )}

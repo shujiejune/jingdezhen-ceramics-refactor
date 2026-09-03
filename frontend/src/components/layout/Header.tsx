@@ -3,6 +3,7 @@ import { Link, useNavigate, useRouterState } from '@tanstack/react-router'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import {
   Bag,
+  BellSimple,
   CaretDown,
   GlobeHemisphereWest,
   HeartStraight,
@@ -17,6 +18,7 @@ import { useEffect, useState } from 'react'
 
 import { SealMark } from '~/components/ornaments'
 import { Button, ButtonLink } from '~/components/common/ui'
+import { api } from '~/lib/api'
 import { useAuth } from '~/lib/auth'
 import { useCart } from '~/lib/cart'
 import { useI18n } from '~/lib/i18n'
@@ -27,14 +29,32 @@ const CURRENCY_SYMBOLS: Record<string, string> = { USD: '$', EUR: 'â‚¬', GBP: 'Â
 
 export function Header() {
   const { t, locale, currency, setCurrency } = useI18n()
-  const { user, logout, ready } = useAuth()
+  const { user, logout, ready, token } = useAuth()
   const { count: cartCount } = useCart()
   const { ids: wishlistIds } = useWishlist()
   const navigate = useNavigate()
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [unreadCount, setUnreadCount] = useState(0)
 
   useEffect(() => setMobileOpen(false), [pathname])
+
+  useEffect(() => {
+    if (!ready || !token) return
+    let active = true
+    const poll = () => {
+      void api
+        .getUnreadNotificationCount(token)
+        .then((res) => active && setUnreadCount(res.count))
+        .catch(() => {})
+    }
+    poll()
+    const id = setInterval(poll, 30_000)
+    return () => {
+      active = false
+      clearInterval(id)
+    }
+  }, [ready, token])
 
   const base = `/${locale}`
   const otherLocale: Locale = locale === 'en-US' ? 'zh-CN' : 'en-US'
@@ -130,6 +150,20 @@ export function Header() {
               </DropdownMenu.Content>
             </DropdownMenu.Portal>
           </DropdownMenu.Root>
+
+          {/* notifications */}
+          <Link
+            to={`${base}/notifications` as never}
+            aria-label={t('notif.title')}
+            className="relative flex h-9 w-9 items-center justify-center rounded-md text-ink-500 transition hover:bg-mist hover:text-cobalt-700"
+          >
+            <BellSimple size={19} />
+            {unreadCount > 0 && (
+              <span className="absolute top-0.5 right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-cobalt-600 px-1 text-[0.62rem] font-bold text-white">
+                {unreadCount}
+              </span>
+            )}
+          </Link>
 
           {/* wishlist */}
           <Link

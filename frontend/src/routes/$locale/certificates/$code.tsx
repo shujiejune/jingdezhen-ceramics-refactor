@@ -1,6 +1,7 @@
 import { createFileRoute, notFound, useNavigate } from '@tanstack/react-router'
-import { SealCheck, ArrowRight } from '@phosphor-icons/react'
-import { useState } from 'react'
+import { SealCheck, ArrowRight, DownloadSimple, FilePdf } from '@phosphor-icons/react'
+import { useEffect, useState } from 'react'
+import QRCode from 'qrcode'
 import { PorcelainFigure } from '~/components/artwork/PorcelainFigure'
 import { SealMark, WaveBand, PetalScatter } from '~/components/ornaments'
 import { Badge, Button } from '~/components/common/ui'
@@ -102,6 +103,79 @@ function QrMotif({ seed, size = 108 }: { seed: number; size?: number }) {
   )
 }
 
+/**
+ * Real QR code rendered client-side. Encodes the public certificate
+ * verification URL so a scanner opens this page. Falls back to the
+ * decorative `QrMotif` if generation fails (e.g. SSR or library error).
+ */
+function QrCodeImage({ cert, locale, seed }: { cert: Certificate; locale: string; seed: number }) {
+  const { t } = useI18n()
+  const [dataUrl, setDataUrl] = useState<string | null>(null)
+
+  useEffect(() => {
+    const verifyUrl = `${window.location.origin}/${locale}/certificates/${cert.cert_code}`
+    QRCode.toDataURL(verifyUrl, {
+      width: 216,
+      margin: 1,
+      errorCorrectionLevel: 'M',
+      color: { dark: '#1a1a2e', light: '#ffffff' },
+    })
+      .then((url) => setDataUrl(url))
+      .catch(() => setDataUrl(null))
+  }, [cert.cert_code, locale])
+
+  return (
+    <div
+      className="flex flex-col items-center"
+      role="img"
+      aria-label={t('cert.viewQr')}
+      title={t('cert.scanQr')}
+    >
+      {dataUrl ? (
+        <img src={dataUrl} alt={t('cert.viewQr')} width={108} height={108} className="block" />
+      ) : (
+        <QrMotif seed={seed} />
+      )}
+      <p className="mt-2 text-center font-mono text-[0.72rem] text-ink-400">{cert.cert_code}</p>
+    </div>
+  )
+}
+
+/** PDF download control. Live backend serves a 302 to the storage URL (or
+ *  404 if not generated); in mock mode there is no endpoint, so we render
+ *  the "not yet generated" disabled state. */
+function PdfDownload({ cert }: { cert: Certificate }) {
+  const { t } = useI18n()
+  const isLive = import.meta.env.VITE_API_MODE === 'live'
+  const base =
+    (import.meta.env.VITE_API_BROWSER_BASE as string | undefined) ??
+    (import.meta.env.PROD ? '/api' : 'http://localhost:1323')
+  const pdfUrl = `${base}/certificates/${cert.cert_code}/pdf?download=1`
+
+  // Mock mode has no real PDF endpoint, and a missing pdf_key indicates the
+  // PDF has not been generated yet — render the "not ready" state either way.
+  if (!isLive || !cert.pdf_key) {
+    return (
+      <div className="flex items-center gap-2.5 text-[0.84rem] text-ink-400">
+        <FilePdf size={15} weight="regular" />
+        <span title={t('cert.pdfNotReady')}>{t('cert.pdfNotReady')}</span>
+      </div>
+    )
+  }
+
+  return (
+    <a
+      href={pdfUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex items-center gap-2 rounded-lg border border-cobalt-200 bg-white px-3.5 py-2 text-[0.84rem] font-medium text-cobalt-700 shadow-card transition hover:border-cobalt-300 hover:bg-cobalt-50"
+    >
+      <DownloadSimple size={15} weight="regular" />
+      {t('cert.downloadPdf')}
+    </a>
+  )
+}
+
 function CertificatePage() {
   const { t, locale } = useI18n()
   const cert = Route.useLoaderData() as Certificate
@@ -132,10 +206,7 @@ function CertificatePage() {
             </div>
           </div>
           <div className="rounded-xl border border-cobalt-100 bg-white p-3 shadow-card">
-            <QrMotif seed={cert.figure_seed} />
-            <p className="mt-2 text-center font-mono text-[0.72rem] text-ink-400">
-              {cert.cert_code}
-            </p>
+            <QrCodeImage cert={cert} locale={locale} seed={cert.figure_seed} />
           </div>
         </div>
 
@@ -181,13 +252,17 @@ function CertificatePage() {
                 </div>
               )}
             </dl>
-            <a
-              href={`/${locale}/catalog/${cert.product_slug}`}
-              className="mt-5 inline-flex items-center gap-1.5 text-[0.85rem] font-medium text-cobalt-600 hover:underline"
-            >
-              {t('cert.viewWork')}
-              <ArrowRight size={13} weight="bold" />
-            </a>
+            <div className="mt-5 flex flex-wrap items-center gap-4">
+              <a
+                href={`/${locale}/catalog/${cert.product_slug}`}
+                className="inline-flex items-center gap-1.5 text-[0.85rem] font-medium text-cobalt-600 hover:underline"
+              >
+                {t('cert.viewWork')}
+                <ArrowRight size={13} weight="bold" />
+              </a>
+              <span className="h-4 w-px bg-cobalt-100" aria-hidden="true" />
+              <PdfDownload cert={cert} />
+            </div>
           </div>
         </div>
       </div>
