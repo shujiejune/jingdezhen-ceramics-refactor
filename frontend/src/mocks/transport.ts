@@ -1592,6 +1592,163 @@ async function handle(route: string, ctx: Ctx): Promise<unknown> {
     return paginate(items, 1, 50)
   }
 
+  /* ---- admin: content detail by slug + workflow ---- */
+  // stories
+  if (ctx.method === 'GET' && pathRegex('/admin/ceramicstory/:slug', ctx.path)) {
+    authUser(opts)
+    const slug = ctx.path.split('/').pop()!
+    const rec = STORIES.find(
+      (s) => s.translations.enUS.slug === slug || s.translations.zhCN.slug === slug,
+    )
+    if (!rec) throw new ApiError('not_found', 'story not found', 404)
+    return toStory(rec, ctx.locale, true)
+  }
+  if (ctx.method === 'PUT' && pathRegex('/admin/ceramicstory/:id', ctx.path)) {
+    authUser(opts)
+    const id = Number(ctx.path.split('/').pop())
+    const rec = STORIES.find((s) => s.id === id)
+    if (!rec) throw new ApiError('not_found', 'story not found', 404)
+    const b = body as Record<string, unknown>
+    if (typeof b.title === 'string')
+      rec.translations[ctx.locale === 'zh-CN' ? 'zhCN' : 'enUS'].title = b.title
+    if (typeof b.slug === 'string')
+      rec.translations[ctx.locale === 'zh-CN' ? 'zhCN' : 'enUS'].slug = b.slug
+    if (typeof b.summary === 'string')
+      rec.translations[ctx.locale === 'zh-CN' ? 'zhCN' : 'enUS'].summary = b.summary
+    return toStory(rec, ctx.locale, true)
+  }
+  if (ctx.method === 'DELETE' && pathRegex('/admin/ceramicstory/:id', ctx.path)) {
+    authUser(opts)
+    return
+  }
+  for (const act of ['submit', 'approve', 'reject', 'unpublish'] as const) {
+    if (ctx.method === 'POST' && pathRegex(`/admin/ceramicstory/:id/${act}`, ctx.path)) {
+      authUser(opts)
+      const id = Number(ctx.path.split('/').slice(-2, -1)[0])
+      const rec = STORIES.find((s) => s.id === id)
+      if (!rec) throw new ApiError('not_found', 'story not found', 404)
+      return toStory(rec, ctx.locale, true)
+    }
+  }
+
+  // activities (engage)
+  if (ctx.method === 'GET' && pathRegex('/admin/engage/:slug', ctx.path)) {
+    authUser(opts)
+    const slug = ctx.path.split('/').pop()!
+    const rec = ACTIVITIES.find(
+      (a) => a.translations.enUS.slug === slug || a.translations.zhCN.slug === slug,
+    )
+    if (!rec) throw new ApiError('not_found', 'activity not found', 404)
+    return toActivity(rec, ctx.locale, true)
+  }
+  if (ctx.method === 'PUT' && pathRegex('/admin/engage/:id', ctx.path)) {
+    authUser(opts)
+    const id = Number(ctx.path.split('/').pop())
+    const rec = ACTIVITIES.find((a) => a.id === id)
+    if (!rec) throw new ApiError('not_found', 'activity not found', 404)
+    const b = body as Record<string, unknown>
+    if (typeof b.title === 'string')
+      rec.translations[ctx.locale === 'zh-CN' ? 'zhCN' : 'enUS'].title = b.title
+    if (typeof b.slug === 'string')
+      rec.translations[ctx.locale === 'zh-CN' ? 'zhCN' : 'enUS'].slug = b.slug
+    if (typeof b.summary === 'string')
+      rec.translations[ctx.locale === 'zh-CN' ? 'zhCN' : 'enUS'].summary = b.summary
+    return toActivity(rec, ctx.locale, true)
+  }
+  if (ctx.method === 'DELETE' && pathRegex('/admin/engage/:id', ctx.path)) {
+    authUser(opts)
+    return
+  }
+  for (const act of ['submit', 'approve', 'reject', 'unpublish'] as const) {
+    if (ctx.method === 'POST' && pathRegex(`/admin/engage/:id/${act}`, ctx.path)) {
+      authUser(opts)
+      const id = Number(ctx.path.split('/').slice(-2, -1)[0])
+      const rec = ACTIVITIES.find((a) => a.id === id)
+      if (!rec) throw new ApiError('not_found', 'activity not found', 404)
+      return toActivity(rec, ctx.locale, true)
+    }
+  }
+
+  // artists
+  if (ctx.method === 'GET' && pathRegex('/admin/artists/:slug', ctx.path)) {
+    authUser(opts)
+    const slug = ctx.path.split('/').pop()!
+    const rec = ARTISTS.find(
+      (a) => a.translations.enUS.slug === slug || a.translations.zhCN.slug === slug,
+    )
+    if (!rec) throw new ApiError('not_found', 'artist not found', 404)
+    return toArtist(rec, ctx.locale, true)
+  }
+  if (ctx.method === 'PUT' && pathRegex('/admin/artists/:id', ctx.path)) {
+    authUser(opts)
+    const id = Number(ctx.path.split('/').pop())
+    const rec = ARTISTS.find((a) => a.id === id)
+    if (!rec) throw new ApiError('not_found', 'artist not found', 404)
+    const b = body as Record<string, unknown>
+    if (typeof b.name === 'string')
+      rec.translations[ctx.locale === 'zh-CN' ? 'zhCN' : 'enUS'].name = b.name
+    if (typeof b.slug === 'string')
+      rec.translations[ctx.locale === 'zh-CN' ? 'zhCN' : 'enUS'].slug = b.slug
+    if (typeof b.bio === 'string')
+      rec.translations[ctx.locale === 'zh-CN' ? 'zhCN' : 'enUS'].bio = b.bio
+    return toArtist(rec, ctx.locale, true)
+  }
+  if (ctx.method === 'DELETE' && pathRegex('/admin/artists/:id', ctx.path)) {
+    authUser(opts)
+    return
+  }
+  for (const act of ['submit', 'approve', 'reject', 'unpublish'] as const) {
+    if (ctx.method === 'POST' && pathRegex(`/admin/artists/:id/${act}`, ctx.path)) {
+      authUser(opts)
+      const id = Number(ctx.path.split('/').slice(-2, -1)[0])
+      const rec = ARTISTS.find((a) => a.id === id)
+      if (!rec) throw new ApiError('not_found', 'artist not found', 404)
+      return toArtist(rec, ctx.locale, true)
+    }
+  }
+
+  // products
+  if (ctx.method === 'GET' && pathRegex('/admin/products/:slug', ctx.path)) {
+    authUser(opts)
+    const slug = ctx.path.split('/').pop()!
+    const rec = PRODUCTS.find(
+      (p) => p.translations.enUS.slug === slug || p.translations.zhCN.slug === slug,
+    )
+    if (!rec) throw new ApiError('not_found', 'product not found', 404)
+    return toProduct(rec, ctx.locale, undefined, true)
+  }
+  if (ctx.method === 'PUT' && pathRegex('/admin/products/:id', ctx.path)) {
+    authUser(opts)
+    const id = Number(ctx.path.split('/').pop())
+    const rec = PRODUCTS.find((p) => p.id === id)
+    if (!rec) throw new ApiError('not_found', 'product not found', 404)
+    const b = body as Record<string, unknown>
+    if (typeof b.title === 'string')
+      rec.translations[ctx.locale === 'zh-CN' ? 'zhCN' : 'enUS'].title = b.title
+    if (typeof b.slug === 'string')
+      rec.translations[ctx.locale === 'zh-CN' ? 'zhCN' : 'enUS'].slug = b.slug
+    if (typeof b.description === 'string')
+      rec.translations[ctx.locale === 'zh-CN' ? 'zhCN' : 'enUS'].description = b.description
+    return toProduct(rec, ctx.locale, undefined, true)
+  }
+  if (ctx.method === 'DELETE' && pathRegex('/admin/products/:id', ctx.path)) {
+    authUser(opts)
+    return
+  }
+  for (const act of ['submit', 'approve', 'reject', 'unpublish'] as const) {
+    if (ctx.method === 'POST' && pathRegex(`/admin/products/:id/${act}`, ctx.path)) {
+      authUser(opts)
+      const id = Number(ctx.path.split('/').slice(-2, -1)[0])
+      const rec = PRODUCTS.find((p) => p.id === id)
+      if (!rec) throw new ApiError('not_found', 'product not found', 404)
+      return toProduct(rec, ctx.locale, undefined, true)
+    }
+  }
+  if (route === 'POST /admin/products') {
+    authUser(opts)
+    return toProduct(PRODUCTS[0]!, ctx.locale, undefined, true)
+  }
+
   /* ---- admin: orders ---- */
   if (route === 'GET /admin/orders') {
     authUser(opts)
