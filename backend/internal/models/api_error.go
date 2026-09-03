@@ -19,11 +19,11 @@ import (
 //
 // See TDD §4.3 + §5.1.
 type APIError struct {
-	Status  int               `json:"-"`              // HTTP status code (not serialized)
-	Code    string            `json:"code"`           // stable snake_case code
-	Message string            `json:"message"`        // human-readable
+	Status  int               `json:"-"`                 // HTTP status code (not serialized)
+	Code    string            `json:"code"`              // stable snake_case code
+	Message string            `json:"message"`           // human-readable
 	Details map[string]string `json:"details,omitempty"` // optional field-key map (e.g. validation errors)
-	Extra   map[string]any    `json:"-"`              // extra top-level fields merged into error (e.g. pending_token)
+	Extra   map[string]any    `json:"-"`                 // extra top-level fields merged into error (e.g. pending_token)
 }
 
 func (e *APIError) Error() string {

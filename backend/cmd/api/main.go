@@ -221,8 +221,8 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 		// Central error-mapper (TDD §4.3): handlers can `return err` and the
 		// mapper converts service-layer sentinels (models.Err*) into the
 		// {error:{code,message,details?}} envelope with stable codes.
-		ErrorHandler:           middleware.ErrorHandler,
-		DisableStartupMessage:  false,
+		ErrorHandler:          middleware.ErrorHandler,
+		DisableStartupMessage: false,
 	})
 	app.Use(recover.New())
 	app.Use(logger.New())

@@ -99,9 +99,9 @@ type Service struct {
 	clientOrigin      string // For sending activation and password reset emails (domain name)
 	adminEmail        string
 	googleOAuthConfig *oauth2.Config
-	twoFAChecker      TwoFAChecker              // nil if 2FA not wired (login proceeds without challenge)
-	attemptTracker    ratelimit.AttemptTracker  // nil/Noop in tests+worker; Redis-backed in serve
-	emailThrottler    ratelimit.EmailThrottler  // nil/Noop in tests+worker; per-email throttle (C5)
+	twoFAChecker      TwoFAChecker             // nil if 2FA not wired (login proceeds without challenge)
+	attemptTracker    ratelimit.AttemptTracker // nil/Noop in tests+worker; Redis-backed in serve
+	emailThrottler    ratelimit.EmailThrottler // nil/Noop in tests+worker; per-email throttle (C5)
 }
 
 func NewService(

@@ -87,10 +87,10 @@ func TestErrorHandler_APIError(t *testing.T) {
 
 	var env struct {
 		Error struct {
-			Code        string            `json:"code"`
-			Message     string            `json:"message"`
-			Details     map[string]string `json:"details"`
-			PendingToken string           `json:"pending_token"`
+			Code         string            `json:"code"`
+			Message      string            `json:"message"`
+			Details      map[string]string `json:"details"`
+			PendingToken string            `json:"pending_token"`
 		} `json:"error"`
 	}
 	require.NoError(t, json.NewDecoder(resp.Body).Decode(&env))

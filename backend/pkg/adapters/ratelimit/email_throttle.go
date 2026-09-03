@@ -57,10 +57,10 @@ func (NoopEmailThrottler) Reset(context.Context, string) error         { return 
 // EmailSendWindow on first send. Allow returns false when the count exceeds
 // EmailMaxSends. The key self-prunes after the window expires.
 type RedisEmailThrottler struct {
-	client    *redis.Client
-	maxSends  int
-	window    time.Duration
-	lockout   time.Duration
+	client   *redis.Client
+	maxSends int
+	window   time.Duration
+	lockout  time.Duration
 }
 
 // NewRedisEmailThrottler builds a throttler with the package defaults.

@@ -31,7 +31,7 @@ var (
 	reqDuration = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Name:    "http_request_duration_seconds",
-			Help:   "HTTP request duration in seconds.",
+			Help:    "HTTP request duration in seconds.",
 			Buckets: []float64{.005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5, 10},
 		},
 		[]string{"route"},
