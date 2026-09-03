@@ -219,8 +219,16 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 	app := fiber.New()
 	app.Use(recover.New())
 	app.Use(logger.New())
+	// CORS: CLIENT_ORIGIN (the frontend origin) + localhost:3000 for dev.
+	// Avoid a leading comma when CLIENT_ORIGIN is unset so the string stays clean.
+	allowOrigins := cfg.ClientOrigin
+	if allowOrigins == "" {
+		allowOrigins = "http://localhost:3000"
+	} else if !strings.Contains(allowOrigins, "localhost:3000") {
+		allowOrigins += ", http://localhost:3000"
+	}
 	app.Use(cors.New(cors.Config{
-		AllowOrigins:     cfg.ClientOrigin + ", http://localhost:5173",
+		AllowOrigins:     allowOrigins,
 		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
 		AllowMethods:     "GET,POST,PUT,DELETE,PATCH,OPTIONS",
 		AllowCredentials: true,

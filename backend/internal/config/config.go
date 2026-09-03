@@ -161,4 +161,8 @@ func init() {
 	// GeoLite2-Country .mmdb when ops provisions the MaxMind account.
 	viper.SetDefault("GEOIP_MODE", "noop")
 	viper.SetDefault("GEOLITE2_DB_PATH", "")
+
+	// Client origin (CORS + OAuth redirects + payment return URL).
+	// Defaults to the TanStack Start dev server (port 3000).
+	viper.SetDefault("CLIENT_ORIGIN", "http://localhost:3000")
 }
