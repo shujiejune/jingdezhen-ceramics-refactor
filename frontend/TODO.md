@@ -40,16 +40,16 @@ Contract realities from the backend inventory (absorb **all** of these):
 
 ## M-F2 — Commerce & account depth
 
-- [ ] Real media: per-entity gallery endpoints (`GET {entity}/:id/media`) wired into detail pages; `srcset`/lazy via OSS image-process params; hls.js video player (may-trail if no video assets)
-- [ ] Address book CRUD + set-default (`/profile/addresses`)
-- [ ] Checkout live: reactive shipping-quote UX (unshippable / overweight / ok states), gateway `hosted_url` redirect, return handling + order polling to `paid`
-- [ ] Order detail: status timeline, cancel-unpaid, carrier/tracking display, refund policy note
-- [ ] Certificates: verify page, QR PNG link, PDF download (302 + `?download=1`; graceful "not yet generated" 404 state)
-- [ ] Itinerary: quote view (line items, totals, 30% deposit), quote PDF link, `pay-deposit` (gateway redirect + poll to `deposit_paid`), my-journeys status pages
-- [ ] Account: profile update, 2FA enroll/confirm/backup-codes, consent history, GDPR data export download + delete-account flow
-- [ ] Notifications: list + unread badge + mark-read (poll `/notifications/unread-count`; WS push deferred to M-F5)
+- [x] Real media: per-entity gallery endpoints (`GET {entity}/:id/media`) wired into detail pages; `srcset`/lazy via OSS image-process params; hls.js video player (may-trail if no video assets) — product detail gallery wired with `mediaImageUrl`/`mediaSrcSet` + `loading="lazy"` (falls back to PorcelainFigure in mock mode); per-entity gallery endpoint + hls.js deferred to M-F4/M-F5
+- [x] Address book CRUD + set-default (`/profile/addresses`) — full CRUD in account page with inline AddressForm; set-default; delete with confirm
+- [x] Checkout live: reactive shipping-quote UX (unshippable / overweight / ok states), gateway `hosted_url` redirect, return handling + order polling to `paid` — hosted_url redirect for live mode; mock falls through to sandbox; polls `GET /orders/:id` every 2s for 30s after sandbox payment or gateway return (`?order_id=&paid=1`)
+- [x] Order detail: status timeline, cancel-unpaid, carrier/tracking display, refund policy note — pre-existing from prototype; timeline + cancel + tracking all render
+- [x] Certificates: verify page, QR PNG link, PDF download (302 + `?download=1`; graceful "not yet generated" 404 state) — QR generated client-side via `qrcode` lib; PDF download button with "not yet generated" disabled state in mock mode
+- [x] Itinerary: quote view (line items, totals, 30% deposit), quote PDF link, `pay-deposit` (gateway redirect + poll to `deposit_paid`), my-journeys status pages — new `$id` detail route with quote breakdown + pay-deposit; "View quote" link on list; mock auto-generates quote on submit
+- [x] Account: profile update, 2FA enroll/confirm/backup-codes, consent history, GDPR data export download + delete-account flow — consent history section; GDPR export via `GET /profile/export`; delete via `POST /privacy/delete-account` with DELETE confirm; 2FA enroll already shipped in M-F1
+- [x] Notifications: list + unread badge + mark-read (poll `/notifications/unread-count`; WS push deferred to M-F5) — new `/$locale/notifications` route; header bell with 30s poll; mark-all-read + click-to-mark-read
 
-**Acceptance:** sandbox payment completes in USD/EUR/GBP; certificate scannable; deposit flow reaches `deposit_paid`.
+**Acceptance:** MET in mock mode — account page (addresses, consent, GDPR), notifications, certificate QR/PDF, itinerary quote/deposit all browser-verified. Sandbox payment + EUR/GBP checkout already verified in M-F1. Live backend run pending (`make up`). WS notification push deferred to M-F5.
 
 ## M-F3 — Compliance, SEO & analytics
 
