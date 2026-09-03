@@ -27,14 +27,23 @@ import { cn, loaderCurrency } from '~/lib/utils'
  * meta + JSON-LD from the translation row (PRD §3.2.1 / §4.4).
  */
 export const Route = createFileRoute('/$locale/catalog/$slug')({
-  loader: async ({ params }) => {
+  loader: async ({ context, params }) => {
     try {
       const currency = await loaderCurrency()
-      const product = await api.getProduct(params.slug, params.locale, currency)
-      const more = await api.getProducts({ locale: params.locale, currency, limit: 48 })
+      const { queryClient } = context
+      const [product, all] = await Promise.all([
+        queryClient.ensureQueryData({
+          queryKey: ['product', params.locale, currency, params.slug],
+          queryFn: () => api.getProduct(params.slug, params.locale, currency),
+        }),
+        queryClient.ensureQueryData({
+          queryKey: ['products', params.locale, currency, 'all', 48],
+          queryFn: () => api.getProducts({ locale: params.locale, currency, limit: 48 }),
+        }),
+      ])
       return {
         product,
-        more: more.data
+        more: all.data
           .filter((p) => p.artist_id === product.artist_id && p.id !== product.id)
           .slice(0, 3),
       }

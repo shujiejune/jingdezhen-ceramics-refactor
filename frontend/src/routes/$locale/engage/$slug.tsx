@@ -10,9 +10,12 @@ import { api, ApiError } from '~/lib/api'
 import { useI18n } from '~/lib/i18n'
 
 export const Route = createFileRoute('/$locale/engage/$slug')({
-  loader: async ({ params }) => {
+  loader: async ({ context, params }) => {
     try {
-      return await api.getActivity(params.slug, params.locale)
+      return await context.queryClient.ensureQueryData({
+        queryKey: ['activity', params.locale, params.slug],
+        queryFn: () => api.getActivity(params.slug, params.locale),
+      })
     } catch (e) {
       if (e instanceof ApiError && e.is('not_found')) throw notFound()
       throw e

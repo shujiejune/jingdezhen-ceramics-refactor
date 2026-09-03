@@ -40,14 +40,27 @@ import type { CatalogKey } from '~/i18n/en-US'
  * fetches per TDD §11.1 #1).
  */
 export const Route = createFileRoute('/$locale/')({
-  loader: async ({ params }) => {
+  loader: async ({ context, params }) => {
     const locale = params.locale
     const currency = await loaderCurrency()
+    const { queryClient } = context
     const [featured, destinations, artists, catalog] = await Promise.all([
-      api.getProducts({ locale, currency, page: 1, limit: 5, sort: 'featured' }),
-      api.getActivities(locale, 'destination'),
-      api.getArtists(locale),
-      api.getProducts({ locale, currency, page: 1, limit: 48 }),
+      queryClient.ensureQueryData({
+        queryKey: ['products', locale, currency, 'featured', 5],
+        queryFn: () => api.getProducts({ locale, currency, page: 1, limit: 5, sort: 'featured' }),
+      }),
+      queryClient.ensureQueryData({
+        queryKey: ['activities', locale, 'destination'],
+        queryFn: () => api.getActivities(locale, 'destination'),
+      }),
+      queryClient.ensureQueryData({
+        queryKey: ['artists', locale],
+        queryFn: () => api.getArtists(locale),
+      }),
+      queryClient.ensureQueryData({
+        queryKey: ['products', locale, currency, 'all', 48],
+        queryFn: () => api.getProducts({ locale, currency, page: 1, limit: 48 }),
+      }),
     ])
     return {
       featured: featured.data,

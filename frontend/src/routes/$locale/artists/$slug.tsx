@@ -9,10 +9,19 @@ import { api, ApiError } from '~/lib/api'
 import { useI18n } from '~/lib/i18n'
 
 export const Route = createFileRoute('/$locale/artists/$slug')({
-  loader: async ({ params }) => {
+  loader: async ({ context, params }) => {
     try {
-      const artist = await api.getArtist(params.slug, params.locale)
-      const works = await api.getProducts({ locale: params.locale, artist: params.slug, limit: 12 })
+      const { queryClient } = context
+      const [artist, works] = await Promise.all([
+        queryClient.ensureQueryData({
+          queryKey: ['artist', params.locale, params.slug],
+          queryFn: () => api.getArtist(params.slug, params.locale),
+        }),
+        queryClient.ensureQueryData({
+          queryKey: ['products', params.locale, undefined, 'byArtist', params.slug],
+          queryFn: () => api.getProducts({ locale: params.locale, artist: params.slug, limit: 12 }),
+        }),
+      ])
       return { artist, works: works.data }
     } catch (e) {
       if (e instanceof ApiError && e.is('not_found')) throw notFound()

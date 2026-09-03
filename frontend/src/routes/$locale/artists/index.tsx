@@ -7,10 +7,17 @@ import { api } from '~/lib/api'
 import { useI18n } from '~/lib/i18n'
 
 export const Route = createFileRoute('/$locale/artists/')({
-  loader: async ({ params }) => {
+  loader: async ({ context, params }) => {
+    const { queryClient } = context
     const [artists, catalog] = await Promise.all([
-      api.getArtists(params.locale),
-      api.getProducts({ locale: params.locale, limit: 48 }),
+      queryClient.ensureQueryData({
+        queryKey: ['artists', params.locale],
+        queryFn: () => api.getArtists(params.locale),
+      }),
+      queryClient.ensureQueryData({
+        queryKey: ['products', params.locale, undefined, 'all', 48],
+        queryFn: () => api.getProducts({ locale: params.locale, limit: 48 }),
+      }),
     ])
     return { artists, worksByArtist: catalog.data }
   },

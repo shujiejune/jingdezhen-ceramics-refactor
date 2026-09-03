@@ -44,24 +44,35 @@ export const Route = createFileRoute('/$locale/catalog/')({
     sort,
     q,
   }),
-  loader: async ({ params, deps }) => {
+  loader: async ({ context, params, deps }) => {
     const locale = params.locale
     const currency = await loaderCurrency()
+    const { queryClient } = context
+    const query = {
+      locale,
+      currency,
+      page: deps.page ?? 1,
+      limit: 9,
+      tag: deps.tag,
+      artist: deps.artist,
+      edition: deps.edition,
+      priceBand: deps.priceBand,
+      sort: deps.sort ?? 'featured',
+      q: deps.q,
+    }
     const [products, tags, artists] = await Promise.all([
-      api.getProducts({
-        locale,
-        currency,
-        page: deps.page ?? 1,
-        limit: 9,
-        tag: deps.tag,
-        artist: deps.artist,
-        edition: deps.edition,
-        priceBand: deps.priceBand,
-        sort: deps.sort ?? 'featured',
-        q: deps.q,
+      queryClient.ensureQueryData({
+        queryKey: ['products', locale, currency, query],
+        queryFn: () => api.getProducts(query),
       }),
-      api.getTags(locale),
-      api.getArtists(locale),
+      queryClient.ensureQueryData({
+        queryKey: ['tags', locale],
+        queryFn: () => api.getTags(locale),
+      }),
+      queryClient.ensureQueryData({
+        queryKey: ['artists', locale],
+        queryFn: () => api.getArtists(locale),
+      }),
     ])
     return { products, tags, artists }
   },

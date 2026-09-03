@@ -7,7 +7,11 @@ import { useI18n } from '~/lib/i18n'
 
 /** Destinations & Local Lifestyle index (SSR). */
 export const Route = createFileRoute('/$locale/engage/')({
-  loader: async ({ params }) => api.getActivities(params.locale),
+  loader: async ({ context, params }) =>
+    context.queryClient.ensureQueryData({
+      queryKey: ['activities', params.locale, 'all'],
+      queryFn: () => api.getActivities(params.locale),
+    }),
   component: EngagePage,
 })
 

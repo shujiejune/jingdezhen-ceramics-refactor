@@ -1,39 +1,40 @@
+import { QueryClient, dehydrate, hydrate } from '@tanstack/react-query'
 import { createRouter as createTanStackRouter } from '@tanstack/react-router'
 import { routeTree } from './routeTree.gen'
 
+export interface RouterContext {
+  queryClient: QueryClient
+}
+
 export function getRouter() {
+  // a fresh client per server request / browser session — loaders fill it
+  // via ensureQueryData and the router-level dehydrate/hydrate pair ships
+  // the cache to the browser (TanStack Start + Query, TDD §6)
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { staleTime: 60_000, refetchOnWindowFocus: false, retry: 1 },
+    },
+  })
+
   const router = createTanStackRouter({
     routeTree,
+    context: { queryClient },
     scrollRestoration: true,
     defaultPreload: 'intent',
     defaultPreloadStaleTime: 0,
     defaultNotFoundComponent: () => null, // rendered inside the locale layout
-    defaultPendingComponent: () => (
-      <div className="flex min-h-screen items-center justify-center">
-        <svg
-          className="h-7 w-7 animate-spin text-cobalt-400"
-          viewBox="0 0 24 24"
-          fill="none"
-          aria-label="Loading"
-        >
-          <circle
-            cx="12"
-            cy="12"
-            r="9"
-            stroke="currentColor"
-            strokeOpacity="0.25"
-            strokeWidth="3"
-          />
-          <path
-            d="M21 12a9 9 0 0 0-9-9"
-            stroke="currentColor"
-            strokeWidth="3"
-            strokeLinecap="round"
-          />
-        </svg>
-      </div>
-    ),
   })
+
+  // Ship the Query cache with the router state (SSR → browser). Attached
+  // post-construction: the options' serializer registry typing is stricter
+  // than runtime (DehydratedState is plain JSON), and inline casts poison
+  // the router generics that loader typing flows from.
+  router.options.dehydrate = () => ({
+    dehydratedState: dehydrate(queryClient),
+  })
+  router.options.hydrate = (dehydrated) => {
+    hydrate(queryClient, dehydrated.dehydratedState)
+  }
 
   return router
 }

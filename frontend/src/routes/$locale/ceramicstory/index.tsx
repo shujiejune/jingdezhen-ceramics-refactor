@@ -21,7 +21,11 @@ import type { CatalogKey } from '~/i18n/en-US'
  * reading pages with the normal chrome.
  */
 export const Route = createFileRoute('/$locale/ceramicstory/')({
-  loader: async ({ params }) => api.getStories(params.locale),
+  loader: async ({ context, params }) =>
+    context.queryClient.ensureQueryData({
+      queryKey: ['stories', params.locale],
+      queryFn: () => api.getStories(params.locale),
+    }),
   head: () => ({
     meta: [
       { title: 'Heritage — Jingdezhen Ceramics' },

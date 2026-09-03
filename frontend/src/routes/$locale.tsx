@@ -1,4 +1,5 @@
 import { Outlet, createFileRoute, redirect, useRouterState } from '@tanstack/react-router'
+import { QueryClientProvider } from '@tanstack/react-query'
 
 import { ToastProvider } from '~/components/common/Toaster'
 import { ButtonLink } from '~/components/common/ui'
@@ -44,14 +45,17 @@ function LocaleNotFound() {
 function LocaleLayout() {
   const { locale } = Route.useParams()
   const valid: Locale = isLocale(locale) ? locale : 'en-US'
+  const { queryClient } = Route.useRouteContext()
   return (
-    <I18nProvider locale={valid}>
-      <AuthProvider>
-        <ToastProvider>
-          <LocaleShell locale={valid} />
-        </ToastProvider>
-      </AuthProvider>
-    </I18nProvider>
+    <QueryClientProvider client={queryClient}>
+      <I18nProvider locale={valid}>
+        <AuthProvider>
+          <ToastProvider>
+            <LocaleShell locale={valid} />
+          </ToastProvider>
+        </AuthProvider>
+      </I18nProvider>
+    </QueryClientProvider>
   )
 }
 
