@@ -24,22 +24,34 @@
 import type {
   Activity,
   Address,
+  AdminAssignInput,
+  AdminItineraryNote,
+  AdminSendQuoteInput,
+  AdminUser,
   Artist,
+  AuditLog,
   AuthResponse,
+  BulkImportSummary,
   Cart,
   Certificate,
   CeramicStory,
   ConsentKind,
   ConsentRecord,
   ConsentState,
+  DashboardFunnel,
+  DashboardSales,
+  DashboardTraffic,
   DepositPaidResponse,
   ItineraryQuote,
   ItineraryRequest,
+  MediaAsset,
   Notification,
+  OptionRate,
   Order,
   Paginated,
   Product,
   ShippingQuote,
+  ShippingTier,
   SKU,
   Tag,
   User,
@@ -524,6 +536,238 @@ export const api = {
     locale?: string
     props?: Record<string, unknown>
   }) => t().then((x) => x.call<{ id: number } | void>('POST', '/analytics/events', { body })),
+
+  /* ---- admin: content (stories) ---- */
+  adminListStories: (token: string, locale?: string) =>
+    t().then((x) =>
+      x.call<Paginated<CeramicStory>>('GET', '/admin/ceramicstory', {
+        token,
+        params: locale ? { locale } : undefined,
+      }),
+    ),
+  adminGetStory: (token: string, slug: string) =>
+    t().then((x) => x.call<CeramicStory>('GET', `/admin/ceramicstory/${slug}`, { token })),
+  adminCreateStory: (token: string, body: Record<string, unknown>) =>
+    t().then((x) => x.call<CeramicStory>('POST', '/admin/ceramicstory', { token, body })),
+  adminUpdateStory: (token: string, id: number, body: Record<string, unknown>) =>
+    t().then((x) => x.call<CeramicStory>('PUT', `/admin/ceramicstory/${id}`, { token, body })),
+  adminDeleteStory: (token: string, id: number) =>
+    t().then((x) => x.call<void>('DELETE', `/admin/ceramicstory/${id}`, { token })),
+  adminSubmitStory: (token: string, id: number) =>
+    t().then((x) => x.call<CeramicStory>('POST', `/admin/ceramicstory/${id}/submit`, { token })),
+  adminApproveStory: (token: string, id: number) =>
+    t().then((x) => x.call<CeramicStory>('POST', `/admin/ceramicstory/${id}/approve`, { token })),
+  adminRejectStory: (token: string, id: number) =>
+    t().then((x) => x.call<CeramicStory>('POST', `/admin/ceramicstory/${id}/reject`, { token })),
+  adminUnpublishStory: (token: string, id: number) =>
+    t().then((x) => x.call<CeramicStory>('POST', `/admin/ceramicstory/${id}/unpublish`, { token })),
+
+  /* ---- admin: content (activities) ---- */
+  adminListActivities: (token: string, locale?: string) =>
+    t().then((x) =>
+      x.call<Paginated<Activity>>('GET', '/admin/engage', {
+        token,
+        params: locale ? { locale } : undefined,
+      }),
+    ),
+  adminGetActivity: (token: string, slug: string) =>
+    t().then((x) => x.call<Activity>('GET', `/admin/engage/${slug}`, { token })),
+  adminCreateActivity: (token: string, body: Record<string, unknown>) =>
+    t().then((x) => x.call<Activity>('POST', '/admin/engage', { token, body })),
+  adminUpdateActivity: (token: string, id: number, body: Record<string, unknown>) =>
+    t().then((x) => x.call<Activity>('PUT', `/admin/engage/${id}`, { token, body })),
+  adminDeleteActivity: (token: string, id: number) =>
+    t().then((x) => x.call<void>('DELETE', `/admin/engage/${id}`, { token })),
+  adminSubmitActivity: (token: string, id: number) =>
+    t().then((x) => x.call<Activity>('POST', `/admin/engage/${id}/submit`, { token })),
+  adminApproveActivity: (token: string, id: number) =>
+    t().then((x) => x.call<Activity>('POST', `/admin/engage/${id}/approve`, { token })),
+  adminRejectActivity: (token: string, id: number) =>
+    t().then((x) => x.call<Activity>('POST', `/admin/engage/${id}/reject`, { token })),
+  adminUnpublishActivity: (token: string, id: number) =>
+    t().then((x) => x.call<Activity>('POST', `/admin/engage/${id}/unpublish`, { token })),
+
+  /* ---- admin: content (artists) ---- */
+  adminListArtists: (token: string, locale?: string) =>
+    t().then((x) =>
+      x.call<Paginated<Artist>>('GET', '/admin/artists', {
+        token,
+        params: locale ? { locale } : undefined,
+      }),
+    ),
+  adminGetArtist: (token: string, slug: string) =>
+    t().then((x) => x.call<Artist>('GET', `/admin/artists/${slug}`, { token })),
+  adminCreateArtist: (token: string, body: Record<string, unknown>) =>
+    t().then((x) => x.call<Artist>('POST', '/admin/artists', { token, body })),
+  adminUpdateArtist: (token: string, id: number, body: Record<string, unknown>) =>
+    t().then((x) => x.call<Artist>('PUT', `/admin/artists/${id}`, { token, body })),
+  adminDeleteArtist: (token: string, id: number) =>
+    t().then((x) => x.call<void>('DELETE', `/admin/artists/${id}`, { token })),
+  adminSubmitArtist: (token: string, id: number) =>
+    t().then((x) => x.call<Artist>('POST', `/admin/artists/${id}/submit`, { token })),
+  adminApproveArtist: (token: string, id: number) =>
+    t().then((x) => x.call<Artist>('POST', `/admin/artists/${id}/approve`, { token })),
+  adminRejectArtist: (token: string, id: number) =>
+    t().then((x) => x.call<Artist>('POST', `/admin/artists/${id}/reject`, { token })),
+  adminUnpublishArtist: (token: string, id: number) =>
+    t().then((x) => x.call<Artist>('POST', `/admin/artists/${id}/unpublish`, { token })),
+
+  /* ---- admin: products + SKUs ---- */
+  adminListProducts: (token: string, locale?: string) =>
+    t().then((x) =>
+      x.call<Paginated<Product>>('GET', '/admin/products', {
+        token,
+        params: locale ? { locale } : undefined,
+      }),
+    ),
+  adminGetProduct: (token: string, slug: string) =>
+    t().then((x) => x.call<Product>('GET', `/admin/products/${slug}`, { token })),
+  adminCreateProduct: (token: string, body: Record<string, unknown>) =>
+    t().then((x) => x.call<Product>('POST', '/admin/products', { token, body })),
+  adminUpdateProduct: (token: string, id: number, body: Record<string, unknown>) =>
+    t().then((x) => x.call<Product>('PUT', `/admin/products/${id}`, { token, body })),
+  adminDeleteProduct: (token: string, id: number) =>
+    t().then((x) => x.call<void>('DELETE', `/admin/products/${id}`, { token })),
+  adminSubmitProduct: (token: string, id: number) =>
+    t().then((x) => x.call<Product>('POST', `/admin/products/${id}/submit`, { token })),
+  adminApproveProduct: (token: string, id: number) =>
+    t().then((x) => x.call<Product>('POST', `/admin/products/${id}/approve`, { token })),
+  adminRejectProduct: (token: string, id: number) =>
+    t().then((x) => x.call<Product>('POST', `/admin/products/${id}/reject`, { token })),
+  adminUnpublishProduct: (token: string, id: number) =>
+    t().then((x) => x.call<Product>('POST', `/admin/products/${id}/unpublish`, { token })),
+  adminBulkImportProducts: (token: string, body: { csv: string }) =>
+    t().then((x) => x.call<BulkImportSummary>('POST', '/admin/products/import', { token, body })),
+  adminCreateSKU: (token: string, productId: number, body: Record<string, unknown>) =>
+    t().then((x) => x.call<SKU>('POST', `/admin/products/${productId}/skus`, { token, body })),
+  adminUpdateSKU: (token: string, id: number, body: Record<string, unknown>) =>
+    t().then((x) => x.call<SKU>('PUT', `/admin/skus/${id}`, { token, body })),
+  adminDeleteSKU: (token: string, id: number) =>
+    t().then((x) => x.call<void>('DELETE', `/admin/skus/${id}`, { token })),
+
+  /* ---- admin: orders ---- */
+  adminListOrders: (
+    token: string,
+    params?: Record<string, string | number | boolean | undefined>,
+  ) => t().then((x) => x.call<Paginated<Order>>('GET', '/admin/orders', { token, params })),
+  adminGetOrder: (token: string, id: number) =>
+    t().then((x) => x.call<Order>('GET', `/admin/orders/${id}`, { token })),
+  adminShipOrder: (
+    token: string,
+    id: number,
+    body: { carrier_name: string; tracking_number: string },
+  ) => t().then((x) => x.call<Order>('POST', `/admin/orders/${id}/ship`, { token, body })),
+  adminCompleteOrder: (token: string, id: number) =>
+    t().then((x) => x.call<Order>('POST', `/admin/orders/${id}/complete`, { token })),
+  adminRefundOrder: (token: string, id: number) =>
+    t().then((x) => x.call<Order>('POST', `/admin/orders/${id}/refund`, { token })),
+
+  /* ---- admin: itineraries CRM ---- */
+  adminListItineraries: (
+    token: string,
+    params?: Record<string, string | number | boolean | undefined>,
+  ) =>
+    t().then((x) =>
+      x.call<Paginated<ItineraryRequest>>('GET', '/admin/itineraries', { token, params }),
+    ),
+  adminGetItinerary: (token: string, id: number) =>
+    t().then((x) => x.call<ItineraryRequest>('GET', `/admin/itineraries/${id}`, { token })),
+  adminListItineraryNotes: (token: string, id: number) =>
+    t().then((x) =>
+      x.call<{ data: AdminItineraryNote[] }>('GET', `/admin/itineraries/${id}/notes`, { token }),
+    ),
+  adminAddItineraryNote: (token: string, id: number, body: { body: string }) =>
+    t().then((x) =>
+      x.call<AdminItineraryNote>('POST', `/admin/itineraries/${id}/notes`, { token, body }),
+    ),
+  adminAssignItinerary: (token: string, id: number, body: AdminAssignInput) =>
+    t().then((x) =>
+      x.call<ItineraryRequest>('POST', `/admin/itineraries/${id}/assign`, { token, body }),
+    ),
+  adminSendQuote: (token: string, id: number, body: AdminSendQuoteInput) =>
+    t().then((x) =>
+      x.call<ItineraryQuote>('POST', `/admin/itineraries/${id}/quote`, { token, body }),
+    ),
+  adminConfirmItinerary: (token: string, id: number) =>
+    t().then((x) =>
+      x.call<ItineraryRequest>('POST', `/admin/itineraries/${id}/confirm`, { token }),
+    ),
+  adminRefundDeposit: (token: string, id: number) =>
+    t().then((x) =>
+      x.call<ItineraryRequest>('POST', `/admin/itineraries/${id}/refund-deposit`, { token }),
+    ),
+  adminListPlanners: (token: string) =>
+    t().then((x) => x.call<{ data: AdminUser[] }>('GET', '/admin/itineraries/planners', { token })),
+  adminListOptionRates: (token: string) =>
+    t().then((x) =>
+      x.call<{ data: OptionRate[] }>('GET', '/admin/itineraries/option-rates', { token }),
+    ),
+  adminCreateOptionRate: (token: string, body: Record<string, unknown>) =>
+    t().then((x) => x.call<OptionRate>('POST', '/admin/itineraries/option-rates', { token, body })),
+  adminUpdateOptionRate: (token: string, id: number, body: Record<string, unknown>) =>
+    t().then((x) =>
+      x.call<OptionRate>('PUT', `/admin/itineraries/option-rates/${id}`, { token, body }),
+    ),
+  adminDeleteOptionRate: (token: string, id: number) =>
+    t().then((x) => x.call<void>('DELETE', `/admin/itineraries/option-rates/${id}`, { token })),
+
+  /* ---- admin: media ---- */
+  adminListMediaAssets: (token: string) =>
+    t().then((x) => x.call<{ data: MediaAsset[] }>('GET', '/admin/media/assets', { token })),
+  adminRegisterAsset: (token: string, body: Record<string, unknown>) =>
+    t().then((x) => x.call<MediaAsset>('POST', '/admin/media/assets', { token, body })),
+  adminDeleteAsset: (token: string, id: number) =>
+    t().then((x) => x.call<void>('DELETE', `/admin/media/assets/${id}`, { token })),
+  adminUploadLocal: (token: string, body: FormData) =>
+    t().then((x) => x.call<MediaAsset>('POST', '/admin/media/upload', { token, body })),
+
+  /* ---- admin: certificates ---- */
+  adminListCertificates: (token: string) =>
+    t().then((x) => x.call<Paginated<Certificate>>('GET', '/admin/certificates', { token })),
+  adminRegenerateCertificate: (token: string, id: number) =>
+    t().then((x) => x.call<Certificate>('POST', `/admin/certificates/${id}/regenerate`, { token })),
+
+  /* ---- admin: settings ---- */
+  adminListShippingTiers: (token: string) =>
+    t().then((x) => x.call<{ data: ShippingTier[] }>('GET', '/admin/shipping/tiers', { token })),
+  adminCreateShippingTier: (token: string, body: Record<string, unknown>) =>
+    t().then((x) => x.call<ShippingTier>('POST', '/admin/shipping/tiers', { token, body })),
+  adminUpdateShippingTier: (token: string, id: number, body: Record<string, unknown>) =>
+    t().then((x) => x.call<ShippingTier>('PUT', `/admin/shipping/tiers/${id}`, { token, body })),
+  adminDeleteShippingTier: (token: string, id: number) =>
+    t().then((x) => x.call<void>('DELETE', `/admin/shipping/tiers/${id}`, { token })),
+  adminRefreshFX: (token: string) =>
+    t().then((x) => x.call<{ ok: boolean }>('POST', '/admin/fx/refresh', { token })),
+
+  /* ---- admin: dashboard ---- */
+  adminDashboardTraffic: (
+    token: string,
+    params?: Record<string, string | number | boolean | undefined>,
+  ) =>
+    t().then((x) => x.call<DashboardTraffic>('GET', '/admin/analytics/traffic', { token, params })),
+  adminDashboardSales: (
+    token: string,
+    params?: Record<string, string | number | boolean | undefined>,
+  ) => t().then((x) => x.call<DashboardSales>('GET', '/admin/analytics/sales', { token, params })),
+  adminDashboardFunnel: (
+    token: string,
+    params?: Record<string, string | number | boolean | undefined>,
+  ) =>
+    t().then((x) => x.call<DashboardFunnel>('GET', '/admin/analytics/funnel', { token, params })),
+
+  /* ---- admin: users ---- */
+  adminListUsers: (token: string, params?: Record<string, string | number | boolean | undefined>) =>
+    t().then((x) => x.call<Paginated<AdminUser>>('GET', '/admin/users', { token, params })),
+  adminAssignRole: (token: string, userId: string, role: string) =>
+    t().then((x) =>
+      x.call<AdminUser>('PUT', `/admin/users/${userId}/role`, { token, body: { role } }),
+    ),
+
+  /* ---- admin: audit log ---- */
+  adminListAuditLog: (
+    token: string,
+    params?: Record<string, string | number | boolean | undefined>,
+  ) => t().then((x) => x.call<Paginated<AuditLog>>('GET', '/admin/audit-log', { token, params })),
 }
 
 /** Pick a SKU's presentment price helper (server-provided only). */

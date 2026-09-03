@@ -157,12 +157,38 @@ export interface Activity {
 
 /* ------------------------------ users/auth ------------------------------ */
 
+export type StaffRole =
+  'super_admin' | 'content_editor' | 'travel_planner' | 'ecommerce_operator' | 'customer_service'
+
+export type UserRole = 'customer' | StaffRole
+
+export type Permission =
+  | 'users.manage'
+  | 'content.write'
+  | 'content.publish'
+  | 'product.read'
+  | 'product.write'
+  | 'product.publish'
+  | 'certificate.manage'
+  | 'order.read'
+  | 'order.write'
+  | 'order.refund'
+  | 'itinerary.read'
+  | 'itinerary.write'
+  | 'itinerary.confirm'
+  | 'chat.handle'
+  | 'dashboard.view'
+  | 'settings.manage'
+
 export interface User {
   id: string
   email: string
   nickname: string
   avatar_glyph?: string
-  role: 'customer' | 'super_admin'
+  /** primary role (backward compat — backend JWT carries `roles: string[]`) */
+  role: UserRole
+  /** all staff roles the user holds (empty for customers) */
+  roles?: StaffRole[]
   preferred_locale?: string
   preferred_currency?: string
   created_at: string
@@ -438,6 +464,123 @@ export interface ShippingQuote {
   currency?: string
   /** blocked states per PRD §3.2.3 */
   blocked_reason?: 'unshippable' | 'overweight'
+}
+
+export interface ShippingTier {
+  id: number
+  country_code: string
+  min_weight_grams: number
+  max_weight_grams: number
+  fee_cny: number
+  created_at?: string
+  updated_at?: string
+}
+
+export interface OptionRate {
+  id: number
+  option_key: string
+  label?: string
+  rate_cny: number
+  rate?: number
+  currency?: string
+  created_at?: string
+  updated_at?: string
+}
+
+/* ------------------------------ admin types ------------------------------ */
+
+export interface AdminUser {
+  id: string
+  email: string
+  nickname: string
+  role: UserRole
+  roles?: StaffRole[]
+  preferred_locale?: string
+  preferred_currency?: string
+  two_fa_enabled?: boolean
+  created_at: string
+}
+
+export interface MediaAsset {
+  id: number
+  public_url: string
+  caption?: string
+  mime_type?: string
+  file_size?: number
+  figure_seed?: number
+  figure_kind?: ProductMediaItem['figure_kind']
+  created_at: string
+}
+
+export interface BulkImportSummary {
+  total_rows: number
+  imported: number
+  updated: number
+  failed: number
+  errors: Array<{ row: number; message: string }>
+}
+
+export interface AuditLog {
+  id: number
+  user_id: string
+  user_email: string
+  action: string
+  entity_type: string
+  entity_id?: number
+  details?: Record<string, unknown>
+  created_at: string
+}
+
+export interface DashboardTraffic {
+  range: string
+  from: string
+  to: string
+  data: Array<{ date: string; pageviews: number; unique_visitors: number }>
+}
+
+export interface DashboardSales {
+  range: string
+  from: string
+  to: string
+  data: Array<{
+    date: string
+    orders: number
+    revenue_cny: number
+    revenue?: number
+    currency?: string
+  }>
+}
+
+export interface DashboardFunnel {
+  range: string
+  from: string
+  to: string
+  steps: Array<{ step: string; label: string; count: number; rate: number }>
+}
+
+export interface QuoteLineItemInput {
+  label: string
+  detail?: string
+  amount_minor: number
+}
+
+export interface AdminSendQuoteInput {
+  line_items: QuoteLineItemInput[]
+  pay_full: boolean
+  currency?: string
+}
+
+export interface AdminItineraryNote {
+  id: number
+  itinerary_id: number
+  author_id: string
+  author_email: string
+  body: string
+  created_at: string
+}
+
+export interface AdminAssignInput {
+  assignee_id: string
 }
 
 /* ------------------------------ envelope ------------------------------ */

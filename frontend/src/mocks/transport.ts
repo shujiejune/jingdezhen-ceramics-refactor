@@ -88,6 +88,56 @@ const notifications: Notification[] = []
 const consentRecords: ConsentRecord[] = []
 const itineraryDrafts = new Map<string, Record<string, unknown>>()
 const itineraryQuotes = new Map<number, ItineraryQuote>()
+
+/* admin mutable state */
+const mediaAssets: Array<{
+  id: number
+  public_url: string
+  caption?: string
+  mime_type: string
+  file_size: number
+  created_at: string
+}> = [
+  {
+    id: 1,
+    public_url: 'mock://media/asset-1.png',
+    mime_type: 'image/png',
+    file_size: 240000,
+    created_at: '2025-06-01T00:00:00Z',
+  },
+  {
+    id: 2,
+    public_url: 'mock://media/asset-2.png',
+    mime_type: 'image/png',
+    file_size: 180000,
+    created_at: '2025-06-15T00:00:00Z',
+  },
+]
+
+const shippingTiers: Array<{
+  id: number
+  country_code: string
+  min_weight_grams: number
+  max_weight_grams: number
+  fee_cny: number
+}> = [
+  { id: 1, country_code: 'US', min_weight_grams: 0, max_weight_grams: 500, fee_cny: 12000 },
+  { id: 2, country_code: 'US', min_weight_grams: 501, max_weight_grams: 2000, fee_cny: 22000 },
+  { id: 3, country_code: 'GB', min_weight_grams: 0, max_weight_grams: 500, fee_cny: 14000 },
+  { id: 4, country_code: 'GB', min_weight_grams: 501, max_weight_grams: 2000, fee_cny: 26000 },
+]
+
+const optionRates: Array<{
+  id: number
+  option_key: string
+  label: string
+  rate_cny: number
+}> = [
+  { id: 1, option_key: 'guide_english', label: 'English guide', rate_cny: 50000 },
+  { id: 2, option_key: 'guide_other', label: 'Other-language guide', rate_cny: 60000 },
+  { id: 3, option_key: 'hotel_luxury', label: 'Luxury hotel upgrade', rate_cny: 80000 },
+  { id: 4, option_key: 'pickup', label: 'Airport pickup', rate_cny: 30000 },
+]
 let idSeq = {
   order: 2000,
   item: 9100,
@@ -1463,7 +1513,209 @@ async function handle(route: string, ctx: Ctx): Promise<unknown> {
     return { id: idSeq.notif++ }
   }
 
+  /* ------------------------------ admin ------------------------------ */
+
+  // Dashboard analytics (stubs with deterministic-ish data)
+  if (route === 'GET /admin/analytics/traffic') {
+    authUser(opts) // require auth
+    const today = new Date()
+    const data = Array.from({ length: 30 }, (_, i) => {
+      const d = new Date(today)
+      d.setDate(d.getDate() - (29 - i))
+      return {
+        date: d.toISOString().slice(0, 10),
+        pageviews: Math.floor(200 + Math.random() * 800),
+        unique_visitors: Math.floor(80 + Math.random() * 300),
+      }
+    })
+    return { range: '30d', from: data[0]!.date, to: data[29]!.date, data }
+  }
+
+  if (route === 'GET /admin/analytics/sales') {
+    authUser(opts)
+    const today = new Date()
+    const data = Array.from({ length: 30 }, (_, i) => {
+      const d = new Date(today)
+      d.setDate(d.getDate() - (29 - i))
+      return {
+        date: d.toISOString().slice(0, 10),
+        orders: Math.floor(1 + Math.random() * 12),
+        revenue_cny: Math.floor(100000 + Math.random() * 800000),
+      }
+    })
+    return { range: '30d', from: data[0]!.date, to: data[29]!.date, data }
+  }
+
+  if (route === 'GET /admin/analytics/funnel') {
+    authUser(opts)
+    return {
+      range: '30d',
+      from: new Date().toISOString().slice(0, 10),
+      to: new Date().toISOString().slice(0, 10),
+      steps: [
+        { step: 'pageview', label: 'Page views', count: 12450, rate: 100 },
+        { step: 'product_view', label: 'Product views', count: 3200, rate: 25.7 },
+        { step: 'cart_add', label: 'Add to cart', count: 890, rate: 7.1 },
+        { step: 'checkout_start', label: 'Checkout started', count: 420, rate: 3.4 },
+        { step: 'order_paid', label: 'Order paid', count: 310, rate: 2.5 },
+      ],
+    }
+  }
+
+  /* ---- admin: content lists (stories / activities / artists / products) ---- */
+
+  if (route === 'GET /admin/ceramicstory') {
+    authUser(opts)
+    const loc = ctx.locale
+    const items = STORIES.map((s) => toStory(s, loc ?? 'en-US'))
+    return paginate(items, 1, 50)
+  }
+
+  if (route === 'GET /admin/engage') {
+    authUser(opts)
+    const loc = ctx.locale
+    const items = ACTIVITIES.map((a) => toActivity(a, loc ?? 'en-US'))
+    return paginate(items, 1, 50)
+  }
+
+  if (route === 'GET /admin/artists') {
+    authUser(opts)
+    const loc = ctx.locale
+    const items = ARTISTS.map((a) => toArtist(a, loc ?? 'en-US'))
+    return paginate(items, 1, 50)
+  }
+
+  if (route === 'GET /admin/products') {
+    authUser(opts)
+    const loc = ctx.locale
+    const items = PRODUCTS.map((p) => toProduct(p, loc ?? 'en-US'))
+    return paginate(items, 1, 50)
+  }
+
+  /* ---- admin: orders ---- */
+  if (route === 'GET /admin/orders') {
+    authUser(opts)
+    const loc = ctx.locale
+    return paginate(
+      orders.map((o) => presentOrder(o, loc)),
+      1,
+      50,
+    )
+  }
+
+  if (ctx.method === 'GET' && pathRegex('/admin/orders/:id', ctx.path)) {
+    authUser(opts)
+    const id = Number(ctx.path.split('/').pop())
+    const loc = ctx.locale
+    const order = orders.find((o) => o.id === id)
+    if (!order) throw new ApiError('not_found', 'order not found', 404)
+    return presentOrder(order, loc)
+  }
+
+  /* ---- admin: itineraries CRM ---- */
+  if (route === 'GET /admin/itineraries') {
+    authUser(opts)
+    return paginate(itineraries, 1, 50)
+  }
+
+  if (ctx.method === 'GET' && pathRegex('/admin/itineraries/:id', ctx.path)) {
+    authUser(opts)
+    const id = Number(ctx.path.split('/').pop())
+    const req = itineraries.find((r) => r.id === id)
+    if (!req) throw new ApiError('not_found', 'itinerary not found', 404)
+    return req
+  }
+
+  if (ctx.method === 'GET' && pathRegex('/admin/itineraries/:id/notes', ctx.path)) {
+    authUser(opts)
+    return {
+      data: [] as Array<{
+        id: number
+        itinerary_id: number
+        author_id: string
+        author_email: string
+        body: string
+        created_at: string
+      }>,
+    }
+  }
+
+  if (ctx.method === 'GET' && pathRegex('/admin/itineraries/:id/quote', ctx.path)) {
+    authUser(opts)
+    const id = Number(ctx.path.split('/').slice(-2, -1)[0])
+    const req = SEED_ITINERARIES.find((r) => r.id === id)
+    if (!req) throw new ApiError('not_found', 'itinerary not found', 404)
+    const q = itineraryQuotes.get(id)
+    if (!q) throw new ApiError('not_found', 'quote not yet generated', 404)
+    return q
+  }
+
+  if (route === 'GET /admin/itineraries/planners') {
+    authUser(opts)
+    const planners = DEMO_USERS.filter(
+      (u) =>
+        (u.user.roles ?? []).some((r: string) => r === 'travel_planner') ||
+        u.user.role === 'super_admin',
+    )
+    return { data: planners.map((p) => p.user) }
+  }
+
+  if (route === 'GET /admin/itineraries/option-rates') {
+    authUser(opts)
+    return { data: optionRates as typeof optionRates }
+  }
+
+  /* ---- admin: media ---- */
+  if (route === 'GET /admin/media/assets') {
+    authUser(opts)
+    return { data: mediaAssets as typeof mediaAssets }
+  }
+
+  /* ---- admin: certificates ---- */
+  if (route === 'GET /admin/certificates') {
+    authUser(opts)
+    return paginate([...CERTIFICATES], 1, 50)
+  }
+
+  /* ---- admin: shipping tiers ---- */
+  if (route === 'GET /admin/shipping/tiers') {
+    authUser(opts)
+    return { data: shippingTiers as typeof shippingTiers }
+  }
+
+  /* ---- admin: users ---- */
+  if (route === 'GET /admin/users') {
+    authUser(opts)
+    const users = DEMO_USERS.map((u) => ({
+      ...u.user,
+      two_fa_enabled: u.twoFA ?? false,
+    }))
+    return paginate(users, 1, 50)
+  }
+
+  /* ---- admin: audit log ---- */
+  if (route === 'GET /admin/audit-log') {
+    authUser(opts)
+    return paginate([], 1, 50)
+  }
+
+  /* ---- admin: settings (FX refresh) ---- */
+  if (route === 'POST /admin/fx/refresh') {
+    authUser(opts)
+    return { ok: true }
+  }
+
   throw new ApiError('not_found', `no mock route for ${route}`, 404)
+}
+
+function paginate<T>(
+  data: T[],
+  page: number,
+  limit: number,
+): { data: T[]; page: number; limit: number; total: number; total_pages: number } {
+  const total = data.length
+  const total_pages = Math.max(1, Math.ceil(total / limit))
+  return { data, page, limit, total, total_pages }
 }
 
 function pathRegex(pattern: string, path: string): boolean {

@@ -67,8 +67,10 @@ function LocaleShell({ locale }: { locale: Locale }) {
   const { currency } = useI18n()
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   // horizontal-magazine pages (landing + heritage index; detail articles
-  // stay vertical) own their chrome: spine + panels, no header/footer
+  // stay vertical) own their chrome: spine + panels, no header/footer.
+  // admin pages also own their chrome (sidebar + topbar).
   const isMagazine = /^\/[^/]+\/?$/.test(pathname) || /^\/[^/]+\/ceramicstory\/?$/.test(pathname)
+  const isAdmin = /^\/[^/]+\/admin(\/|$)/.test(pathname)
 
   // analytics: fire a pageview on every route change (PRD §4.3, TDD §4.3)
   useEffect(() => {
@@ -79,7 +81,7 @@ function LocaleShell({ locale }: { locale: Locale }) {
     <ConsentProvider>
       <CartProvider locale={locale} currency={currency}>
         <WishlistProvider locale={locale} currency={currency}>
-          {isMagazine ? (
+          {isMagazine || isAdmin ? (
             <main className="flex-1">
               <Outlet />
             </main>

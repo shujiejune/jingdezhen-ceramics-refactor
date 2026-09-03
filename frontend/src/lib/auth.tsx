@@ -8,9 +8,76 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 
 import { enUS } from '~/i18n/en-US'
 import { api, ApiError } from '~/lib/api'
-import type { User } from '~/lib/types'
+import type { Permission, StaffRole, User } from '~/lib/types'
 
 const AUTH_KEY = 'jdz.auth'
+
+/** Role → permissions map (mirrors backend `role_permissions` seed). */
+const ROLE_PERMISSIONS: Record<StaffRole, Permission[]> = {
+  super_admin: [
+    'users.manage',
+    'content.write',
+    'content.publish',
+    'product.read',
+    'product.write',
+    'product.publish',
+    'certificate.manage',
+    'order.read',
+    'order.write',
+    'order.refund',
+    'itinerary.read',
+    'itinerary.write',
+    'itinerary.confirm',
+    'chat.handle',
+    'dashboard.view',
+    'settings.manage',
+  ],
+  content_editor: ['content.write', 'product.read'],
+  travel_planner: [
+    'itinerary.read',
+    'itinerary.write',
+    'itinerary.confirm',
+    'chat.handle',
+    'order.read',
+  ],
+  ecommerce_operator: [
+    'product.read',
+    'product.write',
+    'product.publish',
+    'certificate.manage',
+    'order.read',
+    'order.write',
+    'order.refund',
+    'dashboard.view',
+  ],
+  customer_service: ['order.read', 'itinerary.read', 'chat.handle', 'dashboard.view'],
+}
+
+const STAFF_ROLES: StaffRole[] = [
+  'super_admin',
+  'content_editor',
+  'travel_planner',
+  'ecommerce_operator',
+  'customer_service',
+]
+
+function userRoles(user: User | null): StaffRole[] {
+  if (!user) return []
+  if (user.roles && user.roles.length > 0) return user.roles
+  if (user.role !== 'customer' && STAFF_ROLES.includes(user.role as StaffRole)) {
+    return [user.role as StaffRole]
+  }
+  return []
+}
+
+function hasPermission(user: User | null, perm: Permission): boolean {
+  const roles = userRoles(user)
+  return roles.some((r) => ROLE_PERMISSIONS[r].includes(perm))
+}
+
+function isStaff(user: User | null): boolean {
+  return userRoles(user).length > 0
+}
 
 interface StoredAuth {
   token: string
@@ -21,6 +88,12 @@ export interface AuthValue {
   ready: boolean
   user: User | null
   token: string | null
+  /** true if the user holds any staff role */
+  isStaff: boolean
+  /** check a specific permission (derived from role→permissions map) */
+  hasPermission: (perm: Permission) => boolean
+  /** check if the user holds a specific staff role */
+  hasRole: (role: StaffRole) => boolean
   /**
    * OK → { user }. A 2FA-enabled account returns
    * { pending2FA, enrollment? } — the backend answers 401 with
@@ -132,6 +205,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       ready,
       user: stored?.user ?? null,
       token: stored?.token ?? null,
+      isStaff: isStaff(stored?.user ?? null),
+      hasPermission: (perm: Permission) => hasPermission(stored?.user ?? null, perm),
+      hasRole: (role: StaffRole) => userRoles(stored?.user ?? null).includes(role),
       login,
       verify2FA,
       signup,

@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as LocaleRouteImport } from './routes/$locale'
 import { Route as LocaleIndexRouteImport } from './routes/$locale/index'
 import { Route as LocaleAccountRouteImport } from './routes/$locale/account'
+import { Route as LocaleAdminRouteImport } from './routes/$locale/admin'
 import { Route as LocaleCartRouteImport } from './routes/$locale/cart'
 import { Route as LocaleCheckoutRouteImport } from './routes/$locale/checkout'
 import { Route as LocaleCookiesRouteImport } from './routes/$locale/cookies'
@@ -26,6 +27,7 @@ import { Route as LocaleWishlistRouteImport } from './routes/$locale/wishlist'
 import { Route as Login2faRouteImport } from './routes/login/2fa'
 import { Route as LoginErrorRouteImport } from './routes/login/error'
 import { Route as LoginSuccessRouteImport } from './routes/login/success'
+import { Route as LocaleAdminIndexRouteImport } from './routes/$locale/admin/index'
 import { Route as LocaleArtistsIndexRouteImport } from './routes/$locale/artists/index'
 import { Route as LocaleArtistsSlugRouteImport } from './routes/$locale/artists/$slug'
 import { Route as LocaleAuth2faEnrollRouteImport } from './routes/$locale/auth/2fa-enroll'
@@ -64,6 +66,11 @@ const LocaleIndexRoute = LocaleIndexRouteImport.update({
 const LocaleAccountRoute = LocaleAccountRouteImport.update({
   id: '/account',
   path: '/account',
+  getParentRoute: () => LocaleRoute,
+} as any)
+const LocaleAdminRoute = LocaleAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => LocaleRoute,
 } as any)
 const LocaleCartRoute = LocaleCartRouteImport.update({
@@ -130,6 +137,11 @@ const LoginSuccessRoute = LoginSuccessRouteImport.update({
   id: '/login/success',
   path: '/login/success',
   getParentRoute: () => rootRouteImport,
+} as any)
+const LocaleAdminIndexRoute = LocaleAdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => LocaleAdminRoute,
 } as any)
 const LocaleArtistsIndexRoute = LocaleArtistsIndexRouteImport.update({
   id: '/artists/',
@@ -231,6 +243,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$locale': typeof LocaleRouteWithChildren
   '/$locale/account': typeof LocaleAccountRoute
+  '/$locale/admin': typeof LocaleAdminRouteWithChildren
   '/$locale/cart': typeof LocaleCartRoute
   '/$locale/checkout': typeof LocaleCheckoutRoute
   '/$locale/cookies': typeof LocaleCookiesRoute
@@ -259,6 +272,7 @@ export interface FileRoutesByFullPath {
   '/$locale/itineraries/$id': typeof LocaleItinerariesIdRoute
   '/$locale/orders/$id': typeof LocaleOrdersIdRoute
   '/login/2fa/enroll': typeof Login2faEnrollRoute
+  '/$locale/admin/': typeof LocaleAdminIndexRoute
   '/$locale/artists/': typeof LocaleArtistsIndexRoute
   '/$locale/catalog/': typeof LocaleCatalogIndexRoute
   '/$locale/ceramicstory/': typeof LocaleCeramicstoryIndexRoute
@@ -296,6 +310,7 @@ export interface FileRoutesByTo {
   '/$locale/itineraries/$id': typeof LocaleItinerariesIdRoute
   '/$locale/orders/$id': typeof LocaleOrdersIdRoute
   '/login/2fa/enroll': typeof Login2faEnrollRoute
+  '/$locale/admin': typeof LocaleAdminIndexRoute
   '/$locale/artists': typeof LocaleArtistsIndexRoute
   '/$locale/catalog': typeof LocaleCatalogIndexRoute
   '/$locale/ceramicstory': typeof LocaleCeramicstoryIndexRoute
@@ -307,6 +322,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/$locale': typeof LocaleRouteWithChildren
   '/$locale/account': typeof LocaleAccountRoute
+  '/$locale/admin': typeof LocaleAdminRouteWithChildren
   '/$locale/cart': typeof LocaleCartRoute
   '/$locale/checkout': typeof LocaleCheckoutRoute
   '/$locale/cookies': typeof LocaleCookiesRoute
@@ -335,6 +351,7 @@ export interface FileRoutesById {
   '/$locale/itineraries/$id': typeof LocaleItinerariesIdRoute
   '/$locale/orders/$id': typeof LocaleOrdersIdRoute
   '/login/2fa/enroll': typeof Login2faEnrollRoute
+  '/$locale/admin/': typeof LocaleAdminIndexRoute
   '/$locale/artists/': typeof LocaleArtistsIndexRoute
   '/$locale/catalog/': typeof LocaleCatalogIndexRoute
   '/$locale/ceramicstory/': typeof LocaleCeramicstoryIndexRoute
@@ -347,6 +364,7 @@ export interface FileRouteTypes {
     | '/'
     | '/$locale'
     | '/$locale/account'
+    | '/$locale/admin'
     | '/$locale/cart'
     | '/$locale/checkout'
     | '/$locale/cookies'
@@ -375,6 +393,7 @@ export interface FileRouteTypes {
     | '/$locale/itineraries/$id'
     | '/$locale/orders/$id'
     | '/login/2fa/enroll'
+    | '/$locale/admin/'
     | '/$locale/artists/'
     | '/$locale/catalog/'
     | '/$locale/ceramicstory/'
@@ -412,6 +431,7 @@ export interface FileRouteTypes {
     | '/$locale/itineraries/$id'
     | '/$locale/orders/$id'
     | '/login/2fa/enroll'
+    | '/$locale/admin'
     | '/$locale/artists'
     | '/$locale/catalog'
     | '/$locale/ceramicstory'
@@ -422,6 +442,7 @@ export interface FileRouteTypes {
     | '/'
     | '/$locale'
     | '/$locale/account'
+    | '/$locale/admin'
     | '/$locale/cart'
     | '/$locale/checkout'
     | '/$locale/cookies'
@@ -450,6 +471,7 @@ export interface FileRouteTypes {
     | '/$locale/itineraries/$id'
     | '/$locale/orders/$id'
     | '/login/2fa/enroll'
+    | '/$locale/admin/'
     | '/$locale/artists/'
     | '/$locale/catalog/'
     | '/$locale/ceramicstory/'
@@ -493,6 +515,13 @@ declare module '@tanstack/react-router' {
       path: '/account'
       fullPath: '/$locale/account'
       preLoaderRoute: typeof LocaleAccountRouteImport
+      parentRoute: typeof LocaleRoute
+    }
+    '/$locale/admin': {
+      id: '/$locale/admin'
+      path: '/admin'
+      fullPath: '/$locale/admin'
+      preLoaderRoute: typeof LocaleAdminRouteImport
       parentRoute: typeof LocaleRoute
     }
     '/$locale/cart': {
@@ -585,6 +614,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/login/success'
       preLoaderRoute: typeof LoginSuccessRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/$locale/admin/': {
+      id: '/$locale/admin/'
+      path: '/'
+      fullPath: '/$locale/admin/'
+      preLoaderRoute: typeof LocaleAdminIndexRouteImport
+      parentRoute: typeof LocaleAdminRoute
     }
     '/$locale/artists/': {
       id: '/$locale/artists/'
@@ -722,6 +758,18 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface LocaleAdminRouteChildren {
+  LocaleAdminIndexRoute: typeof LocaleAdminIndexRoute
+}
+
+const LocaleAdminRouteChildren: LocaleAdminRouteChildren = {
+  LocaleAdminIndexRoute: LocaleAdminIndexRoute,
+}
+
+const LocaleAdminRouteWithChildren = LocaleAdminRoute._addFileChildren(
+  LocaleAdminRouteChildren,
+)
+
 interface LocaleItinerariesRouteChildren {
   LocaleItinerariesIdRoute: typeof LocaleItinerariesIdRoute
 }
@@ -735,6 +783,7 @@ const LocaleItinerariesRouteWithChildren =
 
 interface LocaleRouteChildren {
   LocaleAccountRoute: typeof LocaleAccountRoute
+  LocaleAdminRoute: typeof LocaleAdminRouteWithChildren
   LocaleCartRoute: typeof LocaleCartRoute
   LocaleCheckoutRoute: typeof LocaleCheckoutRoute
   LocaleCookiesRoute: typeof LocaleCookiesRoute
@@ -767,6 +816,7 @@ interface LocaleRouteChildren {
 
 const LocaleRouteChildren: LocaleRouteChildren = {
   LocaleAccountRoute: LocaleAccountRoute,
+  LocaleAdminRoute: LocaleAdminRouteWithChildren,
   LocaleCartRoute: LocaleCartRoute,
   LocaleCheckoutRoute: LocaleCheckoutRoute,
   LocaleCookiesRoute: LocaleCookiesRoute,
