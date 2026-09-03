@@ -43,7 +43,6 @@ const ROLE_PERMISSIONS: Record<StaffRole, Permission[]> = {
   ecommerce_operator: [
     'product.read',
     'product.write',
-    'product.publish',
     'certificate.manage',
     'order.read',
     'order.write',

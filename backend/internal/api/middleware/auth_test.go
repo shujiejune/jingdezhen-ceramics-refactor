@@ -112,9 +112,10 @@ func TestRequirePermission_RBACMatrix(t *testing.T) {
 		{perm: models.PermDashboardView, roles: []string{models.RoleCustomerService}, wantStatus: 200},
 		{perm: models.PermDashboardView, roles: []string{models.RoleTravelPlanner}, wantStatus: 403},
 
-		// --- product.publish: NOT in the gate map → only super_admin (bypass) ---
-		// PermProductPublish is super-admin-only by design (PRD §3.1.1); it's
-		// absent from permissionRoleGate so any non-super role is denied.
+		// --- product.publish: super_admin only (PRD §3.1.1) ---
+		// Explicitly in permissionRoleGate so the gate is symmetric with
+		// PermContentPublish. The DB seed (000002 + 000012) grants
+		// product.publish to super_admin only.
 		{perm: models.PermProductPublish, roles: []string{models.RoleSuperAdmin}, wantStatus: 200},
 		{perm: models.PermProductPublish, roles: []string{models.RoleEcommerceOperator}, wantStatus: 403},
 		{perm: models.PermProductPublish, roles: []string{models.RoleContentEditor}, wantStatus: 403},
