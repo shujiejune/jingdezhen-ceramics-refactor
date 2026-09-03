@@ -77,13 +77,13 @@ Contract realities from the backend inventory (absorb **all** of these):
 
 ## M-F5 — Chat, polish & launch readiness
 
-- [ ] Chat widget + agent console — **backend-blocked** (see dependencies); build against mock frames, integrate when unblocked
-- [ ] WS notification push (same blocker): reconnect/backoff, toast on push; poll fallback until then
-- [ ] Performance: admin bundle code-split, image loading audit, font strategy, LCP < 3s target (PRD §4.2)
-- [ ] Accessibility: WCAG 2.1 AA pass on public pages
-- [ ] Playwright E2E: browse → wishlist → cart → checkout (mock gateway), signup + activate, locale switch, itinerary wizard submit, certificate verify
-- [ ] Deploy: node-server preset; Caddy reverse proxy (`/api/*` strip → Fiber, `/media`, `/ws` upgrade); env matrix (`VITE_API_MODE=live`, `SITE_BASE_URL`/`CLIENT_ORIGIN` alignment); post-deploy smoke checklist
-- [ ] Docs sync: `frontend/AGENTS.md` as-built updates, REFACTOR-TODO checkboxes, TDD §12 notes
+- [x] Chat widget + agent console — **backend-blocked** (see dependencies); build against mock frames, integrate when unblocked
+- [x] WS notification push (same blocker): reconnect/backoff, toast on push; poll fallback until then
+- [x] Performance: admin bundle code-split, image loading audit, font strategy, LCP < 3s target (PRD §4.2)
+- [x] Accessibility: WCAG 2.1 AA pass on public pages
+- [x] Playwright E2E: browse → wishlist → cart → checkout (mock gateway), signup + activate, locale switch, itinerary wizard submit, certificate verify
+- [x] Deploy: node-server preset; Caddy reverse proxy (`/api/*` strip → Fiber, `/media`, `/ws` upgrade); env matrix (`VITE_API_MODE=live`, `SITE_BASE_URL`/`CLIENT_ORIGIN` alignment); post-deploy smoke checklist
+- [x] Docs sync: `frontend/AGENTS.md` as-built updates, REFACTOR-TODO checkboxes, TDD §12 notes
 
 **Acceptance:** staging deploy passes the smoke suite; E2E suite green.
 
