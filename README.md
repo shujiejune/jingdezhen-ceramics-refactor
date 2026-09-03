@@ -10,13 +10,13 @@ The platform showcases ceramic history and heritage, sells original artworks wit
 
 ```
                          ┌──────────────────────────────────────────────────┐
-                         │              Cloud VPS / AWS EC2 (Docker)         │
+                         │              Cloud VPS / AWS EC2 (Docker)        │
                          │                                                  │
-    ┌──────────┐         │  ┌──────────┐    ┌───────────┐    ┌───────────┐  │
-    │  CDN     │─────────│─▶│  Caddy   │───▶│ TanStack  │───▶│  Fiber    │  │
-    │ (non-CN  │  HTTPS  │  │ (rev.    │    │ Start SSR │    │  API (Go) │  │
-    │  edges)  │         │  │  proxy)  │    │ (Node)    │    │  :1323    │  │
-    └──────────┘         │  └──────────┘    └───────────┘    └─────┬─────┘  │
+    ┌──────────┐         │  ┌──────────┐    ┌───────────┐     ┌───────────┐ │
+    │  CDN     │─────────│─▶│  Caddy   │───▶│ TanStack  │───▶│  Fiber    │ │
+    │ (non-CN  │  HTTPS  │  │ (rev.    │    │ Start SSR │     │  API (Go) │ │
+    │  edges)  │         │  │  proxy)  │    │ (Node)    │     │  :1323    │ │
+    └──────────┘         │  └──────────┘    └───────────┘     └─────┬─────┘ │
                          │                                      │        │
     ┌──────────┐         │                                      ├───────┐│
     │ Alibaba  │◀────────│──────────────────────────────────────│───────││
@@ -81,7 +81,6 @@ The platform showcases ceramic history and heritage, sells original artworks wit
 
 ```
 ├── AGENTS.md              Contributing guide (read before touching code)
-├── Bullets.md             Resume bullet points (project highlights)
 ├── README.md              This file
 ├── .github/workflows/     CI: lint, unit, integration, build, security, frontend
 ├── backend/               Go + Fiber API (module: jingdezhen-ceramics-backend)
@@ -372,6 +371,7 @@ Then open `http://localhost:3001` (Grafana) or `http://localhost:9090` (Promethe
 | `docs/TDD.md` | Technical design (v0.1) — architecture decisions by section |
 | `docs/REFACTOR-TODO.md` | Milestone task tracker (M0–M4, all complete) |
 | `docs/deploy-aws-ec2.md` | Step-by-step AWS EC2 deployment guide (instance setup, Docker, TLS, monitoring, backups) |
+| `docs/Bullets.md` | Resume bullet points (project highlights) |
 | `AGENTS.md` | Contributing guide (read before touching code) |
 | `frontend/AGENTS.md` | Frontend-specific guide (stack, conventions, do-not-do rules) |
 | `backend/k6/README.md` | Load test usage + thresholds |

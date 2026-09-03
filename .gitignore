@@ -1,3 +1,6 @@
+# --- ZCode agent ---
+.zcode/
+
 # --- OS / editor ---
 .DS_Store
 Thumbs.db
