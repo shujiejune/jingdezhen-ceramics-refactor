@@ -196,11 +196,15 @@ func (h *Hub) runSubscriber(ctx context.Context) {
 // deliverLocal writes a pre-marshalled payload to the local client's
 // send channel if one exists. Non-blocking: a full channel drops the
 // message (same behavior as the original in-memory hub).
+//
+// The send happens under h.mu.RLock so that Run()'s close(client.send)
+// (which holds h.mu.Lock) can't race with the send here. A non-blocking
+// select (default: drop) prevents deadlock if the channel is full.
 func (h *Hub) deliverLocal(userID string, payload []byte) {
 	h.mu.RLock()
-	client, ok := h.clients[userID]
-	h.mu.RUnlock()
+	defer h.mu.RUnlock()
 
+	client, ok := h.clients[userID]
 	if !ok {
 		return
 	}
