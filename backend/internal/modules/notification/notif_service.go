@@ -70,14 +70,20 @@ func (s *Service) CreateNotification(ctx context.Context, params models.CreateNo
 		return nil, err
 	}
 
-	// Real-time push logic
-	if s.webSocketService != nil && s.webSocketService.IsUserOnline(params.RecipientUserID) {
-		// Before sending, populate the ActorUser field here for the real-time message.
-		actor, err := s.userRepo.FindByID(ctx, params.ActorUserID)
-		if err != nil {
-			log.Printf("WARN: could not find actor user %s for real-time push: %v", params.ActorUserID, err)
-		} else {
-			notification.ActorUser = actor
+	// Real-time push: publish to Redis pub/sub (or local delivery in
+	// single-instance mode). With Redis pub/sub, the user may be connected
+	// on a different instance, so we can't gate on local IsUserOnline. The
+	// Hub.SendToUser publishes regardless; the instance with the user's WS
+	// connection delivers it. The actor-user lookup is best-effort — the
+	// real-time payload is richer with it but works without.
+	if s.webSocketService != nil {
+		if params.ActorUserID != "" {
+			actor, err := s.userRepo.FindByID(ctx, params.ActorUserID)
+			if err != nil {
+				log.Printf("WARN: could not find actor user %s for real-time push: %v", params.ActorUserID, err)
+			} else {
+				notification.ActorUser = actor
+			}
 		}
 		s.webSocketService.SendToUser(params.RecipientUserID, notification)
 	}

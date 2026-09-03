@@ -296,8 +296,11 @@ func runServe(rootCtx context.Context, cfg config.Config) {
 	defer jobClient.Close()
 	_ = jobClient // injected into services as they need to enqueue jobs
 
-	// --- WebSocket Hub ---
-	wsHub := ws.NewHub()
+	// --- WebSocket Hub (TDD §5.3, PRD §3.3.1) ---
+	// Redis-backed pub/sub fan-out: SendToUser publishes to a per-user
+	// Redis channel; the instance with the user's WS connection delivers.
+	// The worker also publishes (it has no WS clients — see runWorker).
+	wsHub := ws.NewHub(redisClient)
 	go wsHub.Run(ctx)
 	wsHandler := ws.NewHandler(wsHub)
 
@@ -624,6 +627,13 @@ func runWorker(rootCtx context.Context, cfg config.Config) {
 	}
 	defer dbPool.Close()
 
+	// --- Redis client (for WS notification publish + future worker-side cache) ---
+	wRedisClient, err := platformredis.NewClient(rootCtx, cfg.RedisURL)
+	if err != nil {
+		log.Fatalf("Unable to connect to Redis (worker): %v", err)
+	}
+	defer wRedisClient.Close()
+
 	// --- FX pipeline (TDD §7) ---
 	// The worker owns Refresh: ECB fetch → markup → upsert. Serve mode owns
 	// Convert (read-time); both share the fx_rates table.
@@ -712,9 +722,16 @@ func runWorker(rootCtx context.Context, cfg config.Config) {
 	wProductRepo := product.NewRepository(dbPool)
 	wUserRepo := user.NewRepository(dbPool)
 	wNotifRepo := notification.NewRepository(dbPool)
-	// Worker has no WS hub (only serve mode serves WebSockets); pass nil — the
-	// notification service is nil-safe (creates the row, skips the WS push).
-	wNotifService := notification.NewService(wNotifRepo, wUserRepo, nil)
+	// Worker has no WebSocket clients, but it can publish notifications
+	// to Redis pub/sub so the serve instance with the user connected
+	// delivers them in real time. The worker's Hub has a Redis client but
+	// no Run() goroutine (no subscriber, no local client map) — it's a
+	// publisher-only hub. IsUserOnline always returns false on the worker
+	// (no local clients), which is fine: the notification service skips
+	// the real-time push when the user isn't online on this instance, but
+	// the serve instance's subscriber delivers if the user is connected
+	// there. The notification row is still created in the DB regardless.
+	wNotifService := notification.NewService(wNotifRepo, wUserRepo, ws.NewHub(wRedisClient))
 	// wJobClient declared above (with wItineraryService). Same client for
 	// low-stock emails + SLA emails.
 	// The worker's MarkPaid enqueues stock:check to itself (asynq supports
