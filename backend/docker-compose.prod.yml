@@ -155,8 +155,8 @@ services:
     environment:
       - NODE_ENV=production
       - VITE_API_MODE=live
-      - VITE_API_BASE_URL=http://api:1323
-      - VITE_API_BROWSER_BASE=http://api:1323
+      - VITE_API_BASE_URL=http://api:1323      # SSR server-to-server (internal Docker DNS)
+      - VITE_API_BROWSER_BASE=/api                  # browser same-origin → Caddy strips /api
     depends_on:
       - api
     restart: unless-stopped
