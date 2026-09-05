@@ -70,6 +70,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    volumes:
+      - ./.env.prod:/app/.env:ro      # viper reads config from this file (see config.go)
     restart: unless-stopped
 
   # --- Go Worker (Asynq background jobs + cron scheduler) ---
@@ -114,6 +116,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    volumes:
+      - ./.env.prod:/app/.env:ro
     restart: unless-stopped
 
   # --- PostgreSQL ---
