@@ -33,8 +33,9 @@
 	}
 
 	# API — strip /api prefix before forwarding to Fiber
-	handle /api/* {
-		strip_prefix /api
+	# (handle_path auto-strips the matched path, unlike handle + strip_prefix
+	# which Caddy v2 rejects as an unrecognized directive in this context)
+	handle_path /api/* {
 		reverse_proxy {$API_UPSTREAM:localhost:1323}
 	}
 
